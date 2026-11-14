@@ -1,4 +1,4 @@
-import { AlertBanner, Button, Card, SelectField, TextField } from "@noor/ui";
+import { AlertBanner, Button, Card, TextField } from "@noor/ui";
 import { type FormEvent, useState } from "react";
 import { useNavigate } from "react-router";
 import { PageTitle } from "@/components/page-title";
@@ -6,18 +6,17 @@ import {
   CHILD_PIN_LENGTH,
   DISPLAY_NAME_MAX_LENGTH,
   EMPTY_CHILD_FORM,
-  birthYearOptions,
+  dateOfBirthRange,
   validateChildForm,
   type ChildFormErrors,
   type ChildFormValues,
 } from "@/features/children/child-form";
 import { createChild, setChildPin, type ChildProfile } from "@/features/children/children-api";
-import { formatNumber } from "@/i18n/format";
 import { useI18n } from "@/i18n/locale-data";
 import { getSession, setActiveChild } from "@/lib/session/session-store";
 
-// O01 — add a child (FR-ONB-001). A name or nickname, the birth year and a PIN only: no email or
-// phone number for children (UI spec, privacy rules).
+// O01 — add a child (FR-AUTH-002). A name or nickname, the date of birth the API needs, and a PIN
+// only: no email or phone number for children (UI spec, privacy rules).
 
 type SaveFailure = "saveFailed" | "pinFailed";
 
@@ -31,7 +30,7 @@ export function Component() {
   // Set once the child exists, so a failed PIN step retries the PIN only.
   const [created, setCreated] = useState<ChildProfile>();
   const [isDone, setIsDone] = useState(false);
-  const currentYear = new Date().getFullYear();
+  const today = new Date();
 
   function update(field: keyof ChildFormValues, value: string) {
     setValues((current) => ({ ...current, [field]: value }));
@@ -41,8 +40,8 @@ export function Component() {
     let child = created;
     if (!child) {
       const result = await createChild(token, {
-        displayName: values.displayName.trim(),
-        birthYear: Number(values.birthYear),
+        name: values.displayName.trim(),
+        dateOfBirth: values.dateOfBirth,
       });
       if (!result.ok) {
         setFailure("saveFailed");
@@ -62,7 +61,7 @@ export function Component() {
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     const session = getSession();
-    const found = validateChildForm(values, currentYear);
+    const found = validateChildForm(values, today);
     setErrors(found);
     setFailure(undefined);
     if (Object.keys(found).length > 0 || session.status !== "signed-in") return;
@@ -90,13 +89,7 @@ export function Component() {
     return error && dict.addChild.errors[error];
   };
 
-  const yearOptions = [
-    { value: "", label: dict.addChild.birthYearPrompt },
-    ...birthYearOptions(currentYear).map((year) => ({
-      value: String(year),
-      label: formatNumber(locale, year, { useGrouping: false }),
-    })),
-  ];
+  const birthRange = dateOfBirthRange(today);
 
   return (
     <>
@@ -138,15 +131,17 @@ export function Component() {
             value={values.displayName}
             onChange={(event) => update("displayName", event.target.value)}
           />
-          <SelectField
-            id="child-birth-year"
-            label={dict.addChild.birthYearLabel}
-            error={errorText("birthYear")}
+          <TextField
+            id="child-date-of-birth"
+            type="date"
+            label={dict.addChild.dateOfBirthLabel}
+            error={errorText("dateOfBirth")}
             required
-            options={yearOptions}
+            min={birthRange.min}
+            max={birthRange.max}
             disabled={created !== undefined}
-            value={values.birthYear}
-            onChange={(event) => update("birthYear", event.target.value)}
+            value={values.dateOfBirth}
+            onChange={(event) => update("dateOfBirth", event.target.value)}
           />
           <TextField
             id="child-pin"

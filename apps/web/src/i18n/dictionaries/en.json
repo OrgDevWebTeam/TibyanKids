@@ -33,18 +33,18 @@
     "chooseAnother": "Choose another profile"
   },
   "addChild": {
-    "intro": "Children need only a name or nickname and a birth year. No email or phone number.",
+    "intro": "Children need only a name or nickname and a date of birth. No email or phone number.",
     "nameLabel": "Name or nickname",
     "nameHint": "Shown in the app. A nickname is fine.",
-    "birthYearLabel": "Birth year",
-    "birthYearPrompt": "Choose a year",
+    "dateOfBirthLabel": "Date of birth",
     "pinLabel": "Child's PIN",
     "pinHint": "4 digits. Your child uses it to open their profile.",
     "pinConfirmLabel": "Type the PIN again",
     "submit": "Save",
     "errors": {
       "required": "Please fill in this field.",
-      "tooLong": "Use 50 characters or fewer.",
+      "tooLong": "Use 40 characters or fewer.",
+      "ageRange": "Noor is for children aged 6 to 14.",
       "pinFormat": "Use exactly 4 digits.",
       "pinMismatch": "The two PINs do not match."
     },

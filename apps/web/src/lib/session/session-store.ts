@@ -1,7 +1,7 @@
 import { type Role } from "@noor/contracts/roles";
 import { useSyncExternalStore } from "react";
 
-/** The signed-in account, as GET /v1/me returns it. */
+/** The signed-in account, from the API's login or register answer. */
 export type Account = { userId: string; roles: Role[]; familyId: string | null };
 
 /** The child using the app after a correct PIN on G08. Only what the screens show. */

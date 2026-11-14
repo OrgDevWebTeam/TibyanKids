@@ -4,14 +4,17 @@ import { useNavigate } from "react-router";
 import { PageTitle } from "@/components/page-title";
 import { type Locale } from "@/i18n/config";
 import { useI18n } from "@/i18n/locale-data";
-import { fetchAccount } from "@/lib/session/account";
+import { logIn, register, type SignedInAccount } from "@/lib/session/account";
 import { signIn, signOut, useSession } from "@/lib/session/session-store";
+import { type ApiResult } from "@/lib/api/client";
 
-// Development only: starts a parent session with a token from the local test identity provider
-// (apps/api/scripts/dev-idp.mjs, proxied at /dev-idp by the Vite dev server). Real sign-in (G06)
-// waits for the identity provider decision. Production bundles do not contain this page.
+// Development only: signs in a test parent on the local API (apps/api), creating the account the
+// first time. Real sign-in (G06) comes with its task. Production bundles do not contain this page.
 
-const DEV_IDP_TOKEN_URL = "/dev-idp/token";
+// Local test accounts only: the test ID becomes the email, and every test account shares this
+// password. The `.test` domain is reserved, so no real address can match.
+const TEST_EMAIL_DOMAIN = "noor.test";
+const TEST_PASSWORD = "local-test-password";
 
 // The text lives here, not in the dictionaries, so it stays out of production bundles with the page.
 const TEXT: Record<
@@ -20,7 +23,7 @@ const TEXT: Record<
     pageTitle: string;
     heading: string;
     intro: string;
-    noToken: string;
+    noApi: string;
     refused: string;
     signedInAs: string;
     signOut: string;
@@ -33,39 +36,38 @@ const TEXT: Record<
     pageTitle: "Dev session",
     heading: "Test parent session",
     intro:
-      "Gets a signed test token from the local dev-idp and keeps it in memory only. A reload signs out. Use a different parent ID to test a second family.",
-    noToken: "No token. Is dev-idp running?",
-    refused: "The API refused the token. Is the API running with the dev-idp settings in .env?",
+      "Signs in a test parent on the local API, creating the account the first time, and keeps the token in memory only. A reload signs out. Use a different parent ID to test a second family.",
+    noApi: "The API did not answer. Is it running?",
+    refused: "The API refused the test account.",
     signedInAs: "Signed in as",
     signOut: "Sign out",
     idLabel: "Test parent ID",
-    idHint: "Any text. The same ID always opens the same family.",
+    idHint: "Letters, digits and dashes. The same ID always opens the same family.",
     start: "Start session",
   },
   ar: {
     pageTitle: "جلسة تجريبية",
     heading: "جلسة ولي أمر تجريبية",
     intro:
-      "تحصل على رمز تجريبي موقّع من مزوّد الهوية المحلي (dev-idp) وتحفظه في الذاكرة فقط. إعادة تحميل الصفحة تُنهي الجلسة. استخدم معرّفًا مختلفًا لتجربة عائلة ثانية.",
-    noToken: "لم يصل رمز. هل dev-idp يعمل؟",
-    refused: "رفض الـ API الرمز. هل يعمل الـ API بإعدادات dev-idp في ملف .env؟",
+      "تسجّل دخول ولي أمر تجريبي على الـ API المحلي، وتنشئ الحساب في المرة الأولى، وتحفظ الرمز في الذاكرة فقط. إعادة تحميل الصفحة تُنهي الجلسة. استخدم معرّفًا مختلفًا لتجربة عائلة ثانية.",
+    noApi: "لم يردّ الـ API. هل هو يعمل؟",
+    refused: "رفض الـ API الحساب التجريبي.",
     signedInAs: "تم الدخول باسم",
     signOut: "تسجيل الخروج",
     idLabel: "معرّف ولي الأمر التجريبي",
-    idHint: "أي نص. المعرّف نفسه يفتح العائلة نفسها دائمًا.",
+    idHint: "حروف إنجليزية وأرقام وشرطات. المعرّف نفسه يفتح العائلة نفسها دائمًا.",
     start: "ابدأ الجلسة",
   },
 };
 
-const DEV_IDP_COMMAND = "pnpm --filter @noor/api dev:idp";
+const API_COMMAND = "pnpm --filter @noor/api dev";
 
-async function requestTestToken(subject: string): Promise<string | undefined> {
-  try {
-    const response = await fetch(`${DEV_IDP_TOKEN_URL}?sub=${encodeURIComponent(subject)}`);
-    return response.ok ? (await response.text()).trim() : undefined;
-  } catch {
-    return undefined;
-  }
+/** Logs the test parent in, and registers it first if the account does not exist yet. */
+async function startTestSession(subject: string): Promise<ApiResult<SignedInAccount>> {
+  const email = `${subject}@${TEST_EMAIL_DOMAIN}`;
+  const loggedIn = await logIn(email, TEST_PASSWORD);
+  if (loggedIn.ok || loggedIn.error.kind !== "unauthorized") return loggedIn;
+  return register(subject, email, TEST_PASSWORD);
 }
 
 export function Component() {
@@ -74,24 +76,20 @@ export function Component() {
   const navigate = useNavigate();
   const session = useSession();
   const [subject, setSubject] = useState("dev-parent-1");
-  const [problem, setProblem] = useState<"noToken" | "refused">();
+  const [problem, setProblem] = useState<"noApi" | "refused">();
   const [isWorking, setIsWorking] = useState(false);
 
   async function handleStart() {
     setIsWorking(true);
     setProblem(undefined);
-    const token = await requestTestToken(subject);
-    const account = token ? await fetchAccount(token) : undefined;
+    const result = await startTestSession(subject.trim());
     setIsWorking(false);
-    if (!token) {
-      setProblem("noToken");
+    if (!result.ok) {
+      const noAnswer = result.error.kind === "network" || result.error.kind === "server";
+      setProblem(noAnswer ? "noApi" : "refused");
       return;
     }
-    if (!account?.ok) {
-      setProblem("refused");
-      return;
-    }
-    signIn(token, account.data);
+    signIn(result.data.token, result.data.account);
     void navigate(`/${locale}/profiles`);
   }
 
@@ -103,10 +101,10 @@ export function Component() {
       {problem && (
         <AlertBanner tone="danger">
           {text[problem]}
-          {problem === "noToken" && (
+          {problem === "noApi" && (
             <>
               {" "}
-              <code dir="ltr">{DEV_IDP_COMMAND}</code>
+              <code dir="ltr">{API_COMMAND}</code>
             </>
           )}
         </AlertBanner>
