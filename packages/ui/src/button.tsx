@@ -5,14 +5,20 @@ export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 export type ButtonSize = "md" | "lg";
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
-  primary: "bg-primary text-on-primary hover:brightness-110",
-  secondary: "border border-control bg-surface text-ink hover:bg-surface-muted",
-  ghost: "bg-transparent text-ink hover:bg-surface-muted",
-  danger: "bg-danger text-on-primary hover:brightness-110",
+  // As in the design system: darker shades on hover and press, grey when disabled. A loading
+  // button is disabled too, but keeps its colour so it still looks like the action in progress.
+  primary: cx(
+    "bg-primary text-on-primary hover:bg-primary-hover active:bg-primary-active",
+    "[&:disabled:not([aria-busy=true])]:bg-line",
+  ),
+  secondary: "border border-control bg-surface text-ink hover:bg-surface-muted disabled:opacity-50",
+  ghost: "bg-transparent text-ink hover:bg-surface-muted disabled:opacity-50",
+  danger: "bg-danger text-on-primary hover:brightness-110 disabled:opacity-50",
 };
 
+// Button M (16px) and L (18px) from the design system, both semibold.
 const SIZE_CLASSES: Record<ButtonSize, string> = {
-  md: "min-h-control px-4 text-body",
+  md: "min-h-control px-5 text-base",
   lg: "min-h-control px-6 text-lg",
 };
 
@@ -23,9 +29,9 @@ export function buttonClasses(
   fullWidth = false,
 ): string {
   return cx(
-    "inline-flex items-center justify-center gap-2 rounded-control font-semibold transition",
+    "inline-flex items-center justify-center gap-2 rounded-full font-semibold transition",
     "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus",
-    "disabled:cursor-not-allowed disabled:opacity-50",
+    "disabled:cursor-not-allowed",
     VARIANT_CLASSES[variant],
     SIZE_CLASSES[size],
     fullWidth && "w-full",
