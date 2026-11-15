@@ -20,7 +20,7 @@ from typing import NamedTuple
 
 from app.model_files import check_revision, local_copy
 from app.policy import decide, make_finding
-from app.schemas import AnalysisResult
+from app.schemas import AnalysisResult, Finding
 
 NAME = "whisper-quran"  # the model's name in every result (AnalysisResult.model)
 HF_REPO = "tarteel-ai/whisper-base-ar-quran"  # where the model lives on Hugging Face
@@ -203,29 +203,38 @@ def finding_confidence(evidence: tuple[int, ...], confidences: list[float]) -> f
     return min((confidences[p] for p in evidence), default=0.0)
 
 
-def analyze(samples, reference_words: list[str], level: str, attempt_id: str) -> AnalysisResult:
+def find_errors(samples, reference_words: list[str]) -> list[Finding]:
     """
-    Checks one recording of one ayah for skipped, different or extra words.
+    The skipped, different and extra words in one recording of one ayah: at most one finding per
+    word, in word order. Nothing is decided here: decide() turns findings into a decision.
     samples: 16 kHz mono float32 audio that passed the quality gate (the clip).
     reference_words: the ayah's words in Imlaei spelling (text_imlaei in reference_quran_text.json).
+    Raises Runaway when the model did not finish writing (see transcribe()).
+    """
+    said_words, confidences = transcribe(samples)
+
+    # One finding per word: the first one found
+    findings_by_word = {}
+    for error in compare_words(reference_words, said_words):
+        if error.word not in findings_by_word:
+            confidence = finding_confidence(error.evidence, confidences)
+            # No word timings yet, so the replay segment is 0-0 until the new timings are added
+            findings_by_word[error.word] = make_finding(error.word, error.code, confidence, 0, 0)
+
+    return [findings_by_word[word] for word in sorted(findings_by_word)]
+
+
+def analyze(samples, reference_words: list[str], level: str, attempt_id: str) -> AnalysisResult:
+    """
+    This model alone: its errors (find_errors()) and the decision for the child's level, as one
+    result. Used by scripts/run_real_audio.py; the service will combine both models' findings first.
     """
     started = time.perf_counter()
     try:
-        said_words, confidences = transcribe(samples)
+        decision, findings = decide(find_errors(samples, reference_words), level)
     except Runaway:
         # The text is a loop, not what the child said: the teacher checks the ayah (FR-QUR-006)
         decision, findings = "uncertain", []
-    else:
-        # One finding per word: the first one found
-        findings_by_word = {}
-        for error in compare_words(reference_words, said_words):
-            if error.word not in findings_by_word:
-                confidence = finding_confidence(error.evidence, confidences)
-                # No word timings yet, so the replay segment is 0-0 until the new timings are added
-                findings_by_word[error.word] = make_finding(error.word, error.code, confidence, 0, 0)
-
-        findings = [findings_by_word[word] for word in sorted(findings_by_word)]
-        decision, findings = decide(findings, level)
     return AnalysisResult(
         attemptId=attempt_id,
         model=NAME,
