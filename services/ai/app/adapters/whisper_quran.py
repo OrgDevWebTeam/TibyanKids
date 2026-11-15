@@ -9,17 +9,18 @@
 #      memorization finding (taxonomy 1.4: ERR_MEM_* come from this comparison).
 # The transcript itself never leaves this file (contract rule: model text is never shown to a child).
 import difflib
+import os
 import re
 import time
-
-import torch
-from transformers import WhisperForConditionalGeneration, WhisperProcessor
 
 from app.policy import decide, make_finding
 from app.schemas import AnalysisResult
 
 MODEL = "whisper-quran"
 MODEL_NAME = "tarteel-ai/whisper-base-ar-quran"
+# Exact model revision (Hugging Face commit), so an update on the Hub never changes results silently.
+# The week 2 run used this one. Change it only together with an evaluation run (AI release rules).
+MODEL_REVISION = os.environ.get("WHISPER_QURAN_REVISION", "5c3c53fdf9272c4f6ee0bee09a1e5a4a615ee25c")
 SAMPLE_RATE = 16000
 
 # Harakat, Quranic marks (including small waw and small yaa) and tatweel
@@ -44,6 +45,9 @@ model = None
 def load_model():
     global processor, model
     if model is None:
+        # Imported here so the word comparison can be tested without torch (CI has no GPU packages)
+        from transformers import WhisperForConditionalGeneration, WhisperProcessor
+
         processor = WhisperProcessor.from_pretrained(MODEL_NAME)
         model = WhisperForConditionalGeneration.from_pretrained(MODEL_NAME).to("cuda").eval()
     return processor, model
@@ -51,8 +55,7 @@ def load_model():
 
 def model_version():
     # Exact model revision (OPS-008)
-    commit = load_model()[1].config._commit_hash or "unknown"
-    return f"{MODEL_NAME}@{commit[:12]}"
+    return f"{MODEL_NAME}@{MODEL_REVISION[:12]}"
 
 
 def normalize(word):
@@ -63,6 +66,8 @@ def normalize(word):
 
 def transcribe(samples):
     """Returns (words, confidence). Confidence = the average probability of the model's tokens."""
+    import torch
+
     processor, model = load_model()
     features = processor(samples, sampling_rate=SAMPLE_RATE, return_tensors="pt").input_features.to("cuda")
     with torch.no_grad():
