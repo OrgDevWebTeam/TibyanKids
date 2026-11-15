@@ -174,3 +174,46 @@ def test_a_model_that_does_not_finish_sends_the_ayah_to_the_teacher(fake_model, 
 def test_the_output_cap_fits_the_model():
     # 448 positions in whisper-base, 4 of them taken by the prompt; the longest prototype ayah takes 75
     assert 75 * 2 <= whisper_quran.MAX_NEW_TOKENS <= 448 - 4
+
+
+def test_load_model_asks_for_the_pinned_revision(monkeypatch):
+    # The pin was once lost in a merge while model_version() kept reporting it (OPS-008).
+    # A fake transformers module records what load_model() asks for; no GPU or download needed.
+    import sys
+    import types
+
+    calls = {}
+
+    class FakeModel:
+        config = types.SimpleNamespace(max_target_positions=448)
+
+        @classmethod
+        def from_pretrained(cls, name, **kwargs):
+            calls["model"] = (name, kwargs)
+            return cls()
+
+        def to(self, device):
+            return self
+
+        def eval(self):
+            return self
+
+    class FakeProcessor:
+        @classmethod
+        def from_pretrained(cls, name, **kwargs):
+            calls["processor"] = (name, kwargs)
+            return cls()
+
+    fake = types.ModuleType("transformers")
+    fake.WhisperForConditionalGeneration = FakeModel
+    fake.WhisperProcessor = FakeProcessor
+    monkeypatch.setitem(sys.modules, "transformers", fake)
+    monkeypatch.setattr(whisper_quran, "model", None)
+    monkeypatch.setattr(whisper_quran, "processor", None)
+
+    whisper_quran.load_model()
+
+    pin = whisper_quran.MODEL_REVISION
+    assert calls["processor"] == (whisper_quran.MODEL_NAME, {"revision": pin})
+    assert calls["model"] == (whisper_quran.MODEL_NAME, {"revision": pin, "use_safetensors": False})
+    assert whisper_quran.model_version().endswith("@" + pin[:12])

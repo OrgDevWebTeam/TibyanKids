@@ -61,8 +61,17 @@ def load_model():
         # Imported here so the word comparison can be tested without torch (CI has no GPU packages)
         from transformers import WhisperForConditionalGeneration, WhisperProcessor
 
-        processor = WhisperProcessor.from_pretrained(MODEL_NAME)
-        model = WhisperForConditionalGeneration.from_pretrained(MODEL_NAME).to("cuda").eval()
+        if not re.fullmatch(r"[0-9a-f]{40}", MODEL_REVISION):
+            raise ValueError("WHISPER_QURAN_REVISION must be a full 40-character commit hash")
+        processor = WhisperProcessor.from_pretrained(MODEL_NAME, revision=MODEL_REVISION)
+        # use_safetensors=False loads the weights of the pinned commit itself. Otherwise transformers
+        # fetches a converted copy from the Hub's automatic conversion pull request (refs/pr/3),
+        # which is not part of the pin.
+        model = (
+            WhisperForConditionalGeneration.from_pretrained(MODEL_NAME, revision=MODEL_REVISION, use_safetensors=False)
+            .to("cuda")
+            .eval()
+        )
         # The prompt (start, language, task, no-timestamps) takes 4 positions before the text
         if MAX_NEW_TOKENS + 4 > model.config.max_target_positions:
             raise ValueError("MAX_NEW_TOKENS does not fit the model's positions")
