@@ -7,13 +7,112 @@ over HTTP; browsers never do. It is Python, so it is not part of the pnpm worksp
 - Audio input and evaluation data: [`docs/ai/audio-io-and-eval-dataset.md`](../../docs/ai/audio-io-and-eval-dataset.md)
 - Safety rules: [`docs/ai/genai_and_safety_boundaries.en.md`](../../docs/ai/genai_and_safety_boundaries.en.md)
 
-## Where we are (week 2)
+## Where we are (week 3)
 
 - The endpoint returns **mock** results only (`MOCK_MODE=true`), so nobody needs a GPU to build
   features. With `MOCK_MODE=false` it returns `503 MODELS_NOT_READY`.
 - The quality gate and both model adapters run on real audio from
   [`scripts/run_real_audio.py`](scripts/run_real_audio.py). They are connected to the endpoint in
   week 3, together with merging the two models.
+
+## How it works
+
+One request checks **one recorded ayah**. The recording goes through four steps:
+
+```text
+ audio upload (webm, mp4, ogg, wav or mp3; at most 5 MB)
+      │
+      ▼
+ 1. DECODE                       app/audio.py  decode_audio()
+    ffmpeg turns any format into 16 kHz mono samples (numbers between -1 and 1)
+      │
+      ▼
+ 2. QUALITY GATE                 app/audio.py  check_quality()
+    Is there speech? Is it loud and clear enough? Is the reading under 30 s?
+    no  ──► result with quality = silent / too_short / too_noisy / too_long
+            (decision "uncertain", no findings; the child records again, not an attempt)
+    yes ──► the "clip": the reading itself, without the silence around it
+      │
+      ▼
+ 3. TWO MODELS, each looks for a different kind of mistake
+    ┌─────────────────────────────────────┬─────────────────────────────────────┐
+    │ app/adapters/muaalem.py             │ app/adapters/whisper_quran.py       │
+    │ quran-muaalem: listens to SOUNDS    │ whisper-quran: writes down WORDS    │
+    │ wrong letter, wrong vowel, tajweed  │ skipped, different or extra words   │
+    │ compares with the Uthmani text      │ compares with the Imlaei words      │
+    └─────────────────┬───────────────────┴──────────────────┬──────────────────┘
+                      └──────────► findings ◄────────────────┘
+          one finding = a word number + an error code + the model's confidence (0-1)
+      │
+      ▼
+ 4. DECISION                     app/policy.py  decide()
+    any finding below the confidence threshold  ──► "uncertain" (a teacher checks it)
+    a finding that stops the child's level      ──► "error"     (the child reads again)
+    otherwise                                   ──► "accepted"  (other findings kept as notes)
+      │
+      ▼
+ RESULT                          app/schemas.py  AnalysisResult
+ the format the API receives: docs/contracts/ai-result.md
+```
+
+**Today (week 3):** the HTTP endpoint (`app/main.py`) still returns **mock** results. The real steps
+1–4 run from `scripts/run_real_audio.py`, and each model still decides on its own. Merging the two
+models' findings into one result, and connecting it to the endpoint, is the week-3 work.
+
+### Where to start reading
+
+1. `app/schemas.py`: what a result and a finding look like.
+2. `app/policy.py`: how findings become a decision. Short, and the core rules of the product.
+3. `app/mock.py`: the same rules with fake findings. Good for seeing a whole result.
+4. `app/audio.py`: decoding and the quality gate.
+5. `app/adapters/whisper_quran.py`, then `app/adapters/muaalem.py`: the models.
+6. `scripts/run_real_audio.py`: everything together on real recordings.
+
+### File map
+
+| File                                                   | What it does                                                                   |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------ |
+| `app/main.py`                                          | The HTTP endpoints (`/health`, `/v1/recitation/analyze`). Mock only for now    |
+| `app/schemas.py`                                       | The result format (Pydantic), kept in line with the contract's JSON Schema     |
+| `app/policy.py`                                        | Error codes → category and child message; findings → decision for a level      |
+| `app/mock.py`                                          | Fake but rule-following results for `MOCK_MODE`, so nobody needs a GPU         |
+| `app/audio.py`                                         | Decoding (ffmpeg) and the quality gate (Silero VAD, loudness, signal-to-noise) |
+| `app/reference.py`                                     | The text of the 25 prototype ayat (`packages/contracts/data`)                  |
+| `app/model_files.py`                                   | Where the model files are loaded from (`services/ai/models/` or the cache)     |
+| `app/adapters/muaalem.py`                              | quran-muaalem: sounds and tajweed → findings                                   |
+| `app/adapters/whisper_quran.py`                        | whisper-quran: transcript → word comparison → findings                         |
+| `scripts/run_real_audio.py`                            | Runs the gate and both models on a folder of recordings (GPU machine)          |
+| `scripts/download_models.py`                           | Puts the pinned model files into `services/ai/models/` (GPU machine)           |
+| `scripts/align_word_timings.py`                        | Proposes word timings for the reference recitation (GPU machine)               |
+| `tests/test_contract.py`                               | The service and the mock follow the contract's JSON Schema and message list    |
+| `tests/test_policy.py`                                 | The decision rules                                                             |
+| `tests/test_quality_gate.py`                           | The quality gate, with generated audio                                         |
+| `tests/test_whisper_compare.py`                        | whisper-quran's word comparison, confidence and model loading (no GPU needed)  |
+| `tests/test_reference.py`, `tests/test_model_files.py` | Loading the reference text and the model files                                 |
+
+CI runs every test without a GPU: the models are faked or not needed. Changes to the model code are
+also checked on the GPU machine with `scripts/run_real_audio.py` on the 25 reference recordings.
+
+### Words you will meet in the code
+
+| Word                    | Meaning                                                                                                                                                                      |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ayah (plural ayat)      | One verse of the Quran. The prototype uses 25 ayat from 5 short surahs (chapters)                                                                                            |
+| Uthmani / Imlaei        | Two ways of writing the same Quran text: Uthmani is the script of the printed Quran; Imlaei is ordinary modern spelling                                                      |
+| tajweed                 | The rules of correct Quran recitation, for example **madd** (holding a vowel longer), **ghunna** (a nasal sound on n and m) and **qalqala** (a small bounce on some letters) |
+| haraka (plural harakat) | A short vowel mark (a, i, u) on a letter                                                                                                                                     |
+| finding                 | One problem in one word: word number, error code, confidence. Defined in `schemas.py`                                                                                        |
+| decision                | `accepted`, `error` or `uncertain` for the whole ayah. Made by `policy.py`                                                                                                   |
+| level                   | `beginner`, `intermediate` or `advanced`: decides which kinds of error stop the child                                                                                        |
+| confidence threshold    | Below it (0.70 for now) a finding is not trusted and a teacher checks the ayah                                                                                               |
+| reference recitation    | A correct recording of each ayah by an adult reciter, used for word replay and checks                                                                                        |
+| phoneme                 | One speech sound. quran-muaalem predicts the phonemes it hears                                                                                                               |
+| CTC                     | How quran-muaalem outputs sounds: one prediction every ~40 ms, which can also be lined up with a known text                                                                  |
+| VAD                     | Voice activity detection: finds where speech is. We use Silero VAD                                                                                                           |
+| SNR                     | Signal-to-noise ratio: how much louder the voice is than the background, in dB                                                                                               |
+| clip                    | The part of the recording the models get: the reading, without the silence before and after it                                                                               |
+| mock mode               | `MOCK_MODE=true`: fake results, no models, no GPU. The default on laptops                                                                                                    |
+| pinned revision         | The exact version of a model, so results never change without us choosing to                                                                                                 |
 
 ## Run the mock service
 
@@ -87,21 +186,6 @@ from inside the repository.
 | ayah divisible by 5 (5, 10, …) | word 1 skipped, confidence 0.4 → `uncertain`             |
 | ayah divisible by 3 (3, 6, 9)  | word 1 read as a different word → `error` at every level |
 | any other ayah                 | `accepted`                                               |
-
-## Files
-
-| File                            | What it does                                                       |
-| ------------------------------- | ------------------------------------------------------------------ |
-| `app/main.py`                   | The HTTP endpoints (mock only for now)                             |
-| `app/schemas.py`                | The result format (Pydantic)                                       |
-| `app/policy.py`                 | Decision policy v0: codes → accepted / error / uncertain per level |
-| `app/mock.py`                   | Fake results for `MOCK_MODE`                                       |
-| `app/audio.py`                  | ffmpeg decode and the quality gate (Silero VAD)                    |
-| `app/reference.py`              | The reference text of the 25 prototype ayat                        |
-| `app/adapters/muaalem.py`       | quran-muaalem → contract findings                                  |
-| `app/adapters/whisper_quran.py` | whisper-quran transcript → word comparison → contract findings     |
-| `scripts/run_real_audio.py`     | Runs the gate and both models on a folder of real recordings       |
-| `tests/test_contract.py`        | Keeps the result format in line with the JSON Schema               |
 
 ## Models and licences
 
