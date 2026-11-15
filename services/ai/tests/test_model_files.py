@@ -50,3 +50,14 @@ def test_an_incomplete_copy_is_refused(models_dir):
 def test_the_default_folder_is_services_ai_models(monkeypatch):
     monkeypatch.delenv("MODELS_DIR")
     assert model_files.models_dir().parts[-2:] == ("ai", "models")
+
+
+@pytest.mark.parametrize("revision", [PIN, "a" * 40])
+def test_a_full_commit_hash_is_a_valid_pin(revision):
+    model_files.check_revision(revision, "SOME_REVISION")
+
+
+@pytest.mark.parametrize("revision", ["main", PIN[:12], PIN.upper(), ""])
+def test_anything_else_is_refused_as_a_pin(revision):
+    with pytest.raises(ValueError, match="SOME_REVISION must be a full 40-character commit hash"):
+        model_files.check_revision(revision, "SOME_REVISION")

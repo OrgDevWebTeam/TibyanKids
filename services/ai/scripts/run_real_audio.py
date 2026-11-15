@@ -49,8 +49,8 @@ def main():
     muaalem.load_model()
     whisper_quran.load_model()
     print(f"Loaded in {time.perf_counter() - started:.1f} s")
-    print(f"{muaalem.MODEL}: {muaalem.model_version()}")
-    print(f"{whisper_quran.MODEL}: {whisper_quran.model_version()}")
+    print(f"{muaalem.NAME}: {muaalem.model_version()}")
+    print(f"{whisper_quran.NAME}: {whisper_quran.model_version()}")
     print()
 
     for file in files:

@@ -8,8 +8,8 @@
 #   3. explain_error compares the two and returns each error with its tajweed rule.
 #   4. Each error becomes one finding: the word it is in, our code, and a confidence.
 import os
-import re
 import time
+from functools import cache
 from importlib.metadata import version
 
 from huggingface_hub import snapshot_download
@@ -24,43 +24,37 @@ from quran_transcript.phonetics.tajweed_rulses import (
     Qalqalah,
 )
 
-from app.model_files import local_copy
+from app.model_files import check_revision, local_copy
 from app.policy import decide, make_finding
 from app.schemas import AnalysisResult
 
-MODEL = "quran-muaalem"
-MODEL_NAME = "obadx/muaalem-model-v3_2"
+NAME = "quran-muaalem"  # the model's name in every result (AnalysisResult.model)
+HF_REPO = "obadx/muaalem-model-v3_2"  # where the model lives on Hugging Face
 # Exact model revision (Hugging Face commit), so an update on the Hub never changes results silently.
 # The week 2 run used this one. Change it only together with an evaluation run (AI release rules).
-MODEL_REVISION = os.environ.get("MUAALEM_REVISION", "01a1ef9fbe40d144ef845101e89ff924aed3fef5")
+HF_REVISION = os.environ.get("MUAALEM_REVISION", "01a1ef9fbe40d144ef845101e89ff924aed3fef5")
 # The files the model needs (download_models.py copies the same ones)
-MODEL_FILES = ["*.json", "*.safetensors"]
+HF_FILES = ["*.json", "*.safetensors"]
 SAMPLE_RATE = 16000
 
 # Which category comes first when one word has several errors (taxonomy 1.1)
 CATEGORY_ORDER = ["memorization", "pronunciation", "tajweed", "technical"]
 
-model = None
-
-
+@cache  # loaded once, on first use; later calls return the same model
 def load_model():
-    global model
-    if model is None:
-        if not re.fullmatch(r"[0-9a-f]{40}", MODEL_REVISION):
-            raise ValueError("MUAALEM_REVISION must be a full 40-character commit hash")
-        # services/ai/models/ when it holds the pinned revision (scripts/download_models.py). Otherwise
-        # the pinned files from the Hugging Face cache: Muaalem() takes no revision, so they are
-        # fetched first and loaded from disk.
-        folder = local_copy(MODEL_NAME, MODEL_REVISION) or snapshot_download(
-            MODEL_NAME, revision=MODEL_REVISION, allow_patterns=MODEL_FILES
-        )
-        model = Muaalem(model_name_or_path=folder, device="cuda")
-    return model
+    check_revision(HF_REVISION, "MUAALEM_REVISION")
+    # services/ai/models/ when it holds the pinned revision (scripts/download_models.py). Otherwise
+    # the pinned files from the Hugging Face cache: Muaalem() takes no revision, so they are fetched
+    # first and loaded from disk.
+    folder = local_copy(HF_REPO, HF_REVISION) or snapshot_download(
+        HF_REPO, revision=HF_REVISION, allow_patterns=HF_FILES
+    )
+    return Muaalem(model_name_or_path=folder, device="cuda")
 
 
 def model_version():
     # Package version + exact model revision (OPS-008)
-    return f"{version('quran-muaalem')} {MODEL_NAME}@{MODEL_REVISION[:12]}"
+    return f"{version('quran-muaalem')} {HF_REPO}@{HF_REVISION[:12]}"
 
 
 def moshaf_settings():
@@ -173,7 +167,7 @@ def analyze(samples, uthmani_text, level, attempt_id):
     decision, findings = decide(findings, level)
     return AnalysisResult(
         attemptId=attempt_id,
-        model=MODEL,
+        model=NAME,
         modelVersion=model_version(),
         decision=decision,
         quality="ok",

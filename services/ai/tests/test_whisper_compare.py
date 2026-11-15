@@ -208,16 +208,16 @@ def fake_transformers(monkeypatch):
     fake.WhisperForConditionalGeneration = FakeModel
     fake.WhisperProcessor = FakeProcessor
     monkeypatch.setitem(sys.modules, "transformers", fake)
-    monkeypatch.setattr(whisper_quran, "model", None)
-    monkeypatch.setattr(whisper_quran, "processor", None)
-    return calls
+    whisper_quran.load_model.cache_clear()  # load again, with the fake module
+    yield calls
+    whisper_quran.load_model.cache_clear()  # never keep the fake model for later tests
 
 
 def test_load_model_uses_the_local_copy_of_the_pinned_revision(fake_transformers, tmp_path, monkeypatch):
     monkeypatch.setenv("MODELS_DIR", str(tmp_path))
     folder = tmp_path / "tarteel-ai--whisper-base-ar-quran"
     folder.mkdir()
-    (folder / "REVISION").write_text(whisper_quran.MODEL_REVISION, encoding="utf-8")
+    (folder / "REVISION").write_text(whisper_quran.HF_REVISION, encoding="utf-8")
 
     whisper_quran.load_model()
 
@@ -240,7 +240,7 @@ def test_load_model_asks_for_the_pinned_revision_without_a_local_copy(fake_trans
 
     whisper_quran.load_model()
 
-    pin = whisper_quran.MODEL_REVISION
-    assert fake_transformers["processor"] == (whisper_quran.MODEL_NAME, {"revision": pin})
-    assert fake_transformers["model"] == (whisper_quran.MODEL_NAME, {"revision": pin, "use_safetensors": False})
+    pin = whisper_quran.HF_REVISION
+    assert fake_transformers["processor"] == (whisper_quran.HF_REPO, {"revision": pin})
+    assert fake_transformers["model"] == (whisper_quran.HF_REPO, {"revision": pin, "use_safetensors": False})
     assert whisper_quran.model_version().endswith("@" + pin[:12])
