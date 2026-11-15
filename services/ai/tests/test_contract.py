@@ -75,3 +75,17 @@ def test_schema_rejects_a_quality_rejection_with_findings():
     bad = json.loads(json.dumps(SCHEMA["examples"][0]))
     bad["quality"] = "silent"
     assert not VALIDATOR.is_valid(bad)
+
+
+def test_every_message_key_in_the_contract_doc_exists_in_safe_messages():
+    # The contract doc names keys the app must be able to show, such as FEEDBACK_AUDIO_TOO_LONG
+    named = set(re.findall(r"FEEDBACK_[A-Z_]+", CONTRACT_DOC.read_text(encoding="utf-8")))
+    assert named, "the contract doc names no message keys"
+    assert sorted(named - set(MESSAGES)) == []
+
+
+@pytest.mark.parametrize("key", [k for k in MESSAGES if k != "_meta"])
+def test_every_message_has_arabic_english_and_its_use(key):
+    message = MESSAGES[key]
+    for field in ("ar", "en", "used_for"):
+        assert isinstance(message.get(field), str) and message[field].strip(), f"{key}.{field}"
