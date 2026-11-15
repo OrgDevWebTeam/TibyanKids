@@ -70,19 +70,19 @@ def main():
             print(f"  audio error: {error.code}")
             continue
 
-        quality, report = check_quality(samples)
+        quality, report, clip = check_quality(samples)
         print(f"  gate: {quality} {json.dumps(report)}")
         if quality != "ok":
             # A rejected recording never reaches the models
             continue
 
         started = time.perf_counter()
-        result = muaalem.analyze(samples, ayah["text_uthmani"], level, name)
+        result = muaalem.analyze(clip, ayah["text_uthmani"], level, name)
         print_result(result, time.perf_counter() - started)
 
         started = time.perf_counter()
         words = [word["text"] for word in ayah["words"]]
-        result = whisper_quran.analyze(samples, words, level, name)
+        result = whisper_quran.analyze(clip, words, level, name)
         print_result(result, time.perf_counter() - started)
 
     print()
