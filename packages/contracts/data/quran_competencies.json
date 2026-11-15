@@ -1,0 +1,60 @@
+[
+  {
+    "domain": "quran",
+    "code": "QURAN-SURAH-001",
+    "name": { "ar": "تلاوة سورة الفاتحة", "en": "Reciting Surah Al-Fatiha" }
+  },
+  {
+    "domain": "quran",
+    "code": "QURAN-SURAH-108",
+    "name": { "ar": "تلاوة سورة الكوثر", "en": "Reciting Surah Al-Kawthar" }
+  },
+  {
+    "domain": "quran",
+    "code": "QURAN-SURAH-112",
+    "name": { "ar": "تلاوة سورة الإخلاص", "en": "Reciting Surah Al-Ikhlas" }
+  },
+  {
+    "domain": "quran",
+    "code": "QURAN-SURAH-113",
+    "name": { "ar": "تلاوة سورة الفلق", "en": "Reciting Surah Al-Falaq" }
+  },
+  {
+    "domain": "quran",
+    "code": "QURAN-SURAH-114",
+    "name": { "ar": "تلاوة سورة الناس", "en": "Reciting Surah An-Nas" }
+  },
+  {
+    "domain": "quran",
+    "code": "QURAN-WORDS",
+    "name": {
+      "ar": "قراءة كلمات الآية كاملة بترتيبها",
+      "en": "Reading every word of the ayah, in order"
+    }
+  },
+  {
+    "domain": "quran",
+    "code": "QURAN-LETTERS",
+    "name": { "ar": "إخراج الحروف من مخارجها", "en": "Pronouncing each letter correctly" }
+  },
+  {
+    "domain": "quran",
+    "code": "QURAN-HARAKAT",
+    "name": { "ar": "ضبط الحركات", "en": "Reading the short vowels (harakat) correctly" }
+  },
+  {
+    "domain": "quran",
+    "code": "QURAN-MADD",
+    "name": { "ar": "المدّ", "en": "Madd (lengthening)" }
+  },
+  {
+    "domain": "quran",
+    "code": "QURAN-GHUNNA",
+    "name": { "ar": "الغُنّة", "en": "Ghunna (nasal sound)" }
+  },
+  {
+    "domain": "quran",
+    "code": "QURAN-QALQALA",
+    "name": { "ar": "القلقلة", "en": "Qalqala (echo)" }
+  }
+]
