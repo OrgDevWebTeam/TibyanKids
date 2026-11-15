@@ -1,7 +1,11 @@
 # Word comparison of the whisper-quran adapter (app/adapters/whisper_quran.py). Owner: Qussai.
 # No GPU needed: the model itself is replaced by a fake transcript.
+import json
+from pathlib import Path
+
 import pytest
 
+from app import reference
 from app.adapters import whisper_quran
 from app.adapters.whisper_quran import compare_words, normalize
 
@@ -9,21 +13,31 @@ OMISSION = "ERR_MEM_OMISSION"
 SUBSTITUTION = "ERR_MEM_SUBSTITUTION"
 INSERTION = "ERR_MEM_INSERTION"
 
-# Al-Ikhlas 1 as Uthmani reference words, and the same ayah in plain spelling
-IKHLAS_1 = ["قُلْ", "هُوَ", "ٱللَّهُ", "أَحَدٌ"]
+# Al-Ikhlas 1 as Imlaei reference words (text_imlaei), and the same ayah without diacritics
+IKHLAS_1 = ["قُلْ", "هُوَ", "اللَّهُ", "أَحَدٌ"]
 IKHLAS_1_PLAIN = ["قل", "هو", "الله", "احد"]
+
+# What whisper-quran wrote for the reference recitation of each prototype ayah (all correct readings).
+# Recorded on the GPU machine with the model revision in app/adapters/whisper_quran.py.
+REFERENCE_TRANSCRIPTS = json.loads(
+    (Path(__file__).parent / "data" / "whisper_reference_transcripts.json").read_text(encoding="utf-8")
+)
 
 
 @pytest.mark.parametrize(
     "word, expected",
     [
         ("ٱللَّهِ", "الله"),  # alif wasla, shadda and kasra
+        ("اللَّهِ", "الله"),  # the same word in Imlaei spelling
         ("أَحَدٌ", "احد"),  # hamza on alif, tanwin
         ("إِيَّاكَ", "اياك"),  # hamza under alif
         ("ٱلْفَلَقِ", "الفلق"),  # sukun
         ("فِى", "في"),  # alif maqsura
         ("لَّهُۥ", "له"),  # small waw
-        ("ٱلنَّفَّٰثَٰتِ", "النفاثات"),  # dagger alif written as alif in plain spelling
+        ("النَّفَّاثَاتِ", "النفاثات"),  # full alif in Imlaei spelling is kept
+        ("الرَّحْمَٰنِ", "الرحمن"),  # dagger alif in Imlaei spelling is dropped
+        ("إِلَٰهِ", "اله"),
+        ("الرَّحْمَنِ", "الرحمن"),  # as whisper writes it
     ],
 )
 def test_normalize(word, expected):
@@ -73,14 +87,16 @@ def test_nothing_said():
     assert compare_words(["a", "b"], []) == [(1, OMISSION), (2, OMISSION)]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="Known bug (plan A2): the dagger alif becomes a full alif, so plain-spelling الرحمن and اله "
-    "do not match the Uthmani reference. Remove this mark when A2 lands.",
-)
-@pytest.mark.parametrize("reference, said", [("ٱلرَّحْمَٰنِ", "الرحمن"), ("إِلَٰهِ", "اله")])
-def test_dagger_alif_words_in_plain_spelling_match(reference, said):
-    assert compare_words([reference], [said]) == []
+@pytest.mark.parametrize("name", sorted(REFERENCE_TRANSCRIPTS))
+def test_every_reference_recitation_is_read_without_errors(name):
+    # Regression test for false errors on correct readings, such as الرحمن in 1:1 and 1:3 and اله in 114:3
+    ayah = reference.get_ayah(int(name[:3]), int(name[3:]))
+    words = [word["text_imlaei"] for word in ayah["words"]]
+    assert compare_words(words, REFERENCE_TRANSCRIPTS[name].split()) == []
+
+
+def test_there_is_a_transcript_for_every_prototype_ayah():
+    assert len(REFERENCE_TRANSCRIPTS) == 25
 
 
 def test_analyze_keeps_one_finding_per_word_and_applies_the_policy(monkeypatch):

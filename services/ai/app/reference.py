@@ -17,7 +17,10 @@ def load_ayat():
 
 
 def get_ayah(surah, ayah):
-    """Returns {"text_uthmani": ..., "words": [{"position", "text"}, ...]}, or None if not a prototype ayah."""
+    """
+    Returns {"text_uthmani": ..., "words": [{"position", "text", "text_imlaei"}, ...]}, or None if not a
+    prototype ayah. "text" is the Uthmani word, "text_imlaei" the same word in ordinary spelling.
+    """
     if not ayat:
         load_ayat()
     return ayat.get((surah, ayah))
