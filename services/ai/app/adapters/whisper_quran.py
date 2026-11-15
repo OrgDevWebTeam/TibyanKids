@@ -9,6 +9,7 @@
 #      memorization finding (taxonomy 1.4: ERR_MEM_* come from this comparison).
 # The transcript itself never leaves this file (contract rule: model text is never shown to a child).
 import difflib
+import os
 import re
 import time
 
@@ -17,6 +18,9 @@ from app.schemas import AnalysisResult
 
 MODEL = "whisper-quran"
 MODEL_NAME = "tarteel-ai/whisper-base-ar-quran"
+# Exact model revision (Hugging Face commit), so an update on the Hub never changes results silently.
+# The week 2 run used this one. Change it only together with an evaluation run (AI release rules).
+MODEL_REVISION = os.environ.get("WHISPER_QURAN_REVISION", "5c3c53fdf9272c4f6ee0bee09a1e5a4a615ee25c")
 SAMPLE_RATE = 16000
 
 # Harakat, Quranic marks (including small waw and small yaa) and tatweel
@@ -51,8 +55,7 @@ def load_model():
 
 def model_version():
     # Exact model revision (OPS-008)
-    commit = load_model()[1].config._commit_hash or "unknown"
-    return f"{MODEL_NAME}@{commit[:12]}"
+    return f"{MODEL_NAME}@{MODEL_REVISION[:12]}"
 
 
 def normalize(word):
