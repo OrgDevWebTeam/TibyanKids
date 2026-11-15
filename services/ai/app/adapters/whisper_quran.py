@@ -16,6 +16,7 @@ import os
 import re
 import time
 
+from app.model_files import local_copy
 from app.policy import decide, make_finding
 from app.schemas import AnalysisResult
 
@@ -24,6 +25,9 @@ MODEL_NAME = "tarteel-ai/whisper-base-ar-quran"
 # Exact model revision (Hugging Face commit), so an update on the Hub never changes results silently.
 # The week 2 run used this one. Change it only together with an evaluation run (AI release rules).
 MODEL_REVISION = os.environ.get("WHISPER_QURAN_REVISION", "5c3c53fdf9272c4f6ee0bee09a1e5a4a615ee25c")
+# The files the model needs (download_models.py copies the same ones; the repo also holds
+# training logs, which are left out)
+MODEL_FILES = ["*.json", "*.txt", "pytorch_model.bin"]
 SAMPLE_RATE = 16000
 # Most tokens the model may write for one ayah. The longest prototype ayah (1:7) takes 75. The model
 # allows 1024 in its generation settings but has only 448 positions: past that, generation crashes
@@ -63,15 +67,15 @@ def load_model():
 
         if not re.fullmatch(r"[0-9a-f]{40}", MODEL_REVISION):
             raise ValueError("WHISPER_QURAN_REVISION must be a full 40-character commit hash")
-        processor = WhisperProcessor.from_pretrained(MODEL_NAME, revision=MODEL_REVISION)
+        # services/ai/models/ when it holds the pinned revision (scripts/download_models.py),
+        # otherwise the pinned revision from the Hugging Face cache.
+        folder = local_copy(MODEL_NAME, MODEL_REVISION)
+        source, pin = (str(folder), {}) if folder else (MODEL_NAME, {"revision": MODEL_REVISION})
+        processor = WhisperProcessor.from_pretrained(source, **pin)
         # use_safetensors=False loads the weights of the pinned commit itself. Otherwise transformers
         # fetches a converted copy from the Hub's automatic conversion pull request (refs/pr/3),
         # which is not part of the pin.
-        model = (
-            WhisperForConditionalGeneration.from_pretrained(MODEL_NAME, revision=MODEL_REVISION, use_safetensors=False)
-            .to("cuda")
-            .eval()
-        )
+        model = WhisperForConditionalGeneration.from_pretrained(source, **pin, use_safetensors=False).to("cuda").eval()
         # The prompt (start, language, task, no-timestamps) takes 4 positions before the text
         if MAX_NEW_TOKENS + 4 > model.config.max_target_positions:
             raise ValueError("MAX_NEW_TOKENS does not fit the model's positions")

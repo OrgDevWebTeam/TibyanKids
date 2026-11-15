@@ -25,6 +25,10 @@ The revisions are pinned in the adapters (`MUAALEM_REVISION`, `WHISPER_QURAN_REV
 in `modelVersion` with every result (OPS-008). Changing one needs an evaluation run on the
 untouched test set (AI release rules).
 
+On the GPU machine the model files live in `services/ai/models/` (not in git), filled at these
+revisions by `services/ai/scripts/download_models.py`; each folder records its revision and a
+folder holding another one is refused.
+
 ## 2. Libraries on the recitation path
 
 | Package            | Version             | Licence (package metadata)                                                                          | Notes                                                                 |
