@@ -1,130 +1,161 @@
-# دليل تصحيح التلاوات للمعلمين (Annotation Guide)
+# Recitation annotation guide for teachers
 
-- **المشروع:** أكاديمية نور (Noor Academy)
-- **المُعِد:** إسماعيل (AI 2 - مسار جودة البيانات والتقييم)
-- **الإصدار:** v1.1 (الأسبوع 1، بعد المراجعة)
-- **الفئة المستهدفة:** الأطفال من 6 إلى 14 سنة (غير ناطقين بالعربية)
-- **النطاق:** السور الخمس (الفاتحة، الإخلاص، الفلق، الناس، الكوثر)
-- **المرجع:** CRS v3.0 (SEC-006، SEC-011، SEC-017، FR-QUR-003) والمعمارية v3.0 (القسمان 7.3 و8.6)
+- **Project:** Noor Academy
+- **Author:** Ismail (AI 2: data quality and evaluation)
+- **Version:** v1.2, 2026-11-15 (English version of v1.1: week 1, after review)
+- **Audience of the product:** children aged 6 to 14 who are not native Arabic speakers
+- **Scope:** the five surahs (Al-Fatiha, Al-Ikhlas, Al-Falaq, An-Nas, Al-Kawthar)
+- **Based on:** CRS v3.0 (SEC-006, SEC-011, SEC-017, FR-QUR-003) and Architecture v3.0 (§7.3 and
+  §8.6)
 
-> **مفتاح الحالة:** 🔶 = مقترح وبانتظار قرار (مراجع شرعي مؤهل أو محمد). لا يُطبَّق قبل اعتماده.
-
----
-
-## 1. الهدف من الدليل
-
-توحيد معايير تقييم التلاوات بين المعلمين المصححين، لضمان دقة "المجموعة المرجعية الذهبية" (Golden Dataset) التي تُستخدم في تقييم النماذج المحلية وتحديد حد الثقة (الأسبوعان 4 و7). الأرقام المستهدفة: **750 تسجيلاً = 30 طفلاً × 25 آية**، يصحّح كل منها معلمان.
+> 🔶 = proposed, waiting for a decision (a qualified religious reviewer or Mohammad). Not applied
+> before approval.
 
 ---
 
-## 2. مستويات التقييم الثلاثة للكلمة
+## 1. Purpose
 
-تُقيَّم كل كلمة بشكل مستقل بإحدى الحالات التالية، وتُربط بأكواد وثيقة التصنيف v1.1:
-
-1. **صحيحة (`correct`):**
-   - الحروف والحركات والأحكام ضمن النطاق المقبول لعمر الطفل ولسانه الأعجمي.
-   - لا تتطلب أي تدخل أو إعادة.
-
-2. **تحتاج تدريباً (`needs_practice`):** يُحدَّد الخطأ بدقة بكود واحد أو أكثر:
-   - **خطأ حفظ (`ERR_MEM_*`):** إسقاط كلمة، تبديل كلمة بكلمة، أو إضافة كلمة زائدة.
-   - **لحن جلي (`ERR_PRON_*`):** تبديل حرف بآخر يغير المعنى (مثل السين مكان الصاد في "الصراط")، أو تغيير حركة إعرابية رئيسية.
-   - **حكم تجويدي جلي (`ERR_TAJ_*`):** بتر المد اللازم أو المتصل، إسقاط غنة النون المشددة كلياً، أو ترك القلقلة.
-   - إذا اجتمع أكثر من خطأ في الكلمة فاكتبها كلها، ويكون الخطأ الرئيسي بالأولوية: حفظ ← نطق ← تجويد.
-
-3. **غير صالحة للتقييم (`poor_audio`):**
-   - التسجيل مكتوم تماماً، أو فيه صمت طويل، أو تشويش عالٍ، أو أصوات عائلية تحجب صوت الطفل.
-   - هذه الحالة **ليست خطأ من الطفل**. تُستعمل أيضاً لقياس دقة بوابة الجودة (هل رفضت ما يستحق الرفض؟).
+To give every annotating teacher the same rules for judging recitations, so the **golden dataset**
+used to evaluate the local models and set the confidence threshold (weeks 4 and 7) is accurate.
+Target: **750 recordings = 30 children × 25 ayat**, each annotated by two teachers.
 
 ---
 
-## 3. قواعد التساهل وضبط الأحكام (بما يناسب لسان الأطفال)
+## 2. The three judgements for a word
 
-نظراً لأن الجمهور أطفال غير ناطقين بالعربية:
+Each word is judged on its own, with one of these values, linked to the codes of the error taxonomy
+(`docs/ai/tajweed_taxonomy_and_feedback.md`):
 
-- **يُقبل (لا يُحسب خطأ):**
-  - عدم ضبط ترقيق وتفخيم الراءات واللامات بدقة متناهية.
-  - الرخاوة الخفيفة أو عدم إشباع مقادير المدود العارضة للسكون (2 أو 4 حركات).
-  - لكنة الطفل الطبيعية في الحروف الصعبة (كالطاء والظاء والحاء) ما دامت لا تنقلب إلى حرف آخر تماماً.
-- **لا يُقبل (يُحتسب خطأ):**
-  - قلب المعنى (مثل قراءة "أنعمتَ" بضم التاء "أنعمتُ").
-  - إسقاط حرف من بنية الكلمة، أو قصر مدّ يحوّل الكلمة إلى كلمة أخرى 🔶. المثال من نصوصنا: **مَٰلِكِ** (الفاتحة 4) و**مَلِكِ** (الناس 2). التساهل في "المدود العارضة للسكون" **لا يشمل** هذه الحالة. _تأكيد المثال والتصنيف عند المراجع الشرعي المؤهل._
-- **لا يُعدّ خطأً (التكرار):** تكرار الطفل كلمة أو إعادة بدء الآية. يُسجَّل الحكم على قراءته النهائية للكلمة 🔶 _(سياسة الزيادة والتكرار بانتظار قرار محمد)._
-
----
-
-## 4. نموذج تسجيل البيانات (Annotation Schema)
-
-تُجمع الحقول التالية لكل كلمة، مع حقول على مستوى التسجيل:
-
-**على مستوى التسجيل (مرة لكل تسجيل):**
-
-أسماء الحقول بصيغة camelCase مثل عقد النتيجة v3.0. شكل الملفات الكامل في `docs/ai/audio-io-and-eval-dataset.md` (القسمان B.5 وB.6).
-
-| الحقل            | الوصف                                                                                      | مثال                       |
-| :--------------- | :----------------------------------------------------------------------------------------- | :------------------------- |
-| `recordingId`    | معرّف التسجيل الصوتي (لا يحمل اسم الطفل)                                                   | `REC_FAT_001`              |
-| `speakerId`      | معرّف مجهول للمتحدث، لتقسيم البيانات بحسب المتحدث                                          | `SPK_017`                  |
-| `consentId`      | معرّف سجل موافقة الأهل المنفصلة (SEC-017). **لا يُصحَّح تسجيل بلا موافقة**                 | `CON_017`                  |
-| `ageBand`        | الفئة العمرية                                                                              | `6-8` أو `9-11` أو `12-14` |
-| `source`         | `child` أو `seeded_adult` (تسجيل بالغ بأخطاء متعمَّدة)                                     | `child`                    |
-| `split`          | `train` أو `dev` أو `test` (يُحدَّد بعد التصحيح، وجميع تسجيلات المتحدث الواحد في قسم واحد) | `test`                     |
-| `surah` / `ayah` | موضع الآية                                                                                 | `1` / `1`                  |
-| `audioQuality`   | `ok` أو `poor_audio`                                                                       | `ok`                       |
-
-**على مستوى الكلمة (سطر لكل كلمة ولكل معلّم):**
-
-| الحقل             | الوصف                                       | مثال                               |
-| :---------------- | :------------------------------------------ | :--------------------------------- |
-| `recordingId`     | معرّف التسجيل                               | `REC_FAT_001`                      |
-| `wordIndex`       | رقم الكلمة في الآية (يبدأ من 1)             | `3`                                |
-| `annotatorId`     | معرّف المعلم المصحّح                        | `TCH_02`                           |
-| `round`           | `1` للتصحيح المستقل، `2` لقرار المراجع      | `1`                                |
-| `teacherDecision` | `correct` / `needs_practice` / `poor_audio` | `needs_practice`                   |
-| `errorCodes`      | قائمة بأكواد الأخطاء (فارغة إن كانت صحيحة)  | `["ERR_PRON_LETTER_SUB"]`          |
-| `notes`           | ملاحظة توجيهية موجزة                        | "إبدال الصاد سيناً عند نطق الصراط" |
+1. **Correct (`correct`):**
+   - Letters, vowels and rules are within what is acceptable for the child's age and non-native
+     tongue.
+   - Nothing needs to be corrected or repeated.
+2. **Needs practice (`needs_practice`):** the error is named precisely with one or more codes:
+   - **Memorization error (`ERR_MEM_*`):** a word dropped, one word read as another, or an extra
+     word added.
+   - **Clear pronunciation error (`ERR_PRON_*`):** one letter read as another in a way that changes
+     the meaning (for example س instead of ص in "الصراط"), or a change to a main grammatical vowel.
+   - **Clear tajweed error (`ERR_TAJ_*`):** a lazim or muttasil madd cut short, the ghunna of a
+     doubled noon dropped entirely, or qalqala left out.
+   - When a word has several errors, write them all; the main error follows the priority
+     memorization → pronunciation → tajweed.
+3. **Cannot be judged (`poor_audio`):**
+   - The recording is muffled, has a long silence, loud noise, or family voices that cover the
+     child's voice.
+   - This is **not the child's error**. It is also used to measure the quality gate (did it reject
+     what should be rejected?).
 
 ---
 
-## 5. بروتوكول التصحيح المزدوج وفض النزاع (Double Annotation Protocol)
+## 3. Tolerance rules (suited to children's speech)
 
-- يُصحَّح كل تسجيل من **معلمَين اثنين بشكل مستقل**، دون اطلاع أحدهما على حكم الآخر.
-- **اتفاق كامل:** (الحكم نفسه والأكواد نفسها) يُعتمد مباشرة.
-- **يُحال إلى المراجع المشرف** كل تسجيل فيه أحد هذه الأنواع من الخلاف:
-  1. `correct` مقابل `needs_practice`.
-  2. اتفاق على `needs_practice` مع **اختلاف الأكواد**.
-  3. `poor_audio` مقابل أي حكم آخر.
-- **قياس الاتفاق:** يُحسب معامل اتفاق (Cohen's kappa) لكل فئة خطأ وكل فئة عمرية بعد الدفعة الأولى (أول 250 تسجيلاً). 🔶 الحد المقبول يحدده الفريق (اقتراح مبدئي 0.6). وعند انخفاضه تُراجَع تعليمات الدليل قبل متابعة التصحيح.
-- المراجع المشرف: من يؤدي هذا الدور؟ بند مفتوح (O-04 وOD-07).
+Because the children are not native Arabic speakers:
 
----
-
-## 6. حماية البيانات أثناء التصحيح
-
-التسجيلات صوت أطفال، وهي أشد البيانات حساسية (المعمارية 7.2):
-
-1. **لا تصحيح بلا موافقة منفصلة وصريحة** من الأهل لاستخدام الصوت في اختبار النماذج أو تدريبها (SEC-017). يُتحقق من `consent_id` قبل فتح التسجيل.
-2. يجري التصحيح **داخل أداة محلية على أجهزتنا** فقط (SEC-011). لا جداول بيانات سحابية ولا نماذج نماذج خارجية ولا نسخ للصوت على أجهزة شخصية.
-3. تُنسخ تسجيلات الاختبار إلى **حاوية مقيّدة منفصلة**، ويصل إليها المعلمون المصحّحون المسنَدون فقط، وكل وصول يُسجَّل.
-4. تُستعمل المعرّفات المجهولة فقط (`speaker_id`، `recording_id`). لا أسماء ولا بيانات اتصال في ملفات التصحيح.
-5. مدة الاحتفاظ بالصوت وحذفه تتبع قرار OD-04 (الأسبوع 3). وسحب الموافقة يوقف الاستخدام ويحذف التسجيل ونتائج تصحيحه (VAL-008).
+- **Accepted (not an error):**
+  - Not perfectly controlling the light and heavy forms (tarqiq and tafkhim) of ر and ل.
+  - Slight softness, or not fully holding a madd before a pause (aarid lil-sukun) at 2 or 4 counts.
+  - The child's natural accent on hard letters (such as ط, ظ and ح), as long as the letter does not
+    turn into another letter.
+- **Not accepted (an error):**
+  - A change of meaning (for example reading "أنعمتَ" with a damma on the ta: "أنعمتُ").
+  - Dropping a letter of the word, or shortening a madd so the word becomes another word 🔶. The
+    example in our ayat: **مَٰلِكِ** (Al-Fatiha 4) and **مَلِكِ** (An-Nas 2). The tolerance for
+    "madd before a pause" **does not cover** this case. _The example and its category are to be
+    confirmed by a qualified religious reviewer._
+- **Not an error (repeats):** the child repeating a word or restarting the ayah. The judgement is
+  on the child's final reading of the word 🔶 _(the policy for extra words and repeats waits for
+  Mohammad's decision)._
 
 ---
 
-## 7. خطة جمع العينات
+## 4. Annotation schema
 
-- **الهدف:** 30 طفلاً غير ناطقين بالعربية × 25 آية (750 تسجيلاً)، بموافقة أهاليهم. البحث عن العائلات يبدأ في الأسبوع 1.
-- **التقسيم:** بحسب المتحدث وليس بحسب التسجيل. مجموعة الاختبار **لا تُلمس** بعد تثبيتها (الأسبوع 3).
-- **توازن الأخطاء:** معظم تسجيلات الأطفال ستكون صحيحة، فقد تقلّ أمثلة الأخطاء في الفئات النادرة (مثل الغنة والقلقلة). لذلك يُضاف تسجيلات `seeded_adult` بأخطاء متعمَّدة من متطوعين بالغين بموافقتهم. **تُحسب نتائجها منفصلة عن تسجيلات الأطفال** ولا تُخلط معها في أرقام القرار (الأسبوع 4).
-- **تغطية الأعمار:** تأكد من تمثيل الفئات الثلاث (6-8 و9-11 و12-14)، فالتقرير يُعرض بحسب الفئة العمرية وفئة الخطأ.
+These fields are collected for every word, plus fields for the whole recording. Field names are
+camelCase, like the result contract v3.0. The full file formats are in
+`docs/ai/audio-io-and-eval-dataset.md` (sections B.5 and B.6).
+
+**Per recording (once per recording):**
+
+| Field            | Description                                                                                    | Example                  |
+| :--------------- | :--------------------------------------------------------------------------------------------- | :----------------------- |
+| `recordingId`    | Recording id (never contains the child's name)                                                 | `REC_FAT_001`            |
+| `speakerId`      | Anonymous speaker id, to split the data by speaker                                             | `SPK_017`                |
+| `consentId`      | Id of the parents' separate consent record (SEC-017). **No recording is annotated without it** | `CON_017`                |
+| `ageBand`        | Age band                                                                                       | `6-8`, `9-11` or `12-14` |
+| `source`         | `child` or `seeded_adult` (an adult recording with deliberate errors)                          | `child`                  |
+| `split`          | `train`, `dev` or `test` (set after annotation; all recordings of a speaker in one split)      | `test`                   |
+| `surah` / `ayah` | Where the ayah is                                                                              | `1` / `1`                |
+| `audioQuality`   | `ok` or `poor_audio`                                                                           | `ok`                     |
+
+**Per word (one row per word and per teacher):**
+
+| Field             | Description                                                     | Example                   |
+| :---------------- | :-------------------------------------------------------------- | :------------------------ |
+| `recordingId`     | Recording id                                                    | `REC_FAT_001`             |
+| `wordIndex`       | Word number in the ayah (from 1)                                | `3`                       |
+| `annotatorId`     | Id of the annotating teacher                                    | `TCH_02`                  |
+| `round`           | `1` for independent annotation, `2` for the reviewer's decision | `1`                       |
+| `teacherDecision` | `correct` / `needs_practice` / `poor_audio`                     | `needs_practice`          |
+| `errorCodes`      | List of error codes (empty when correct)                        | `["ERR_PRON_LETTER_SUB"]` |
+| `notes`           | A short guiding note                                            | "ص read as س in الصراط"   |
 
 ---
 
-## 8. بنود مفتوحة تنتظر قراراً
+## 5. Double annotation and resolving disagreements
 
-| #   | البند                                            | من يقرر                       |
-| :-- | :----------------------------------------------- | :---------------------------- |
-| 8.1 | تأكيد المثال والتصنيف لقصر مدّ مَٰلِكِ (القسم 3) | مراجع شرعي مؤهل               |
-| 8.2 | سياسة التكرار وإعادة البدء                       | محمد                          |
-| 8.3 | الحد المقبول لمعامل الاتفاق                      | الفريق (إسماعيل + قصي + محمد) |
-| 8.4 | من هو المراجع المشرف والمعلمان المصحّحان         | O-04 / OD-07                  |
-| 8.5 | مدة الاحتفاظ بالصوت                              | OD-04 (الأسبوع 3)             |
+- Every recording is annotated by **two teachers independently**, neither seeing the other's
+  judgement.
+- **Full agreement** (same judgement and same codes): accepted as is.
+- **Sent to the supervising reviewer:** any recording with one of these disagreements:
+  1. `correct` against `needs_practice`.
+  2. Both `needs_practice`, but **different codes**.
+  3. `poor_audio` against any other judgement.
+- **Measuring agreement:** Cohen's kappa is computed for each error category and each age band after
+  the first batch (the first 250 recordings). 🔶 The acceptable level is set by the team (initial
+  proposal 0.6). If agreement is lower, the guide's instructions are reviewed before annotation
+  continues.
+- Who is the supervising reviewer? An open item (O-04 and OD-07).
+
+---
+
+## 6. Protecting the data during annotation
+
+The recordings are children's voices, the most sensitive data we hold (Architecture §7.2):
+
+1. **No annotation without the parents' separate, explicit consent** to use the voice for testing
+   or training the models (SEC-017). Check `consentId` before opening a recording.
+2. Annotation happens **only in a local tool on our machines** (SEC-011). No cloud spreadsheets, no
+   external online forms, and no copies of the audio on personal devices.
+3. Test recordings are copied to a **separate, restricted storage location**. Only the assigned
+   annotating teachers can reach it, and every access is logged.
+4. Only anonymous ids are used (`speakerId`, `recordingId`). No names or contact details in the
+   annotation files.
+5. How long the audio is kept, and when it is deleted, follows decision OD-04 (week 3). Withdrawing
+   consent stops the use and deletes the recording and its annotations (VAL-008).
+
+---
+
+## 7. Collecting the recordings
+
+- **Target:** 30 children who are not native Arabic speakers × 25 ayat (750 recordings), with their
+  parents' consent. The search for families starts in week 1.
+- **Split:** by speaker, not by recording. The test set is **never touched** once it is fixed
+  (week 3).
+- **Error balance:** most children's recordings will be correct, so the rarer categories (such as
+  ghunna and qalqala) may have few examples. Therefore `seeded_adult` recordings with deliberate
+  errors are added by adult volunteers, with their consent. **Their results are reported separately
+  from the children's** and never mixed into the decision numbers (week 4).
+- **Age coverage:** make sure all three bands (6–8, 9–11 and 12–14) are represented, since results
+  are reported by age band and by error category.
+
+---
+
+## 8. Open items waiting for a decision
+
+| #   | Item                                                                      | Who decides                         |
+| :-- | :------------------------------------------------------------------------ | :---------------------------------- |
+| 8.1 | Confirming the example and category of the shortened madd in مَٰلِكِ (§3) | Qualified religious reviewer        |
+| 8.2 | The policy for repeats and restarts                                       | Mohammad                            |
+| 8.3 | The acceptable level of agreement (kappa)                                 | The team (Ismail, Qussai, Mohammad) |
+| 8.4 | Who the supervising reviewer and the two annotating teachers are          | O-04 / OD-07                        |
+| 8.5 | How long the audio is kept                                                | OD-04 (week 3)                      |

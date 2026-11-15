@@ -1,6 +1,6 @@
 # quran-muaalem adapter: one recording of one ayah -> contract result. Owner: Qussai.
 # Mapping from the model's errors to our codes: docs/ai/tajweed_taxonomy_and_feedback.md, section 1.4.
-# Licence: QML 1.0 (docs/ai/genai_and_safety_boundaries.en.md, section 3).
+# Licence: QML 1.0 (docs/ai/genai_and_safety_boundaries.md, section 3).
 #
 # Steps:
 #   1. quran_phonetizer turns the expected ayah (Uthmani text) into reference phonemes.

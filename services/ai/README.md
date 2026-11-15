@@ -5,7 +5,7 @@ over HTTP; browsers never do. It is Python, so it is not part of the pnpm worksp
 
 - Result format: [`docs/contracts/ai-result.md`](../../docs/contracts/ai-result.md)
 - Audio input and evaluation data: [`docs/ai/audio-io-and-eval-dataset.md`](../../docs/ai/audio-io-and-eval-dataset.md)
-- Safety rules: [`docs/ai/genai_and_safety_boundaries.en.md`](../../docs/ai/genai_and_safety_boundaries.en.md)
+- Safety rules: [`docs/ai/genai_and_safety_boundaries.md`](../../docs/ai/genai_and_safety_boundaries.md)
 
 ## Where we are (week 2)
 
@@ -116,4 +116,4 @@ Full register with versions, model revisions, data sources and the recordings' c
 [`docs/ai/model-register.md`](../../docs/ai/model-register.md).
 
 QML 1.0 conditions (AI notice before first use, use according to Islamic law, no ad tracking, fix
-a violation within 30 days): see `docs/ai/genai_and_safety_boundaries.en.md` section 3.
+a violation within 30 days): see `docs/ai/genai_and_safety_boundaries.md` section 3.
