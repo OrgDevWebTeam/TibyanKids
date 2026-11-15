@@ -18,23 +18,22 @@ MERN monorepo for the Noor Academy prototype: MongoDB, Express, React, Node.js (
 
 - Node 22 (`nvm use` reads `.nvmrc`)
 - pnpm 9.15+ (`npm install -g pnpm@9.15.0`)
-- Docker Desktop (local MongoDB)
+- A MongoDB Atlas database for the API (connection string goes in `apps/api/.env`)
 
 ## First-time setup
 
 ```bash
 pnpm install
-cp .env.example .env            # Windows PowerShell: Copy-Item .env.example .env
-pnpm check                      # format, lint, typecheck, test, build
+cp .env.example .env                       # Windows PowerShell: Copy-Item .env.example .env
+cp apps/api/.env.example apps/api/.env     # then fill in DATABASE, DATABASE_PASSWORD, JWT_SECRET
+pnpm check                                 # format, lint, typecheck, test, build
 ```
 
 ## Run locally
 
 ```bash
-pnpm --filter @noor/api services:up    # MongoDB + mock AI service (Docker)
-pnpm --filter @noor/api migrate        # create collections
-pnpm --filter @noor/api start:local    # API on http://127.0.0.1:4000
-pnpm --filter @noor/web dev            # web on http://localhost:3000
+pnpm --filter @noor/api dev    # API on http://localhost:5000 (routes under /api/v1)
+pnpm --filter @noor/web dev    # web on http://localhost:3000
 ```
 
 ## Commands

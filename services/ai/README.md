@@ -69,12 +69,11 @@ from inside the repository.
 
 ## Settings
 
-| Variable                 | Default     | Meaning                                                                                                                  |
-| ------------------------ | ----------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `MOCK_MODE`              | `true`      | Fake results from the endpoint. `false` returns 503 until week 3                                                         |
-| `CONFIDENCE_THRESHOLD`   | `0.70`      | Below this a finding makes the ayah `uncertain`. Provisional until week 4 (OD-02)                                        |
-| `MUAALEM_REVISION`       | `01a1ef9f…` | Exact Hugging Face commit of `obadx/muaalem-model-v3_2` (full 40 characters). Change only with an evaluation run         |
-| `WHISPER_QURAN_REVISION` | `5c3c53fd…` | Exact Hugging Face commit of `tarteel-ai/whisper-base-ar-quran` (full 40 characters). Change only with an evaluation run |
+| Variable               | Default | Meaning                                                                                                                                    |
+| ---------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `MOCK_MODE`            | `true`  | Fake results from the endpoint. `false` returns 503 until week 3                                                                           |
+| `CONFIDENCE_THRESHOLD` | `0.70`  | Below this a finding makes the ayah `uncertain`. Provisional until week 4 (OD-02)                                                          |
+| `REFERENCE_DATA_DIR`   | repo    | Folder with `reference_quran_text.json`. The repo's `packages/contracts/data` when unset; `/data/reference` in Docker (mounted by Compose) |
 
 ## What the mock returns
 
