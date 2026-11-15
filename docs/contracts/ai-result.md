@@ -74,7 +74,7 @@ Same shape as the API:
 | `model`        | text    | Which model produced the result: `mock`, `quran-muaalem`, `whisper-quran`, `faster-whisper`, `combined`, or `none` (API fallback) |
 | `modelVersion` | text    | Exact model revision (not just the package name). OPS-008                                                                         |
 | `decision`     | text    | `accepted`, `error` or `uncertain` (from the decision policy below)                                                               |
-| `quality`      | text    | `ok`, or a reject reason: `silent`, `too_short`, `too_noisy`, `too_long` (over 30 s)                                              |
+| `quality`      | text    | `ok`, or a reject reason: `silent`, `too_short`, `too_noisy`, `too_long` (a reading over 30 s, without the silence around it)     |
 | `findings`     | list    | Problems found, at most one per word (can be empty)                                                                               |
 | `processingMs` | integer | How long the analysis took                                                                                                        |
 
