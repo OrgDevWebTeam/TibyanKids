@@ -7,7 +7,7 @@ const contentSchema = new mongoose.Schema(
 
     type: {
       type: String,
-      enum: ["lesson", "story", "activity", "quran_task"],
+      enum: ["lesson", "story", "activity", "quran_task", "mission"],
       required: true,
     },
 
@@ -59,7 +59,9 @@ const contentSchema = new mongoose.Schema(
 );
 
 contentSchema.pre("validate", function () {
-  if (this.type === "quran_task") {
+  // Quran tasks and Family Loop missions always need a reviewer's approval before publishing
+  // (safety doc 2.3: missions come from a reviewed table; ADR-0008).
+  if (this.type === "quran_task" || this.type === "mission") {
     this.reviewRequired = true;
   }
   if (this.status === "published") {
