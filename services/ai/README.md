@@ -108,5 +108,8 @@ from inside the repository.
 | Silero VAD                       | Speech vs silence in the quality gate | MIT                                  |
 | ffmpeg                           | Decoding uploads                      | LGPL/GPL (run as a separate program) |
 
+Full register with versions, model revisions, data sources and the recordings' checksums:
+[`docs/ai/model-register.md`](../../docs/ai/model-register.md).
+
 QML 1.0 conditions (AI notice before first use, use according to Islamic law, no ad tracking, fix
 a violation within 30 days): see `docs/ai/genai_and_safety_boundaries.en.md` section 3.
