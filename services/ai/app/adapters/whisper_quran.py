@@ -12,9 +12,6 @@ import difflib
 import re
 import time
 
-import torch
-from transformers import WhisperForConditionalGeneration, WhisperProcessor
-
 from app.policy import decide, make_finding
 from app.schemas import AnalysisResult
 
@@ -44,6 +41,9 @@ model = None
 def load_model():
     global processor, model
     if model is None:
+        # Imported here so the word comparison can be tested without torch (CI has no GPU packages)
+        from transformers import WhisperForConditionalGeneration, WhisperProcessor
+
         processor = WhisperProcessor.from_pretrained(MODEL_NAME)
         model = WhisperForConditionalGeneration.from_pretrained(MODEL_NAME).to("cuda").eval()
     return processor, model
@@ -63,6 +63,8 @@ def normalize(word):
 
 def transcribe(samples):
     """Returns (words, confidence). Confidence = the average probability of the model's tokens."""
+    import torch
+
     processor, model = load_model()
     features = processor(samples, sampling_rate=SAMPLE_RATE, return_tensors="pt").input_features.to("cuda")
     with torch.no_grad():
