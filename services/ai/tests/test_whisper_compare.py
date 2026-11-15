@@ -157,3 +157,20 @@ def test_analyze_sends_an_unsure_word_to_the_teacher(fake_model):
     result = run()
     assert result.decision == "uncertain"
     assert result.findings[0].confidence == 0.4
+
+
+def test_a_model_that_does_not_finish_sends_the_ayah_to_the_teacher(fake_model, monkeypatch):
+    # Noisy audio can make whisper repeat itself until MAX_NEW_TOKENS: its text is not what was said
+    def runaway(samples):
+        raise whisper_quran.Runaway()
+
+    monkeypatch.setattr(whisper_quran, "transcribe", runaway)
+    result = run()
+    assert result.decision == "uncertain"
+    assert result.findings == []
+    assert result.quality == "ok"
+
+
+def test_the_output_cap_fits_the_model():
+    # 448 positions in whisper-base, 4 of them taken by the prompt; the longest prototype ayah takes 75
+    assert 75 * 2 <= whisper_quran.MAX_NEW_TOKENS <= 448 - 4
