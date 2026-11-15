@@ -56,8 +56,10 @@ One request checks **one recorded ayah**. The recording goes through four steps:
 ```
 
 **Today (week 3):** the HTTP endpoint (`app/main.py`) still returns **mock** results. The real steps
-1–4 run from `scripts/run_real_audio.py`, and each model still decides on its own. Merging the two
-models' findings into one result, and connecting it to the endpoint, is the week-3 work.
+1–4 run from `scripts/run_real_audio.py`. Each adapter has two functions: `find_errors()` returns its
+findings and decides nothing, and `analyze()` adds the decision for that model alone. Merging the
+two models' findings into one result, deciding once, and connecting it to the endpoint is the
+week-3 work.
 
 ### Where to start reading
 
@@ -70,25 +72,27 @@ models' findings into one result, and connecting it to the endpoint, is the week
 
 ### File map
 
-| File                                                   | What it does                                                                   |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------ |
-| `app/main.py`                                          | The HTTP endpoints (`/health`, `/v1/recitation/analyze`). Mock only for now    |
-| `app/schemas.py`                                       | The result format (Pydantic), kept in line with the contract's JSON Schema     |
-| `app/policy.py`                                        | Error codes → category and child message; findings → decision for a level      |
-| `app/mock.py`                                          | Fake but rule-following results for `MOCK_MODE`, so nobody needs a GPU         |
-| `app/audio.py`                                         | Decoding (ffmpeg) and the quality gate (Silero VAD, loudness, signal-to-noise) |
-| `app/reference.py`                                     | The text of the 25 prototype ayat (`packages/contracts/data`)                  |
-| `app/model_files.py`                                   | Where the model files are loaded from (`services/ai/models/` or the cache)     |
-| `app/adapters/muaalem.py`                              | quran-muaalem: sounds and tajweed → findings                                   |
-| `app/adapters/whisper_quran.py`                        | whisper-quran: transcript → word comparison → findings                         |
-| `scripts/run_real_audio.py`                            | Runs the gate and both models on a folder of recordings (GPU machine)          |
-| `scripts/download_models.py`                           | Puts the pinned model files into `services/ai/models/` (GPU machine)           |
-| `scripts/align_word_timings.py`                        | Proposes word timings for the reference recitation (GPU machine)               |
-| `tests/test_contract.py`                               | The service and the mock follow the contract's JSON Schema and message list    |
-| `tests/test_policy.py`                                 | The decision rules                                                             |
-| `tests/test_quality_gate.py`                           | The quality gate, with generated audio                                         |
-| `tests/test_whisper_compare.py`                        | whisper-quran's word comparison, confidence and model loading (no GPU needed)  |
-| `tests/test_reference.py`, `tests/test_model_files.py` | Loading the reference text and the model files                                 |
+| File                                                   | What it does                                                                                        |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| `app/main.py`                                          | The HTTP endpoints (`/health`, `/v1/recitation/analyze`). Mock only for now                         |
+| `app/schemas.py`                                       | The result format (Pydantic), kept in line with the contract's JSON Schema                          |
+| `app/policy.py`                                        | Error codes → category and child message; findings → decision for a level                           |
+| `app/mock.py`                                          | Fake but rule-following results for `MOCK_MODE`, so nobody needs a GPU                              |
+| `app/audio.py`                                         | Decoding (ffmpeg) and the quality gate (Silero VAD, loudness, signal-to-noise)                      |
+| `app/reference.py`                                     | The text of the 25 prototype ayat (`packages/contracts/data`)                                       |
+| `app/model_files.py`                                   | Where the model files are loaded from (`services/ai/models/` or the cache)                          |
+| `app/adapters/muaalem.py`                              | quran-muaalem: sounds and tajweed → findings                                                        |
+| `app/adapters/whisper_quran.py`                        | whisper-quran: transcript → word comparison → findings                                              |
+| `scripts/run_real_audio.py`                            | Runs the gate and both models on a folder of recordings (GPU machine)                               |
+| `scripts/download_models.py`                           | Puts the pinned model files into `services/ai/models/` (GPU machine)                                |
+| `scripts/align_word_timings.py`                        | Proposes word timings for the reference recitation (GPU machine)                                    |
+| `tests/test_contract.py`                               | The service and the mock follow the contract's JSON Schema and message list                         |
+| `tests/test_policy.py`                                 | The decision rules                                                                                  |
+| `tests/test_quality_gate.py`                           | The quality gate, with generated audio                                                              |
+| `tests/test_whisper_words.py`                          | whisper-quran's word logic: spelling, word comparison, token grouping                               |
+| `tests/test_whisper_model.py`                          | whisper-quran's model side with a fake model: `find_errors()`, `analyze()`, the output cap, loading |
+| `tests/test_muaalem_codes.py`                          | How quran-muaalem's errors become our codes (GPU machine only, skipped in CI)                       |
+| `tests/test_reference.py`, `tests/test_model_files.py` | Loading the reference text and the model files                                                      |
 
 CI runs every test without a GPU: the models are faked or not needed. Changes to the model code are
 also checked on the GPU machine with `scripts/run_real_audio.py` on the 25 reference recordings.

@@ -26,7 +26,7 @@ from quran_transcript.phonetics.tajweed_rulses import (
 
 from app.model_files import check_revision, local_copy
 from app.policy import decide, make_finding
-from app.schemas import AnalysisResult
+from app.schemas import AnalysisResult, Finding
 
 NAME = "quran-muaalem"  # the model's name in every result (AnalysisResult.model)
 HF_REPO = "obadx/muaalem-model-v3_2"  # where the model lives on Hugging Face
@@ -159,13 +159,13 @@ def madd_code(rule, error) -> str | None:
     return "ERR_TAJ_MADD_SHORT"
 
 
-def analyze(samples, uthmani_text: str, level: str, attempt_id: str) -> AnalysisResult:
+def find_errors(samples, uthmani_text: str) -> list[Finding]:
     """
-    Checks one recording of one ayah for sound and tajweed errors.
+    The sound and tajweed errors in one recording of one ayah: at most one finding per word, in word
+    order. Nothing is decided here: decide() turns findings into accepted / error / uncertain.
     samples: 16 kHz mono float32 audio that passed the quality gate (the clip).
     uthmani_text: the ayah's text in Uthmani script, as in reference_quran_text.json.
     """
-    started = time.perf_counter()
     reference = quran_phonetizer(uthmani_text, moshaf_settings(), remove_spaces=True)
     output = load_model()([samples], [reference], sampling_rate=SAMPLE_RATE)[0]
     predicted = output.phonemes.text
@@ -185,16 +185,23 @@ def analyze(samples, uthmani_text: str, level: str, attempt_id: str) -> Analysis
         code = error_code(error)
         if code is None:
             continue
+        word = word_index(uthmani_text, error.uthmani_pos[0])
         # No word timings yet, so the replay segment is 0-0 until the new timings are added
-        finding = make_finding(
-            word_index(uthmani_text, error.uthmani_pos[0]), code, confidence(error, positions, output.phonemes.probs), 0, 0
-        )
-        current = findings_by_word.get(finding.wordIndex)
+        finding = make_finding(word, code, confidence(error, positions, output.phonemes.probs), 0, 0)
+        current = findings_by_word.get(word)
         if current is None or CATEGORY_ORDER.index(finding.category) < CATEGORY_ORDER.index(current.category):
-            findings_by_word[finding.wordIndex] = finding
+            findings_by_word[word] = finding
 
-    findings = [findings_by_word[word] for word in sorted(findings_by_word)]
-    decision, findings = decide(findings, level)
+    return [findings_by_word[word] for word in sorted(findings_by_word)]
+
+
+def analyze(samples, uthmani_text: str, level: str, attempt_id: str) -> AnalysisResult:
+    """
+    This model alone: its errors (find_errors()) and the decision for the child's level, as one
+    result. Used by scripts/run_real_audio.py; the service will combine both models' findings first.
+    """
+    started = time.perf_counter()
+    decision, findings = decide(find_errors(samples, uthmani_text), level)
     return AnalysisResult(
         attemptId=attempt_id,
         model=NAME,
