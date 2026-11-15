@@ -54,6 +54,11 @@
     "en": "We couldn't hear a clear voice. Let's move closer to the microphone and record again, calmly.",
     "used_for": "quality != ok (not counted as an attempt)"
   },
+  "FEEDBACK_AUDIO_TOO_LONG": {
+    "ar": "التسجيل طويل جداً. لنقرأ هذه الآية وحدها، ثم نضغط زر الإيقاف.",
+    "en": "That recording is too long. Let's read just this verse, then press stop.",
+    "used_for": "quality == too_long (not counted as an attempt). Drafted 2026-11-15, waiting for Ismail's review"
+  },
   "FEEDBACK_TEACHER_REVIEW": {
     "ar": "جهد مبارك! سيستمع معلمك إلى تلاوتك.",
     "en": "Blessed effort! Your teacher will listen to your recitation.",
