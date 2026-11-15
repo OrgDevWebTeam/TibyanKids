@@ -25,6 +25,15 @@ MODEL_NAME = "tarteel-ai/whisper-base-ar-quran"
 # The week 2 run used this one. Change it only together with an evaluation run (AI release rules).
 MODEL_REVISION = os.environ.get("WHISPER_QURAN_REVISION", "5c3c53fdf9272c4f6ee0bee09a1e5a4a615ee25c")
 SAMPLE_RATE = 16000
+# Most tokens the model may write for one ayah. The longest prototype ayah (1:7) takes 75. The model
+# allows 1024 in its generation settings but has only 448 positions: past that, generation crashes
+# the GPU (CUDA device-side assert) and every later request fails until the service restarts. Noisy
+# audio can make the model repeat itself until it gets there (108:3 with heavy noise did).
+MAX_NEW_TOKENS = 200
+
+
+class Runaway(Exception):
+    """The model kept writing until MAX_NEW_TOKENS without finishing: its text cannot be trusted."""
 
 # Harakat, dagger alif, Quranic marks (including small waw and small yaa) and tatweel.
 # The Imlaei text keeps a dagger alif only where ordinary spelling has no alif (الرَّحْمَٰنِ, إِلَٰهِ;
@@ -54,6 +63,9 @@ def load_model():
 
         processor = WhisperProcessor.from_pretrained(MODEL_NAME)
         model = WhisperForConditionalGeneration.from_pretrained(MODEL_NAME).to("cuda").eval()
+        # The prompt (start, language, task, no-timestamps) takes 4 positions before the text
+        if MAX_NEW_TOKENS + 4 > model.config.max_target_positions:
+            raise ValueError("MAX_NEW_TOKENS does not fit the model's positions")
     return processor, model
 
 
@@ -86,14 +98,21 @@ def group_words(tokens, probabilities):
 
 
 def transcribe(samples):
-    """Returns (words, confidences): the words the model heard and, for each word, its confidence."""
+    """
+    Returns (words, confidences): the words the model heard and, for each word, its confidence.
+    Raises Runaway when the model did not finish within MAX_NEW_TOKENS.
+    """
     import torch
 
     processor, model = load_model()
     tokenizer = processor.tokenizer
     features = processor(samples, sampling_rate=SAMPLE_RATE, return_tensors="pt").input_features.to("cuda")
     with torch.no_grad():
-        output = model.generate(features, return_dict_in_generate=True, output_scores=True)
+        output = model.generate(
+            features, return_dict_in_generate=True, output_scores=True, max_new_tokens=MAX_NEW_TOKENS
+        )
+    if output.sequences[0][-1].item() != tokenizer.eos_token_id:
+        raise Runaway()
     scores = model.compute_transition_scores(output.sequences, output.scores, normalize_logits=True)[0]
 
     # One score per generated token. The language, task and end tokens are left out: they are forced
@@ -164,18 +183,22 @@ def finding_confidence(evidence, confidences):
 def analyze(samples, reference_words, level, attempt_id):
     """samples: 16 kHz mono float32 audio that passed the quality gate. reference_words: the ayah's words in Imlaei spelling (text_imlaei)."""
     started = time.perf_counter()
-    said_words, confidences = transcribe(samples)
+    try:
+        said_words, confidences = transcribe(samples)
+    except Runaway:
+        # The text is a loop, not what the child said: the teacher checks the ayah (FR-QUR-006)
+        decision, findings = "uncertain", []
+    else:
+        # One finding per word: the first one found
+        findings_by_word = {}
+        for word, code, evidence in compare_words(reference_words, said_words):
+            if word not in findings_by_word:
+                confidence = finding_confidence(evidence, confidences)
+                # No word timings yet, so the replay segment is 0-0 until the new timings are added
+                findings_by_word[word] = make_finding(word, code, confidence, 0, 0)
 
-    # One finding per word: the first one found
-    findings_by_word = {}
-    for word, code, evidence in compare_words(reference_words, said_words):
-        if word not in findings_by_word:
-            confidence = finding_confidence(evidence, confidences)
-            # No word timings yet, so the replay segment is 0-0 until the new timings are added
-            findings_by_word[word] = make_finding(word, code, confidence, 0, 0)
-
-    findings = [findings_by_word[word] for word in sorted(findings_by_word)]
-    decision, findings = decide(findings, level)
+        findings = [findings_by_word[word] for word in sorted(findings_by_word)]
+        decision, findings = decide(findings, level)
     return AnalysisResult(
         attemptId=attempt_id,
         model=MODEL,
