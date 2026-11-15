@@ -129,28 +129,42 @@ Limited XP, badges and streaks tied to effort and growth, **no manipulative loop
    (done: `docs/ai/model-register.md`), and update the component table in the Architecture (to do:
    quran-muaalem's package is QML 1.0, its model weights are MIT). Owner: Ismail.
 
-### 3.2 Conditions quoted from the quran-muaalem 0.3.0 release page (QML 1.0)
+### 3.2 Conditions of QML 1.0 (checked against the `LICENSE` file, 2026-11-15)
 
-| Condition                                                            | Effect on Noor                                                                                |
-| :------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------- |
-| Show an AI notice before first use and keep it available             | Needed in the app (section 3.3)                                                               |
-| Follow Islamic law in use, changes and distribution                  | Review by the qualified religious reviewer (O-04)                                             |
-| No advertising, ad tracking or selling user data for ads             | Matches SEC-009                                                                               |
-| If access is paid, a clear free path for core features in some cases | Matters once family membership is decided (BR-004). Payments are out of the prototype (A-005) |
-| Fix a violation within 30 days                                       | Note in the risk register                                                                     |
+QML 1.0 is the Apache License 2.0 plus additional conditions (§2 of the licence). They bind the
+product that shows the checker to users, not only the AI service. Each one is a release gate in
+`docs/SECURITY-GATES.md` (gates 14–19).
 
-### 3.3 AI notice text (draft)
+| Condition (QML 1.0 section)                                                                                                                                                                 | Effect on Noor                                                                                                          |
+| :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :---------------------------------------------------------------------------------------------------------------------- |
+| §2.1 AI notice: shown to **every** end user before first use and always reachable afterwards (main menu, About or Help), in Arabic and each interface language, no smaller than body text   | Needed in the app, **including the child area**: the children are the users who record (section 3.3). Gate 14           |
+| §2.1(f) Never present the checker or its results as a substitute for a proficient, authorized teacher                                                                                       | Applies to all product and marketing text                                                                               |
+| §2.2 Follow the rulings of Islamic Sharia in every use, change and distribution                                                                                                             | Review by the qualified religious reviewer (O-04). Gate 18                                                              |
+| §2.3(a) No advertisements, ad code, ad attribution, cross-app ad tracking, or selling user data for ads, whether or not the product is commercial                                           | Matches SEC-009. Analytics and crash reports are allowed if not used for ads. Gate 15                                   |
+| §2.3(b) If any fee is charged: automatic free access in World Bank "Low income" and "Lower-middle income" economies, and a no-cost self-declaration path for anyone, visible before payment | A product decision for the family membership (BR-004), not a detail. Payments are out of the prototype (A-005). Gate 16 |
+| §2.4 Every copy given to others carries the licence in full                                                                                                                                 | Only if the AI service is given out (for example an image). Gate 17                                                     |
+| §2.5 A breach not fixed within 30 days ends the licence automatically                                                                                                                       | Owner in the risk register. Gate 19                                                                                     |
 
-Shown to parents and teachers (the account holders) before the first use of recitation checking,
-and always available afterwards (for example in help or settings). Ola and Osama decide where and
-how. If the `LICENSE` requires exact wording, that wording replaces this draft.
+### 3.3 AI notice text
 
-- **Arabic:** تنبيه: هذا المصحّح القرآني الذكي نموذج ذكاء اصطناعي قد يخطئ. هو للإعانة على التدريب
-  فقط، ولا يغني عن معلّم متقن مُجاز، فالقرآن يُؤخذ بالمشافهة والتلقي.
-- **English:** Notice: This smart Quran checker is an AI model and can make mistakes. It is a
-  practice aid only and does not replace a qualified, authorized teacher, as the Quran is learned
-  through oral transmission.
+Use the licensor's official text **word for word**: QML 1.0 §2.1(b) says this satisfies the
+licence, and the Arabic text controls. The earlier draft did not: it left out "must not be relied
+upon" and, in Arabic, "only" (لا يُؤخذ **إلا** بالمشافهة).
 
-Proposed key: `NOTICE_AI_MAY_ERR`. It goes into the app's interface messages (not
-`safe_messages_v1_1.json`) once the text is approved, because it is a notice for adults, not
-feedback for a child.
+- **Arabic:** هذا المعلّم القرآني نموذج ذكاء اصطناعي قد يخطئ؛ فهو للإعانة فقط ولا يُعتمد عليه، وليس
+  بديلاً عن معلّمٍ مُتقِنٍ مُجاز؛ لأنّ القرآن لا يُؤخذ إلا بالمشافهة.
+- **English:** This Quranic Teacher is an artificial-intelligence model that may make mistakes. It is
+  intended for assistance only and must not be relied upon. It is not a replacement for a
+  proficient, authorized teacher, because the Quran is only received through oral transmission
+  (mushafahah).
+
+The licence also allows "This tool" instead of "This Quranic Teacher" only where the product is not
+a teacher (for example a search-only tool). Noor's checker corrects recitation, so keep "This
+Quranic Teacher".
+
+**Who sees it.** Every user who records, the child included, before the first recitation check;
+and everyone can reach it later from the main menu or Help. A parent seeing it does not cover the
+child. How it reaches a child who cannot read yet (for example read aloud, with the text on screen)
+is decided by Ola and Mohammad. Osama builds it.
+
+Proposed key: `NOTICE_AI_MAY_ERR`, in the app's interface messages (not `safe_messages_v1_1.json`).
