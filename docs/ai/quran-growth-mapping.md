@@ -13,21 +13,22 @@
 
 Eleven competencies in the `quran` domain: one per prototype surah, and one per skill the
 recitation check can give evidence for. Each skill matches a category or error code of the
-contract, so every AI finding lands on exactly one competency.
+contract, so every AI finding lands on exactly one competency. The Arabic names are in
+`quran_competencies.json`.
 
-| Code              | Arabic                           | English                                      | Evidence from the recitation check                       |
-| ----------------- | -------------------------------- | -------------------------------------------- | -------------------------------------------------------- |
-| `QURAN-SURAH-001` | تلاوة سورة الفاتحة               | Reciting Surah Al-Fatiha                     | Every ayah of the surah (§3)                             |
-| `QURAN-SURAH-108` | تلاوة سورة الكوثر                | Reciting Surah Al-Kawthar                    | Same                                                     |
-| `QURAN-SURAH-112` | تلاوة سورة الإخلاص               | Reciting Surah Al-Ikhlas                     | Same                                                     |
-| `QURAN-SURAH-113` | تلاوة سورة الفلق                 | Reciting Surah Al-Falaq                      | Same                                                     |
-| `QURAN-SURAH-114` | تلاوة سورة الناس                 | Reciting Surah An-Nas                        | Same                                                     |
-| `QURAN-WORDS`     | قراءة كلمات الآية كاملة بترتيبها | Reading every word of the ayah, in order     | `memorization`: `ERR_MEM_*`                              |
-| `QURAN-LETTERS`   | إخراج الحروف من مخارجها          | Pronouncing each letter correctly            | `ERR_PRON_LETTER_SUB`                                    |
-| `QURAN-HARAKAT`   | ضبط الحركات                      | Reading the short vowels (harakat) correctly | `ERR_PRON_HARAKA`                                        |
-| `QURAN-MADD`      | المدّ                            | Madd (lengthening)                           | `ERR_TAJ_MADD_SHORT` (and 🔶 `ERR_PRON_MADD_ASLI_SHORT`) |
-| `QURAN-GHUNNA`    | الغُنّة                          | Ghunna (nasal sound)                         | 🔶 `ERR_TAJ_GHONNA_OMIT` — not produced yet (§5)         |
-| `QURAN-QALQALA`   | القلقلة                          | Qalqala (echo)                               | `ERR_TAJ_QALQALA_OMIT`                                   |
+| Code              | English                                      | Evidence from the recitation check                       |
+| ----------------- | -------------------------------------------- | -------------------------------------------------------- |
+| `QURAN-SURAH-001` | Reciting Surah Al-Fatiha                     | Every ayah of the surah (§3)                             |
+| `QURAN-SURAH-108` | Reciting Surah Al-Kawthar                    | Same                                                     |
+| `QURAN-SURAH-112` | Reciting Surah Al-Ikhlas                     | Same                                                     |
+| `QURAN-SURAH-113` | Reciting Surah Al-Falaq                      | Same                                                     |
+| `QURAN-SURAH-114` | Reciting Surah An-Nas                        | Same                                                     |
+| `QURAN-WORDS`     | Reading every word of the ayah, in order     | `memorization`: `ERR_MEM_*`                              |
+| `QURAN-LETTERS`   | Pronouncing each letter correctly            | `ERR_PRON_LETTER_SUB`                                    |
+| `QURAN-HARAKAT`   | Reading the short vowels (harakat) correctly | `ERR_PRON_HARAKA`                                        |
+| `QURAN-MADD`      | Madd (lengthening)                           | `ERR_TAJ_MADD_SHORT` (and 🔶 `ERR_PRON_MADD_ASLI_SHORT`) |
+| `QURAN-GHUNNA`    | Ghunna (nasal sound)                         | 🔶 `ERR_TAJ_GHONNA_OMIT` — not produced yet (§5)         |
+| `QURAN-QALQALA`   | Qalqala (echo)                               | `ERR_TAJ_QALQALA_OMIT`                                   |
 
 The `memorization` codes check whether each word was read, in order, while the ayah is on the
 screen. They do not test reciting from memory, so the competency is named for what is checked.
