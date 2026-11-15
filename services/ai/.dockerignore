@@ -1,3 +1,5 @@
 .venv
 __pycache__
 .pytest_cache
+# Model files (2.9 GB) are not part of the mock image
+models

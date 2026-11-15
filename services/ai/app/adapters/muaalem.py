@@ -24,6 +24,7 @@ from quran_transcript.phonetics.tajweed_rulses import (
     Qalqalah,
 )
 
+from app.model_files import local_copy
 from app.policy import decide, make_finding
 from app.schemas import AnalysisResult
 
@@ -32,6 +33,8 @@ MODEL_NAME = "obadx/muaalem-model-v3_2"
 # Exact model revision (Hugging Face commit), so an update on the Hub never changes results silently.
 # The week 2 run used this one. Change it only together with an evaluation run (AI release rules).
 MODEL_REVISION = os.environ.get("MUAALEM_REVISION", "01a1ef9fbe40d144ef845101e89ff924aed3fef5")
+# The files the model needs (download_models.py copies the same ones)
+MODEL_FILES = ["*.json", "*.safetensors"]
 SAMPLE_RATE = 16000
 
 # Which category comes first when one word has several errors (taxonomy 1.1)
@@ -45,8 +48,12 @@ def load_model():
     if model is None:
         if not re.fullmatch(r"[0-9a-f]{40}", MODEL_REVISION):
             raise ValueError("MUAALEM_REVISION must be a full 40-character commit hash")
-        # Muaalem() takes no revision, so the pinned files are downloaded first and loaded from disk
-        folder = snapshot_download(MODEL_NAME, revision=MODEL_REVISION, allow_patterns=["*.json", "*.safetensors"])
+        # services/ai/models/ when it holds the pinned revision (scripts/download_models.py). Otherwise
+        # the pinned files from the Hugging Face cache: Muaalem() takes no revision, so they are
+        # fetched first and loaded from disk.
+        folder = local_copy(MODEL_NAME, MODEL_REVISION) or snapshot_download(
+            MODEL_NAME, revision=MODEL_REVISION, allow_patterns=MODEL_FILES
+        )
         model = Muaalem(model_name_or_path=folder, device="cuda")
     return model
 

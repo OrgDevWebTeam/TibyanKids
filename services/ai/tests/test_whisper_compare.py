@@ -176,9 +176,9 @@ def test_the_output_cap_fits_the_model():
     assert 75 * 2 <= whisper_quran.MAX_NEW_TOKENS <= 448 - 4
 
 
-def test_load_model_asks_for_the_pinned_revision(monkeypatch):
-    # The pin was once lost in a merge while model_version() kept reporting it (OPS-008).
-    # A fake transformers module records what load_model() asks for; no GPU or download needed.
+@pytest.fixture
+def fake_transformers(monkeypatch):
+    """A fake transformers module that records what load_model() asks for; no GPU or download."""
     import sys
     import types
 
@@ -210,10 +210,37 @@ def test_load_model_asks_for_the_pinned_revision(monkeypatch):
     monkeypatch.setitem(sys.modules, "transformers", fake)
     monkeypatch.setattr(whisper_quran, "model", None)
     monkeypatch.setattr(whisper_quran, "processor", None)
+    return calls
+
+
+def test_load_model_uses_the_local_copy_of_the_pinned_revision(fake_transformers, tmp_path, monkeypatch):
+    monkeypatch.setenv("MODELS_DIR", str(tmp_path))
+    folder = tmp_path / "tarteel-ai--whisper-base-ar-quran"
+    folder.mkdir()
+    (folder / "REVISION").write_text(whisper_quran.MODEL_REVISION, encoding="utf-8")
+
+    whisper_quran.load_model()
+
+    assert fake_transformers["processor"] == (str(folder), {})
+    assert fake_transformers["model"] == (str(folder), {"use_safetensors": False})
+
+
+def test_load_model_refuses_a_local_copy_of_another_revision(fake_transformers, tmp_path, monkeypatch):
+    monkeypatch.setenv("MODELS_DIR", str(tmp_path))
+    folder = tmp_path / "tarteel-ai--whisper-base-ar-quran"
+    folder.mkdir()
+    (folder / "REVISION").write_text("0" * 40, encoding="utf-8")
+
+    with pytest.raises(ValueError, match="not the pinned"):
+        whisper_quran.load_model()
+
+
+def test_load_model_asks_for_the_pinned_revision_without_a_local_copy(fake_transformers, tmp_path, monkeypatch):
+    monkeypatch.setenv("MODELS_DIR", str(tmp_path))  # empty: no local copy
 
     whisper_quran.load_model()
 
     pin = whisper_quran.MODEL_REVISION
-    assert calls["processor"] == (whisper_quran.MODEL_NAME, {"revision": pin})
-    assert calls["model"] == (whisper_quran.MODEL_NAME, {"revision": pin, "use_safetensors": False})
+    assert fake_transformers["processor"] == (whisper_quran.MODEL_NAME, {"revision": pin})
+    assert fake_transformers["model"] == (whisper_quran.MODEL_NAME, {"revision": pin, "use_safetensors": False})
     assert whisper_quran.model_version().endswith("@" + pin[:12])

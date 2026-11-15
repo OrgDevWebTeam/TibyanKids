@@ -35,6 +35,10 @@ noor-eval/
 
 # Never commit audio or datasets (public repo)
 datasets/
+
+# AI model files: 2.9 GB, never in git. Filled by services/ai/scripts/download_models.py
+services/ai/models/*
+!services/ai/models/README.md
 *.wav
 *.webm
 *.m4a

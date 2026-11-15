@@ -8,3 +8,7 @@
 **/*.log
 .vs
 .vscode
+# Never send recordings, model files or the Python environment to a Docker build
+datasets
+services/ai/models
+**/.venv
