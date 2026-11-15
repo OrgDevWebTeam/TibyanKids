@@ -7,7 +7,8 @@ Usage:
 Modes
   strict (default): every problem is a failure (exit 1). Use once all 25 ayat have reviewed timings.
   --draft         : DRAFT MODE for CI while timings are still being generated. Data-completeness problems are
-                    reported as WARN and do not fail the run (missing ayat, 50 ms grid, zero gaps).
+                    reported as WARN and do not fail the run (missing ayat, 50 ms grid, zero gaps,
+                    words shorter than 200 ms, pauses longer than 1.5 s).
                     Integrity problems still FAIL: text/word mismatches, positions, start/end vs total, overlaps,
                     and any result-file word that differs from the reference.
                     Remove --draft from CI when the timings are complete.
@@ -15,7 +16,8 @@ Modes
 Checks
   text    : 25 ayat, positions 1..n, text_uthmani == words joined by a space, no digits/latin characters
   timings : words match the text file, start=0, end=total, no overlaps  [integrity]
-            every ayah present, boundaries not all on a 50 ms grid, pauses between words  [completeness]
+            every ayah present, boundaries not all on a 50 ms grid, pauses between words,
+            every word at least 200 ms, no pause between words over 1.5 s  [completeness]
   result  : word_text in a result file equals the reference word exactly (alif-wasla/marks differences are reported).
             Findings without word_text (contract v3) are skipped.
 """
@@ -23,6 +25,10 @@ import json, re, sys, unicodedata
 
 WASLA, ALEF = "\u0671", "\u0627"
 EXPECTED_AYAT = 25
+# A word shorter than this cannot be a whole recited word: its end was marked too early, and replaying
+# it would play a click. A pause longer than this usually means the word before it ends too early too.
+MIN_WORD_MS = 200
+MAX_PAUSE_MS = 1500
 
 
 def normalize(s):
@@ -58,6 +64,11 @@ def check(text_p, tim_p, res_p=None):
         if ws[0]["start_ms"] != 0 or ws[-1]["end_ms"] != t["total_duration_ms"]: hard.append(f"{k}: start/end vs total")
         for a, b in zip(ws, ws[1:]):
             if b["start_ms"] < a["end_ms"]: hard.append(f"{k}: overlap at word {b['position']}")
+            if b["start_ms"] - a["end_ms"] > MAX_PAUSE_MS:
+                soft.append(f"{k}: {b['start_ms'] - a['end_ms']} ms pause before word {b['position']} -> does word {a['position']} end too early?")
+        for w in ws:
+            if w["end_ms"] - w["start_ms"] < MIN_WORD_MS:
+                soft.append(f"{k}: word {w['position']} lasts {w['end_ms'] - w['start_ms']} ms (under {MIN_WORD_MS} ms)")
     b = [x for t in got.values() for w in t["words"] for x in (w["start_ms"], w["end_ms"])]
     if b and all(x % 50 == 0 for x in b):
         soft.append(f"ALL {len(b)} timing boundaries sit on a 50 ms grid -> look hand-estimated; verify against forced alignment/QUL")
