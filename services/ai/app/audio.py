@@ -12,6 +12,7 @@
 import os
 import subprocess
 import tempfile
+from functools import cache
 
 import numpy as np
 
@@ -43,9 +44,6 @@ PADDING_BEFORE_SECONDS = 0.25
 PADDING_AFTER_SECONDS = 3.0
 
 DECODE_TIMEOUT_SECONDS = 15
-
-vad_model = None
-
 
 class AudioError(Exception):
     """The audio could not be read at all. This is not a quality result."""
@@ -85,17 +83,20 @@ def decode_audio(audio_bytes):
     return samples.astype(np.float32) / 32768.0
 
 
+@cache  # loaded once, on first use
+def load_vad():
+    from silero_vad import load_silero_vad
+
+    return load_silero_vad()
+
+
 def speech_parts(samples):
     """The parts Silero VAD hears as speech, as a list of (start, end) sample positions."""
-    global vad_model
     import torch
-    from silero_vad import get_speech_timestamps, load_silero_vad
-
-    if vad_model is None:
-        vad_model = load_silero_vad()
+    from silero_vad import get_speech_timestamps
 
     parts = get_speech_timestamps(
-        torch.from_numpy(samples), vad_model, sampling_rate=SAMPLE_RATE, threshold=VAD_THRESHOLD
+        torch.from_numpy(samples), load_vad(), sampling_rate=SAMPLE_RATE, threshold=VAD_THRESHOLD
     )
     return [(part["start"], part["end"]) for part in parts]
 

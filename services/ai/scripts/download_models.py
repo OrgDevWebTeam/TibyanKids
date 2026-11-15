@@ -22,8 +22,8 @@ from app.adapters import muaalem, whisper_quran  # noqa: E402
 from app.model_files import folder_for, models_dir  # noqa: E402
 
 MODELS = [
-    (muaalem.MODEL_NAME, muaalem.MODEL_REVISION, muaalem.MODEL_FILES),
-    (whisper_quran.MODEL_NAME, whisper_quran.MODEL_REVISION, whisper_quran.MODEL_FILES),
+    (muaalem.HF_REPO, muaalem.HF_REVISION, muaalem.HF_FILES),
+    (whisper_quran.HF_REPO, whisper_quran.HF_REVISION, whisper_quran.HF_FILES),
 ]
 
 

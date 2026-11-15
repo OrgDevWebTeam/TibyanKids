@@ -15,20 +15,21 @@ import difflib
 import os
 import re
 import time
+from functools import cache
 from typing import NamedTuple
 
-from app.model_files import local_copy
+from app.model_files import check_revision, local_copy
 from app.policy import decide, make_finding
 from app.schemas import AnalysisResult
 
-MODEL = "whisper-quran"
-MODEL_NAME = "tarteel-ai/whisper-base-ar-quran"
+NAME = "whisper-quran"  # the model's name in every result (AnalysisResult.model)
+HF_REPO = "tarteel-ai/whisper-base-ar-quran"  # where the model lives on Hugging Face
 # Exact model revision (Hugging Face commit), so an update on the Hub never changes results silently.
 # The week 2 run used this one. Change it only together with an evaluation run (AI release rules).
-MODEL_REVISION = os.environ.get("WHISPER_QURAN_REVISION", "5c3c53fdf9272c4f6ee0bee09a1e5a4a615ee25c")
+HF_REVISION = os.environ.get("WHISPER_QURAN_REVISION", "5c3c53fdf9272c4f6ee0bee09a1e5a4a615ee25c")
 # The files the model needs (download_models.py copies the same ones; the repo also holds
 # training logs, which are left out)
-MODEL_FILES = ["*.json", "*.txt", "pytorch_model.bin"]
+HF_FILES = ["*.json", "*.txt", "pytorch_model.bin"]
 SAMPLE_RATE = 16000
 # Most tokens the model may write for one ayah. The longest prototype ayah (1:7) takes 75. The model
 # allows 1024 in its generation settings but has only 448 positions: past that, generation crashes
@@ -60,36 +61,30 @@ SAME_LETTER = {
     "ة": "ه",  # taa marbuta -> haa
 }
 
-processor = None
-model = None
-
-
+@cache  # loaded once, on first use; later calls return the same (processor, model)
 def load_model():
-    global processor, model
-    if model is None:
-        # Imported here so the word comparison can be tested without torch (CI has no GPU packages)
-        from transformers import WhisperForConditionalGeneration, WhisperProcessor
+    # Imported here so the word comparison can be tested without torch (CI has no GPU packages)
+    from transformers import WhisperForConditionalGeneration, WhisperProcessor
 
-        if not re.fullmatch(r"[0-9a-f]{40}", MODEL_REVISION):
-            raise ValueError("WHISPER_QURAN_REVISION must be a full 40-character commit hash")
-        # services/ai/models/ when it holds the pinned revision (scripts/download_models.py),
-        # otherwise the pinned revision from the Hugging Face cache.
-        folder = local_copy(MODEL_NAME, MODEL_REVISION)
-        source, pin = (str(folder), {}) if folder else (MODEL_NAME, {"revision": MODEL_REVISION})
-        processor = WhisperProcessor.from_pretrained(source, **pin)
-        # use_safetensors=False loads the weights of the pinned commit itself. Otherwise transformers
-        # fetches a converted copy from the Hub's automatic conversion pull request (refs/pr/3),
-        # which is not part of the pin.
-        model = WhisperForConditionalGeneration.from_pretrained(source, **pin, use_safetensors=False).to("cuda").eval()
-        # The prompt (start, language, task, no-timestamps) takes 4 positions before the text
-        if MAX_NEW_TOKENS + 4 > model.config.max_target_positions:
-            raise ValueError("MAX_NEW_TOKENS does not fit the model's positions")
+    check_revision(HF_REVISION, "WHISPER_QURAN_REVISION")
+    # services/ai/models/ when it holds the pinned revision (scripts/download_models.py),
+    # otherwise the pinned revision from the Hugging Face cache.
+    folder = local_copy(HF_REPO, HF_REVISION)
+    source, pin = (str(folder), {}) if folder else (HF_REPO, {"revision": HF_REVISION})
+    processor = WhisperProcessor.from_pretrained(source, **pin)
+    # use_safetensors=False loads the weights of the pinned commit itself. Otherwise transformers
+    # fetches a converted copy from the Hub's automatic conversion pull request (refs/pr/3), which is
+    # not part of the pin.
+    model = WhisperForConditionalGeneration.from_pretrained(source, **pin, use_safetensors=False).to("cuda").eval()
+    # The prompt (start, language, task, no-timestamps) takes 4 positions before the text
+    if MAX_NEW_TOKENS + 4 > model.config.max_target_positions:
+        raise ValueError("MAX_NEW_TOKENS does not fit the model's positions")
     return processor, model
 
 
 def model_version():
     # Exact model revision (OPS-008)
-    return f"{MODEL_NAME}@{MODEL_REVISION[:12]}"
+    return f"{HF_REPO}@{HF_REVISION[:12]}"
 
 
 def normalize(word: str) -> str:
@@ -233,7 +228,7 @@ def analyze(samples, reference_words: list[str], level: str, attempt_id: str) ->
         decision, findings = decide(findings, level)
     return AnalysisResult(
         attemptId=attempt_id,
-        model=MODEL,
+        model=NAME,
         modelVersion=model_version(),
         decision=decision,
         quality="ok",
