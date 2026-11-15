@@ -1,0 +1,5 @@
+# Known false positives for the gitleaks secret scan (CI "Secret scan" job).
+# Format: <commit>:<file>:<rule-id>:<line>
+
+# Placeholder JWT secret in an API test, not a real credential.
+bb449cfa77bb18795f979a5cadb56a18b11e9abb:apps/api/tests/api/isolation.test.js:generic-api-key:10
