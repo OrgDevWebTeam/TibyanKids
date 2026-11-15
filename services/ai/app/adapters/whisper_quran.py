@@ -15,6 +15,7 @@ import difflib
 import os
 import re
 import time
+from functools import cache
 from typing import NamedTuple
 
 from app.model_files import check_revision, local_copy
