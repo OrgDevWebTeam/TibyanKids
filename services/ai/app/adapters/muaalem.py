@@ -63,7 +63,7 @@ def model_version():
     return f"{version('quran-muaalem')} {MODEL_NAME}@{MODEL_REVISION[:12]}"
 
 
-def moshaf_settings():
+def moshaf_settings() -> MoshafAttributes:
     # Expected madd lengths (taxonomy item 5.3, still open). Set them in .env to change them.
     return MoshafAttributes(
         rewaya="hafs",
@@ -74,16 +74,28 @@ def moshaf_settings():
     )
 
 
-def word_index(uthmani_text, char_position):
-    # Words are separated by spaces and numbered from 1
+def word_index(uthmani_text: str, char_position: int) -> int:
+    """The number (from 1) of the word that holds this character of the ayah text."""
     return uthmani_text[:char_position].count(" ") + 1
 
 
-def predicted_positions(ref_phonemes, predicted_phonemes):
+def predicted_positions(ref_phonemes: str, predicted_phonemes: str) -> dict:
     """
-    explain_error gives each error's position in the REFERENCE phonemes only. To get a confidence we
-    need the PREDICTED phonemes of the same error, so we repeat its alignment and remember, for each
-    reference position, which predicted phonemes were lined up with it.
+    For each place in the REFERENCE phonemes, the positions of the PREDICTED phonemes lined up with it.
+
+    Why: explain_error() says where an error is in the reference phonemes (error.ph_pos), but the
+    confidence lives on the predicted phonemes (the model's probability for each sound it heard). So
+    we line the two up again, the same way explain_error() does, and keep the link.
+
+    Both strings are cut into groups (a letter with its vowel, a long vowel, ...) and the groups are
+    aligned. The key is (start of the group in the reference, kind): kind is "insert" for a group the
+    child added, which has no reference sound of its own, and "other" for everything else.
+
+    Real example, Al-Ikhlas 1 with the first letter said as ك instead of ق:
+        reference groups  قُ | ل | هُ | ...     predicted groups  كُ | ل | هُ | ...
+        explain_error() -> one error at ph_pos (0, 2), reference phonemes 0-1 ("قُ")
+        result          -> {(0, "other"): [0, 1], (2, "other"): [2], (3, "other"): [3, 4], ...}
+    so the error's confidence is the lowest probability of predicted phonemes 0 and 1 ("كُ").
     """
     ref_groups = chunck_phonemes(ref_phonemes)
     predicted_groups = chunck_phonemes(predicted_phonemes)
@@ -102,9 +114,12 @@ def predicted_positions(ref_phonemes, predicted_phonemes):
     return positions
 
 
-def confidence(error, positions, probs):
-    # The lowest probability of the predicted phonemes in this error.
-    # A deleted phoneme has no prediction, so no confidence: 0 sends it to the teacher (taxonomy 1.4 rule 2).
+def confidence(error, positions: dict, probs) -> float:
+    """
+    The lowest probability of the predicted phonemes of this error (see predicted_positions()).
+    A deleted sound was not heard at all, so it has no probability: 0, which sends the ayah to the
+    teacher (taxonomy 1.4, rule 2).
+    """
     kind = "insert" if error.speech_error_type == "insert" else "other"
     values = [float(probs[i]) for i in positions.get((error.ph_pos[0], kind), [])]
     if not values:
@@ -112,36 +127,50 @@ def confidence(error, positions, probs):
     return round(min(values), 3)
 
 
-def error_code(error):
-    """Our code for one model error, or None when it is not an error for us."""
-    if error.error_type == "normal":
+def error_code(error) -> str | None:
+    """
+    Our error code for one error found by muaalem, or None when it is not an error for us.
+    The mapping table: docs/ai/tajweed_taxonomy_and_feedback.md, section 1.4.
+    """
+    if error.error_type == "normal":  # one letter said as another
         return "ERR_PRON_LETTER_SUB"
-    if error.error_type == "tashkeel":
+    if error.error_type == "tashkeel":  # a wrong short vowel (haraka)
         return "ERR_PRON_HARAKA"
 
-    # error_type == "tajweed"
+    # Otherwise error_type == "tajweed": the code depends on the tajweed rule of that sound.
     if not error.ref_tajweed_rules:
-        return "ERR_TAJ_UNMAPPED"
+        return "ERR_TAJ_UNMAPPED"  # no rule we know: never guess, the teacher checks it
     rule = error.ref_tajweed_rules[0]
 
     if isinstance(rule, Qalqalah):
         return "ERR_TAJ_QALQALA_OMIT"
+    # Keep this BEFORE the madd check: in quran_transcript, MoshaddadOrModghamNoonRule (a ghunna rule)
+    # is a subclass of MaddRule, so the madd check would catch it too.
     if isinstance(rule, (Ghonnah, MoshaddadOrModghamNoonRule)):
         return "ERR_TAJ_GHONNA_OMIT"
     if isinstance(rule, MaddRule):
-        too_long = error.predicted_len is not None and error.predicted_len > (error.expected_len or 0)
-        # Aared madd is accepted at 2 counts or more (taxonomy 1.4)
-        if isinstance(rule, AaredMaddRule) and (error.predicted_len or 0) >= 2:
-            return None
-        if too_long:
-            # Our taxonomy has no code for a madd that is too long, so the teacher checks it
-            return "ERR_TAJ_UNMAPPED"
-        return "ERR_TAJ_MADD_SHORT"
+        return madd_code(rule, error)
     return "ERR_TAJ_UNMAPPED"
 
 
-def analyze(samples, uthmani_text, level, attempt_id):
-    """samples: 16 kHz mono float32 audio that passed the quality gate."""
+def madd_code(rule, error) -> str | None:
+    """The code for a madd (a vowel held longer) that was not held as expected."""
+    counts = error.predicted_len or 0  # how many counts the child held it
+    # A madd before a pause (aarid) is accepted from 2 counts: the tolerance for children (taxonomy 1.4)
+    if isinstance(rule, AaredMaddRule) and counts >= 2:
+        return None
+    # Held too long: our taxonomy has no code for it, so the teacher checks it
+    if error.predicted_len is not None and counts > (error.expected_len or 0):
+        return "ERR_TAJ_UNMAPPED"
+    return "ERR_TAJ_MADD_SHORT"
+
+
+def analyze(samples, uthmani_text: str, level: str, attempt_id: str) -> AnalysisResult:
+    """
+    Checks one recording of one ayah for sound and tajweed errors.
+    samples: 16 kHz mono float32 audio that passed the quality gate (the clip).
+    uthmani_text: the ayah's text in Uthmani script, as in reference_quran_text.json.
+    """
     started = time.perf_counter()
     reference = quran_phonetizer(uthmani_text, moshaf_settings(), remove_spaces=True)
     output = load_model()([samples], [reference], sampling_rate=SAMPLE_RATE)[0]
@@ -155,7 +184,8 @@ def analyze(samples, uthmani_text, level, attempt_id):
     )
     positions = predicted_positions(reference.phonemes, predicted)
 
-    # One finding per word: the first error of the most important category (taxonomy 1.1)
+    # One finding per word: the error of the most important category (taxonomy 1.1); on a tie, the
+    # first one found
     findings_by_word = {}
     for error in errors:
         code = error_code(error)
