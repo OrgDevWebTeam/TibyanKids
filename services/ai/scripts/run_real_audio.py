@@ -81,7 +81,7 @@ def main():
         print_result(result, time.perf_counter() - started)
 
         started = time.perf_counter()
-        words = [word["text"] for word in ayah["words"]]
+        words = [word["text_imlaei"] for word in ayah["words"]]
         result = whisper_quran.analyze(clip, words, level, name)
         print_result(result, time.perf_counter() - started)
 

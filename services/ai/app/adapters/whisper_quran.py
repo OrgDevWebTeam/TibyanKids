@@ -3,8 +3,9 @@
 #
 # Steps:
 #   1. The model writes down the words it hears (Arabic text with diacritics).
-#   2. Both the transcript and the reference words are normalised (no diacritics, one form per letter),
-#      because the model writes ordinary (Imlaei) spelling and the reference is Uthmani.
+#   2. The model writes ordinary (Imlaei) spelling, so it is compared with the Imlaei form of each
+#      reference word (text_imlaei in reference_quran_text.json), not the Uthmani one. Both are
+#      normalised first (no diacritics, one form per letter).
 #   3. The two word lists are compared. A skipped word, a different word or an extra word becomes a
 #      memorization finding (taxonomy 1.4: ERR_MEM_* come from this comparison).
 # The transcript itself never leaves this file (contract rule: model text is never shown to a child).
@@ -23,12 +24,13 @@ MODEL_NAME = "tarteel-ai/whisper-base-ar-quran"
 MODEL_REVISION = os.environ.get("WHISPER_QURAN_REVISION", "5c3c53fdf9272c4f6ee0bee09a1e5a4a615ee25c")
 SAMPLE_RATE = 16000
 
-# Harakat, Quranic marks (including small waw and small yaa) and tatweel
-MARKS = re.compile("[ً-ٟۖ-ۭـ]")
+# Harakat, dagger alif, Quranic marks (including small waw and small yaa) and tatweel.
+# The Imlaei text keeps a dagger alif only where ordinary spelling has no alif (الرَّحْمَٰنِ, إِلَٰهِ;
+# but الْعَالَمِينَ), so it is dropped, never turned into a full alif.
+MARKS = re.compile("[ً-ٰٟۖ-ۭـ]")
 # Letters written in more than one way
 SAME_LETTER = {
     "ٱ": "ا",  # alif wasla -> alif
-    "ٰ": "ا",  # dagger alif -> alif
     "أ": "ا",  # alif with hamza above -> alif
     "إ": "ا",  # alif with hamza below -> alif
     "آ": "ا",  # alif madda -> alif
@@ -115,7 +117,7 @@ def compare_words(reference_words, said_words):
 
 
 def analyze(samples, reference_words, level, attempt_id):
-    """samples: 16 kHz mono float32 audio that passed the quality gate. reference_words: list of Uthmani words."""
+    """samples: 16 kHz mono float32 audio that passed the quality gate. reference_words: the ayah's words in Imlaei spelling (text_imlaei)."""
     started = time.perf_counter()
     said_words, confidence = transcribe(samples)
 
