@@ -119,14 +119,15 @@ Limited XP, badges and streaks tied to effort and growth, **no manipulative loop
 ## 3. Model licences and the AI notice
 
 > **Status: ✅ approved.** Mohammad approved the model and library licences on 2026-11-05.
-> Remaining: record them in the OPS-009 register, pin versions, and show the AI notice in the app.
+> Recorded in the OPS-009 register: `docs/ai/model-register.md`. Remaining: show the AI notice in the app.
 
 ### 3.1 Remaining steps
 
 1. Pin the package version and model revision (`obadx/muaalem-model-v3_2` and the others) and
    send it in `modelVersion` with every result (OPS-008). Owner: Qussai.
-2. Record every model, library and reference recitation with its licence in the OPS-009 register,
-   and update the component table in the Architecture. Owner: Ismail.
+2. Record every model, library and reference recitation with its licence in the OPS-009 register
+   (done: `docs/ai/model-register.md`), and update the component table in the Architecture (to do:
+   quran-muaalem's package is QML 1.0, its model weights are MIT). Owner: Ismail.
 
 ### 3.2 Conditions quoted from the quran-muaalem 0.3.0 release page (QML 1.0)
 
