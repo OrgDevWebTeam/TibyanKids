@@ -2,7 +2,7 @@ import { z } from "zod";
 import { AGE_BANDS, DOMAINS, LANGUAGES } from "../constants/index.js";
 import { text, objectId, oneOf, whole } from "./helpers.js";
 
-const TYPES = ["lesson", "story", "activity", "quran_task"];
+const TYPES = ["lesson", "story", "activity", "quran_task", "mission"];
 const STATUSES = ["draft", "in_review", "published", "archived"];
 
 const contentFields = {
