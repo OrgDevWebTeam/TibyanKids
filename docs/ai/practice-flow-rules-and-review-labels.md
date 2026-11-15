@@ -3,7 +3,7 @@
 - Owners: Ismail (AI 2) + Qussai (AI 1). Jira: KAN-28.
 - Version: v1.0, 2026-11-09.
 - Based on: CRS v3.0 (§5.4, FR-QUR-002..006), Architecture v3.0 (§8.3–8.5), `services/ai/app/policy.py`.
-- Related: `docs/contracts/ai-result.md`, `docs/ai/tajweed_taxonomy_and_feedback.md`, `apps/web/src/pages/review-queue-page.tsx`.
+- Related: `docs/contracts/ai-result.md`, `docs/ai/tajweed_taxonomy_and_feedback.md`, the teacher review screen SCR-T02 (built in weeks 5–6).
 
 ---
 
@@ -31,7 +31,7 @@ To balance learning rigor with positive motivation for young learners, recitatio
 
 ## 2. Teacher Review Queue Labels & Taxonomy
 
-When attempts return `decision: uncertain` or flag tajweed edge-cases, they populate the teacher interface (`apps/web/src/pages/review-queue-page.tsx`). Teachers evaluate attempts using standardized label conventions aligned with `docs/ai/teacher_annotation_guide.md`.
+When attempts return `decision: uncertain` or flag tajweed edge-cases, they populate the teacher review screen (SCR-T02, built in weeks 5–6). Teachers evaluate attempts using standardized label conventions aligned with `docs/ai/teacher_annotation_guide.md`.
 
 ### 2.1 Standard Review Labels
 
