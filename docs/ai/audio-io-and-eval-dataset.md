@@ -1,7 +1,7 @@
 # Quran audio input/output and evaluation dataset requirements
 
 - Owners: Qussai (AI 1) + Ismail (AI 2). Jira: KAN-9, KAN-27.
-- Version: v1.2, 2026-11-12 (v1.1 was 2026-11-10, v1.0 was 2026-11-05).
+- Version: v1.3, 2026-11-15 (v1.2 was 2026-11-12, v1.1 was 2026-11-10, v1.0 was 2026-11-05).
 - Based on: CRS v3.0 (FR-QUR-002..004, VAL-014, VAL-016, SEC-006, SEC-011, SEC-017, SEC-018),
   Architecture v3.0 (§7.3, §8.1–8.7), Roadmap v3.0 (weeks 2–7).
 - Related: `docs/contracts/ai-result.md` (the result), `docs/ai/teacher_annotation_guide.md`
@@ -9,6 +9,16 @@
   `services/ai/app/audio.py` (the gate described in A.3).
 
 > 🔶 = proposal waiting for a decision. Everything else follows the CRS and Architecture.
+
+## What changed in v1.3
+
+| Section | Change                                                                                                                        |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| A.3     | The 30 s limit applies to the reading (first to last speech), not the recording. A recording may be up to 60 s                |
+| A.3     | The models get the reading only: the silence before it is cut, and 3 s are kept after it for a long final madd                |
+| A.3     | New signal-to-noise rule (below 15 dB → `too_noisy`) and loudness rule (speech below −50 dBFS → `silent`)                     |
+| A.3     | The speech ratio is measured over the reading, so a child who waits before reading is no longer `too_noisy`                   |
+| Part C  | Gate rule tests are back, with generated audio and a fake VAD (`tests/test_quality_gate.py`), so they run in CI without torch |
 
 ## What changed in v1.2
 
@@ -58,8 +68,8 @@ recording, so duration is checked after decoding (A.3).
 | Step         | Rule                                                                                                                                                                                                                                                        |
 | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Read         | The upload is read up to the 5 MB limit plus one byte, so an oversized file is rejected without loading it fully                                                                                                                                            |
-| Convert      | ffmpeg → 16 kHz, mono samples. The upload is written to a temporary folder that is deleted right after. ffmpeg runs without a shell, with a 15 s timeout, and decodes at most 31 s, so a small file that holds a very long recording is never decoded fully |
-| Quality gate | Silero VAD and clipping checks (`audio.py`). Result: `quality` = `ok`, `silent`, `too_short`, `too_noisy` or `too_long`                                                                                                                                     |
+| Convert      | ffmpeg → 16 kHz, mono samples. The upload is written to a temporary folder that is deleted right after. ffmpeg runs without a shell, with a 15 s timeout, and decodes at most 61 s, so a small file that holds a very long recording is never decoded fully |
+| Quality gate | Silero VAD, loudness, signal-to-noise and clipping checks (`audio.py`). Result: `quality` = `ok`, `silent`, `too_short`, `too_noisy` or `too_long`                                                                                                          |
 | Reference    | The AI service loads the expected ayah text from `reference_quran_text.json` by `surah` + `ayah` (`app/reference.py`). It never searches the whole Quran                                                                                                    |
 | Models       | quran-muaalem (pronunciation and tajweed) and whisper-quran (word comparison). Merging the two is week 3. No generative language model is used in this path: the decision is deterministic and rule-based (`policy.py`)                                     |
 | Output       | One result in the contract format. Model text is never returned to the API                                                                                                                                                                                  |
@@ -70,31 +80,78 @@ recording, so duration is checked after decoding (A.3).
 | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Duration       | Decoded samples ÷ 16000                                                                                                                                                                              |
 | Speech seconds | Total length of the speech parts Silero VAD finds, with its threshold at 0.2 (`VAD_THRESHOLD`). The default 0.5 missed long madd and ghunna sounds, so clean recordings were rejected as `too_noisy` |
-| Speech ratio   | Speech seconds ÷ duration, over the whole clip                                                                                                                                                       |
+| Speech dBFS    | Loudness (RMS in dB below full scale) of the speech parts only                                                                                                                                       |
+| SNR            | Signal-to-noise ratio of the whole recording: the 95th percentile of the 20 ms frame levels minus the 10th percentile (the background between and around the words)                                  |
+| Reading        | From the start of the first speech part to the end of the last one: the reading without the silence around it                                                                                        |
+| Speech ratio   | Speech seconds ÷ reading seconds                                                                                                                                                                     |
 | Clipped ratio  | Samples with an absolute value of at least 32000 (16-bit) ÷ all samples                                                                                                                              |
-| RMS            | RMS of the whole clip (logged only)                                                                                                                                                                  |
 
 #### Order of checks
 
 The first match wins.
 
 1. The file cannot be decoded → **error** (table below).
-2. Duration above 30 s → `too_long`.
-3. Duration below 30 ms (or empty) → `too_short`.
+2. Recording above 60 s → `too_long`.
+3. Recording below 30 ms (or empty) → `too_short`.
 4. Clipped ratio above 1% → `too_noisy`.
 5. Speech seconds below 0.3 → `silent`.
-6. Speech ratio below 0.30 → `too_noisy`.
-7. Otherwise → `ok`.
+6. Speech dBFS below −50 → `silent`.
+7. SNR below 15 dB → `too_noisy`. Checked after the speech checks: a recording without speech has no
+   contrast either, but it is `silent`, not noisy.
+8. Reading above 30 s → `too_long`.
+9. Speech ratio below 0.30 → `too_noisy`.
+10. Otherwise → `ok`. The models get the reading, from 0.25 s before it to 3 s after it.
 
 All values are starting values, named constants at the top of `services/ai/app/audio.py`, tuned
 later against real recordings.
 
-#### Why 30 s
+#### Why 30 s of reading
 
-The longest prototype ayah takes about 13 s to recite, children often read at half the reciter's
-speed (about 26 s), and Whisper's model input is a 30 s window, so longer audio would be cut and
-create false omissions. A `too_long` recording is never reported as `too_noisy`: the child would be
-told to move closer to the microphone. The child hears `FEEDBACK_AUDIO_TOO_LONG` (text by Ismail).
+The longest prototype ayah takes about 15 s to recite (114:1 in the reference recitation), children
+often read at half the reciter's speed (about 30 s), and Whisper's model input is a 30 s window, so
+a longer reading would be cut and create false omissions. The limit applies to the reading, not the
+recording: a child who waits before reading, or forgets to press stop, is not rejected. A
+`too_long` recording is never reported as `too_noisy`: the child would be told to move closer to the
+microphone. The child hears `FEEDBACK_AUDIO_TOO_LONG` (text by Ismail).
+
+#### Why 3 s after the reading
+
+Silero VAD stops hearing a long final madd early. In 1:4 it reports the speech ending at 2.6 s, while
+the madd of ٱلدِّينِ lasts until 4.6 s. With only 0.25 s kept after the reading, quran-muaalem
+reported a missing letter in that word. With 3 s kept, both models give the same results as on the
+untrimmed recordings for all 25 reference ayat.
+
+#### How the SNR and loudness values were chosen (2026-11-15)
+
+Measured on the GPU machine with the 25 reference recordings, changed in memory only (white noise
+added, volume lowered, silence put before the reading). "Misread" means whisper-quran did not return
+the ayah's words. "Old gate" is the v1.2 gate (30 s per recording, speech ratio over the whole
+recording, no SNR rule).
+
+| Condition (25 recordings each) | SNR min / median | Misread | Old gate: passed but misread | Old gate: rejected but read correctly | New gate: passed but misread | New gate: rejected but read correctly |
+| ------------------------------ | ---------------- | ------- | ---------------------------- | ------------------------------------- | ---------------------------- | ------------------------------------- |
+| Clean                          | 22.9 / 36.3 dB   | 0       | 0                            | 0                                     | 0                            | 0                                     |
+| 8 s of waiting before reading  | 30.8 / 34.7 dB   | 0       | 0                            | 5                                     | 0                            | 0                                     |
+| 20 s of waiting before reading | 28.0 / 32.5 dB   | 1       | 0                            | 24                                    | 1 \*                         | 0                                     |
+| Noise σ 0.01                   | 17.6 / 21.7 dB   | 1       | 1                            | 0                                     | 1                            | 0                                     |
+| Noise σ 0.02                   | 12.0 / 16.0 dB   | 5       | 5                            | 0                                     | 4                            | 6                                     |
+| Noise σ 0.04                   | 6.9 / 10.3 dB    | 10      | 10                           | 1                                     | 0                            | 15                                    |
+| Noise σ 0.06                   | 4.5 / 7.3 dB     | 18      | 18                           | 1                                     | 0                            | 7                                     |
+| Noise σ 0.09                   | 2.7 / 4.9 dB     | 25      | 20                           | 0                                     | 0                            | 0                                     |
+| Noise σ 0.12                   | 1.9 / 3.3 dB     | 25      | 15                           | 0                                     | 0                            | 0                                     |
+| Volume −20 dB                  | 12.1 / 16.0 dB   | 6       | 6                            | 1                                     | 5                            | 6                                     |
+| Volume −30 dB                  | 4.1 / 6.9 dB     | 23      | 7                            | 0                                     | 0                            | 2                                     |
+| **Total**                      |                  |         | **82**                       | **32**                                | **11**                       | **36**                                |
+
+\* Measured on the whole 35 s recording, which Whisper cuts at 30 s. With the new gate the models get
+the trimmed reading instead.
+
+Whisper starts to misread below about 17 dB, and clean recordings never go below 22.9 dB, so the
+limit is 15 dB. The new gate lets 11 misread recordings through instead of 82. It rejects about as
+many readable recordings as the old gate (36 vs 32), but noisy ones instead of clean ones where the
+child waited; a rejection only asks the child to record again. White noise is only a stand-in: the
+values must be checked again on real children's recordings (week 4). The loudness rule is a
+backstop for near-silence; quiet speech fails because of the background, which the SNR rule catches.
 
 #### Audio errors
 
@@ -113,14 +170,14 @@ stays `{"error": {"code", "message"}}`.
 
 The result format is `docs/contracts/ai-result.md`. Debug detail stays inside the AI service:
 
-| Logged per request (no audio, no names)                                                          | Why                                                                           |
-| ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
-| `attemptId`, `surah`, `ayah`, `level`                                                            | Join with the attempt in the API                                              |
-| Gate report: `quality`, `durationSeconds`, `speechSeconds`, `speechRatio`, `clippedRatio`, `rms` | Architecture §8.7 and quality-gate tuning (the report from `check_quality()`) |
-| The error `code` when the audio was rejected by an error                                         | Count guard and format rejections                                             |
-| Per model: name, version, status (`ok`, `timeout`, `error`, `disabled`), inference ms            | Latency target (NFR-PERF-003), kill switch                                    |
-| Per finding: `code`, `wordIndex`, `confidence` (the contract fields, no text)                    | Error analysis without any transcript                                         |
-| Time per stage (decode, gate, each model) — week 3                                               | Find the slow step                                                            |
+| Logged per request (no audio, no names)                                                                                            | Why                                                                           |
+| ---------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `attemptId`, `surah`, `ayah`, `level`                                                                                              | Join with the attempt in the API                                              |
+| Gate report: `quality`, `durationSeconds`, `clippedRatio`, `speechSeconds`, `speechDbfs`, `snrDb`, `readingSeconds`, `speechRatio` | Architecture §8.7 and quality-gate tuning (the report from `check_quality()`) |
+| The error `code` when the audio was rejected by an error                                                                           | Count guard and format rejections                                             |
+| Per model: name, version, status (`ok`, `timeout`, `error`, `disabled`), inference ms                                              | Latency target (NFR-PERF-003), kill switch                                    |
+| Per finding: `code`, `wordIndex`, `confidence` (the contract fields, no text)                                                      | Error analysis without any transcript                                         |
+| Time per stage (decode, gate, each model) — week 3                                                                                 | Find the slow step                                                            |
 
 Logs never contain audio, transcripts, phoneme strings of what the child said, child names or
 parent data (NFR-OBS-001, SEC-011). Contract v3.0 carries no phoneme or transcript text, and the
