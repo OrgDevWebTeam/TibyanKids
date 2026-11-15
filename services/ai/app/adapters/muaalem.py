@@ -8,9 +8,11 @@
 #   3. explain_error compares the two and returns each error with its tajweed rule.
 #   4. Each error becomes one finding: the word it is in, our code, and a confidence.
 import os
+import re
 import time
 from importlib.metadata import version
 
+from huggingface_hub import snapshot_download
 from quran_muaalem import Muaalem
 from quran_transcript import MoshafAttributes, chunck_phonemes, explain_error, quran_phonetizer
 from quran_transcript.phonetics.error_explainer import align_phonemes_groups
@@ -27,6 +29,9 @@ from app.schemas import AnalysisResult
 
 MODEL = "quran-muaalem"
 MODEL_NAME = "obadx/muaalem-model-v3_2"
+# Exact model revision (Hugging Face commit), so an update on the Hub never changes results silently.
+# The week 2 run used this one. Change it only together with an evaluation run (AI release rules).
+MODEL_REVISION = os.environ.get("MUAALEM_REVISION", "01a1ef9fbe40d144ef845101e89ff924aed3fef5")
 SAMPLE_RATE = 16000
 
 # Which category comes first when one word has several errors (taxonomy 1.1)
@@ -38,14 +43,17 @@ model = None
 def load_model():
     global model
     if model is None:
-        model = Muaalem(model_name_or_path=MODEL_NAME, device="cuda")
+        if not re.fullmatch(r"[0-9a-f]{40}", MODEL_REVISION):
+            raise ValueError("MUAALEM_REVISION must be a full 40-character commit hash")
+        # Muaalem() takes no revision, so the pinned files are downloaded first and loaded from disk
+        folder = snapshot_download(MODEL_NAME, revision=MODEL_REVISION, allow_patterns=["*.json", "*.safetensors"])
+        model = Muaalem(model_name_or_path=folder, device="cuda")
     return model
 
 
 def model_version():
     # Package version + exact model revision (OPS-008)
-    commit = load_model().model.config._commit_hash or "unknown"
-    return f"{version('quran-muaalem')} {MODEL_NAME}@{commit[:12]}"
+    return f"{version('quran-muaalem')} {MODEL_NAME}@{MODEL_REVISION[:12]}"
 
 
 def moshaf_settings():

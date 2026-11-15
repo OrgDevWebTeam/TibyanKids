@@ -32,6 +32,10 @@ services:
     container_name: noor-ai
     environment:
       MOCK_MODE: "true"
+      REFERENCE_DATA_DIR: /data/reference
+    volumes:
+      # The 25 reference ayat (text and word timings), read-only. Never audio.
+      - ./packages/contracts/data:/data/reference:ro
     ports:
       # Localhost only: the AI service is never exposed to browsers or the network.
       - "127.0.0.1:8000:8000"

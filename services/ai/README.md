@@ -69,10 +69,11 @@ from inside the repository.
 
 ## Settings
 
-| Variable               | Default | Meaning                                                                           |
-| ---------------------- | ------- | --------------------------------------------------------------------------------- |
-| `MOCK_MODE`            | `true`  | Fake results from the endpoint. `false` returns 503 until week 3                  |
-| `CONFIDENCE_THRESHOLD` | `0.70`  | Below this a finding makes the ayah `uncertain`. Provisional until week 4 (OD-02) |
+| Variable               | Default | Meaning                                                                                                                                    |
+| ---------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `MOCK_MODE`            | `true`  | Fake results from the endpoint. `false` returns 503 until week 3                                                                           |
+| `CONFIDENCE_THRESHOLD` | `0.70`  | Below this a finding makes the ayah `uncertain`. Provisional until week 4 (OD-02)                                                          |
+| `REFERENCE_DATA_DIR`   | repo    | Folder with `reference_quran_text.json`. The repo's `packages/contracts/data` when unset; `/data/reference` in Docker (mounted by Compose) |
 
 ## What the mock returns
 
@@ -106,6 +107,9 @@ from inside the repository.
 | tarteel-ai/whisper-base-ar-quran | Word-level transcript                 | Apache-2.0                           |
 | Silero VAD                       | Speech vs silence in the quality gate | MIT                                  |
 | ffmpeg                           | Decoding uploads                      | LGPL/GPL (run as a separate program) |
+
+Full register with versions, model revisions, data sources and the recordings' checksums:
+[`docs/ai/model-register.md`](../../docs/ai/model-register.md).
 
 QML 1.0 conditions (AI notice before first use, use according to Islamic law, no ad tracking, fix
 a violation within 30 days): see `docs/ai/genai_and_safety_boundaries.en.md` section 3.
