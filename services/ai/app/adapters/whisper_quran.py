@@ -9,6 +9,7 @@
 #      memorization finding (taxonomy 1.4: ERR_MEM_* come from this comparison).
 # The transcript itself never leaves this file (contract rule: model text is never shown to a child).
 import difflib
+import os
 import re
 import time
 
@@ -20,6 +21,9 @@ from app.schemas import AnalysisResult
 
 MODEL = "whisper-quran"
 MODEL_NAME = "tarteel-ai/whisper-base-ar-quran"
+# Exact model revision (Hugging Face commit), so an update on the Hub never changes results silently.
+# The week 2 run used this one. Change it only together with an evaluation run (AI release rules).
+MODEL_REVISION = os.environ.get("WHISPER_QURAN_REVISION", "5c3c53fdf9272c4f6ee0bee09a1e5a4a615ee25c")
 SAMPLE_RATE = 16000
 
 # Harakat, Quranic marks (including small waw and small yaa) and tatweel
@@ -44,15 +48,23 @@ model = None
 def load_model():
     global processor, model
     if model is None:
-        processor = WhisperProcessor.from_pretrained(MODEL_NAME)
-        model = WhisperForConditionalGeneration.from_pretrained(MODEL_NAME).to("cuda").eval()
+        if not re.fullmatch(r"[0-9a-f]{40}", MODEL_REVISION):
+            raise ValueError("WHISPER_QURAN_REVISION must be a full 40-character commit hash")
+        processor = WhisperProcessor.from_pretrained(MODEL_NAME, revision=MODEL_REVISION)
+        # use_safetensors=False loads the weights of the pinned commit itself. Otherwise transformers
+        # fetches a converted copy from the Hub's automatic conversion pull request (refs/pr/3),
+        # which is not part of the pin.
+        model = (
+            WhisperForConditionalGeneration.from_pretrained(MODEL_NAME, revision=MODEL_REVISION, use_safetensors=False)
+            .to("cuda")
+            .eval()
+        )
     return processor, model
 
 
 def model_version():
     # Exact model revision (OPS-008)
-    commit = load_model()[1].config._commit_hash or "unknown"
-    return f"{MODEL_NAME}@{commit[:12]}"
+    return f"{MODEL_NAME}@{MODEL_REVISION[:12]}"
 
 
 def normalize(word):
