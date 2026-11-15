@@ -15,7 +15,7 @@ import difflib
 import os
 import re
 import time
-from functools import cache
+from typing import NamedTuple
 
 from app.model_files import check_revision, local_copy
 from app.policy import decide, make_finding
@@ -40,10 +40,14 @@ MAX_NEW_TOKENS = 200
 class Runaway(Exception):
     """The model kept writing until MAX_NEW_TOKENS without finishing: its text cannot be trusted."""
 
-# Harakat, dagger alif, Quranic marks (including small waw and small yaa) and tatweel.
+# Marks dropped before two words are compared (Unicode ranges):
+#   U+064B-U+065F  harakat and tanween: fatha, damma, kasra, shadda, sukun, ...
+#   U+0670         dagger alif (a small alif written above a letter)
+#   U+06D6-U+06ED  Quranic annotation marks, including the small waw and small yaa
+#   U+0640         tatweel (the stretching line)
 # The Imlaei text keeps a dagger alif only where ordinary spelling has no alif (الرَّحْمَٰنِ, إِلَٰهِ;
 # but الْعَالَمِينَ), so it is dropped, never turned into a full alif.
-MARKS = re.compile("[ً-ٰٟۖ-ۭـ]")
+MARKS = re.compile("[\u064b-\u065f\u0670\u06d6-\u06ed\u0640]")
 # Letters written in more than one way
 SAME_LETTER = {
     "ٱ": "ا",  # alif wasla -> alif
@@ -82,13 +86,14 @@ def model_version():
     return f"{HF_REPO}@{HF_REVISION[:12]}"
 
 
-def normalize(word):
+def normalize(word: str) -> str:
+    """The word without marks and with one form per letter, so two spellings can be compared."""
     for letter, same in SAME_LETTER.items():
         word = word.replace(letter, same)
     return MARKS.sub("", word)
 
 
-def group_words(tokens, probabilities):
+def group_words(tokens: list[str], probabilities: list[float]) -> list[tuple[list[int], float]]:
     """
     Groups the model's text tokens into words. Returns a list of (token positions, confidence).
 
@@ -105,7 +110,7 @@ def group_words(tokens, probabilities):
     return [(positions, round(min(values), 3)) for positions, values in words]
 
 
-def transcribe(samples):
+def transcribe(samples) -> tuple[list[str], list[float]]:
     """
     Returns (words, confidences): the words the model heard and, for each word, its confidence.
     Raises Runaway when the model did not finish within MAX_NEW_TOKENS.
@@ -139,9 +144,18 @@ def transcribe(samples):
     return words, confidences
 
 
-def compare_words(reference_words, said_words):
+class WordError(NamedTuple):
+    """One word that was not read as written, found by compare_words()."""
+
+    word: int  # the reference word, counted from 1 (wordIndex in the contract)
+    code: str  # ERR_MEM_OMISSION, ERR_MEM_SUBSTITUTION or ERR_MEM_INSERTION
+    evidence: tuple[int, ...]  # positions (from 0) of the said words whose confidence it takes
+
+
+def compare_words(reference_words: list[str], said_words: list[str]) -> list[WordError]:
     """
-    Returns a list of (wordIndex, code, evidence). wordIndex counts the reference words from 1.
+    Returns a WordError for every reference word that was skipped, read as another word, or followed
+    by an extra word. The word number counts the reference words from 1.
     An extra word points to the reference word just before it (contract rule for ERR_MEM_INSERTION).
     evidence holds the positions (from 0) of the said words the finding rests on, for its confidence:
     the word said instead, the extra word, or for a skipped word the said words around the gap.
@@ -160,11 +174,11 @@ def compare_words(reference_words, said_words):
         if operation == "delete":
             # Reference words that were not said
             for i in range(ref_start, ref_end):
-                errors.append((i + 1, "ERR_MEM_OMISSION", around(said_start)))
+                errors.append(WordError(i + 1, "ERR_MEM_OMISSION", around(said_start)))
 
         elif operation == "insert":
             # Extra words before reference word ref_start, so the word before them is number ref_start
-            errors.append((max(ref_start, 1), "ERR_MEM_INSERTION", tuple(range(said_start, said_end))))
+            errors.append(WordError(max(ref_start, 1), "ERR_MEM_INSERTION", tuple(range(said_start, said_end))))
 
         elif operation == "replace":
             ref_count = ref_end - ref_start
@@ -172,24 +186,28 @@ def compare_words(reference_words, said_words):
             different = min(ref_count, said_count)
             # Words read as other words
             for k in range(different):
-                errors.append((ref_start + k + 1, "ERR_MEM_SUBSTITUTION", (said_start + k,)))
+                errors.append(WordError(ref_start + k + 1, "ERR_MEM_SUBSTITUTION", (said_start + k,)))
             # More reference words than said words: the rest were skipped
             for i in range(ref_start + different, ref_end):
-                errors.append((i + 1, "ERR_MEM_OMISSION", tuple(range(said_start, said_end))))
+                errors.append(WordError(i + 1, "ERR_MEM_OMISSION", tuple(range(said_start, said_end))))
             # More said words than reference words: extra words after the last word of this part
             if said_count > ref_count:
                 extra = tuple(range(said_start + different, said_end))
-                errors.append((ref_end, "ERR_MEM_INSERTION", extra))
+                errors.append(WordError(ref_end, "ERR_MEM_INSERTION", extra))
     return errors
 
 
-def finding_confidence(evidence, confidences):
+def finding_confidence(evidence: tuple[int, ...], confidences: list[float]) -> float:
     # Nothing heard to rest on (for example nothing said at all): 0, so the teacher checks it
     return min((confidences[p] for p in evidence), default=0.0)
 
 
-def analyze(samples, reference_words, level, attempt_id):
-    """samples: 16 kHz mono float32 audio that passed the quality gate. reference_words: the ayah's words in Imlaei spelling (text_imlaei)."""
+def analyze(samples, reference_words: list[str], level: str, attempt_id: str) -> AnalysisResult:
+    """
+    Checks one recording of one ayah for skipped, different or extra words.
+    samples: 16 kHz mono float32 audio that passed the quality gate (the clip).
+    reference_words: the ayah's words in Imlaei spelling (text_imlaei in reference_quran_text.json).
+    """
     started = time.perf_counter()
     try:
         said_words, confidences = transcribe(samples)
@@ -199,11 +217,11 @@ def analyze(samples, reference_words, level, attempt_id):
     else:
         # One finding per word: the first one found
         findings_by_word = {}
-        for word, code, evidence in compare_words(reference_words, said_words):
-            if word not in findings_by_word:
-                confidence = finding_confidence(evidence, confidences)
+        for error in compare_words(reference_words, said_words):
+            if error.word not in findings_by_word:
+                confidence = finding_confidence(error.evidence, confidences)
                 # No word timings yet, so the replay segment is 0-0 until the new timings are added
-                findings_by_word[word] = make_finding(word, code, confidence, 0, 0)
+                findings_by_word[error.word] = make_finding(error.word, error.code, confidence, 0, 0)
 
         findings = [findings_by_word[word] for word in sorted(findings_by_word)]
         decision, findings = decide(findings, level)
