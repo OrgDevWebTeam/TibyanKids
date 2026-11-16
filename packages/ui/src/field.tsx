@@ -3,8 +3,11 @@ import { cx } from "./cx";
 
 const CONTROL_CLASSES = cx(
   "min-h-control w-full rounded-control border border-control bg-surface px-3 text-body text-ink",
+  "placeholder:text-control",
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus",
-  "aria-[invalid=true]:border-danger",
+  // The design system marks the field being edited with a primary border, and an invalid one
+  // with an error border.
+  "focus:border-primary aria-[invalid=true]:border-danger",
 );
 
 type FieldTextProps = {
@@ -32,8 +35,15 @@ function FieldShell({
   children,
 }: FieldTextProps & { required?: boolean; children: ReactNode }) {
   return (
-    <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="font-medium text-ink">
+    <div className="group flex flex-col gap-1.5">
+      {/* The label takes the field's state colour too, as in the design system. */}
+      <label
+        htmlFor={id}
+        className={cx(
+          "font-medium",
+          error ? "text-danger" : "text-control group-focus-within:text-primary",
+        )}
+      >
         {label}
         {required && (
           <span aria-hidden="true" className="text-danger">

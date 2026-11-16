@@ -2,12 +2,11 @@
 @import "@noor/ui/styles.css";
 
 /*
- * Open-licensed (OFL) placeholders until the design system picks the final fonts. They ship with
- * the app, so browsers never contact a font host. A page downloads only the files its text uses.
+ * Baloo Bhaijaan 2, the design system's font for Arabic and English (OFL). One variable file per
+ * script covers every weight it uses (400 to 700). It ships with the app, so browsers never contact
+ * a font host, and a page downloads only the files its text uses.
  */
-@import "@fontsource/ibm-plex-sans-arabic/400.css";
-@import "@fontsource/ibm-plex-sans-arabic/600.css";
-@import "@fontsource-variable/ibm-plex-sans/wght.css";
+@import "@fontsource-variable/baloo-bhaijaan-2/wght.css";
 
 /* Tailwind only scans this app by default; the UI primitives live in packages/ui. */
 @source "../../../packages/ui/src";
@@ -17,15 +16,21 @@
 }
 
 :root {
-  --font-ui: "IBM Plex Sans Variable";
+  --font-ui: "Baloo Bhaijaan 2 Variable";
 }
 
-/* Also has Latin letters, so English words and digits inside Arabic text match. */
+/* Body text from the design system: 18px, on a 24px line in English and 32px in Arabic. */
+:root {
+  --leading-ui: 1.333;
+}
+
 :root[lang="ar"] {
-  --font-ui: "IBM Plex Sans Arabic";
+  --leading-ui: 1.778;
 }
 
 body {
-  background: var(--noor-surface);
+  background: var(--noor-background);
   color: var(--noor-ink);
+  font-size: var(--noor-text-body);
+  line-height: var(--leading-ui);
 }

@@ -1,43 +1,64 @@
 /*
- * Noor design tokens. Values are placeholders until the design system is final:
+ * Noor design tokens, from the design system (Figma "Noor Academy Design System", KAN-7):
  * change a value here and every screen follows.
  *
  * Components never use raw colours. They use the Tailwind utilities generated from these
  * names (bg-surface, text-ink, border-control, rounded-control, min-h-control...).
  * A unit test checks the text and control colours against WCAG 2.2 AA contrast.
+ *
+ * The values follow the design system as it is. Two of them are under WCAG AA for now: control
+ * borders (Border, #d2d2d2, is 1.5:1 and a control needs 3:1) and warning text (Warning,
+ * #e2a23e, is 2.2:1 and text needs 4.5:1). The test lists them as known gaps until the design
+ * system changes them. Info has no colour in the design system yet and keeps its earlier value.
  */
 
 :root {
-  --noor-surface: #ffffff;
-  --noor-surface-muted: #f4f4f5;
-  --noor-ink: #18181b;
-  --noor-ink-muted: #52525b;
-  /* Decorative lines (cards, dividers). */
-  --noor-line: #e4e4e7;
-  /* Borders that identify a control, such as an input box: needs 3:1 contrast. */
-  --noor-control: #71717a;
-  --noor-primary: #1b6b5a;
+  /* Core / Surface: cards, inputs and dialogs. */
+  --noor-surface: #fdfdfd;
+  /* Core / Background: the page behind them. */
+  --noor-background: #fbf8f3;
+  /* Primary / Light: hover states and tinted areas. */
+  --noor-surface-muted: #e6f6f4;
+  /* Text primary and Text secondary. */
+  --noor-ink: #2a2420;
+  --noor-ink-muted: #6b6056;
+  /* Text & Border / Border: decorative lines (cards, dividers) and disabled buttons. */
+  --noor-line: #d2d2d2;
+  /* Text & Border / Border too: input boxes, and a field's label and placeholder before it is used. */
+  --noor-control: #d2d2d2;
+  /*
+   * Primary / Dark and its hover and active shades, as on the design's buttons. White text on
+   * Primary / Normal (#00a991) is under 3:1, so that shade is not used behind text.
+   */
+  --noor-primary: #007f6d;
+  --noor-primary-hover: #006557;
+  --noor-primary-active: #004c41;
   --noor-on-primary: #ffffff;
-  --noor-danger: #b42318;
-  --noor-success: #1a7f37;
-  --noor-warning: #8a5a00;
+  /* Status / Error, Status / Success and Status / Warning. */
+  --noor-danger: #be3a30;
+  --noor-success: #1f7a3d;
+  --noor-warning: #e2a23e;
   --noor-info: #0b63c9;
-  --noor-focus: #1b6b5a;
+  --noor-focus: #007f6d;
 
   --noor-radius: 0.75rem;
-  --noor-text-body: 1rem;
+  /* Body: 18px. */
+  --noor-text-body: 1.125rem;
   /* At least 44px, the minimum touch target. */
   --noor-control-height: 2.75rem;
 }
 
 @theme inline {
   --color-surface: var(--noor-surface);
+  --color-background: var(--noor-background);
   --color-surface-muted: var(--noor-surface-muted);
   --color-ink: var(--noor-ink);
   --color-ink-muted: var(--noor-ink-muted);
   --color-line: var(--noor-line);
   --color-control: var(--noor-control);
   --color-primary: var(--noor-primary);
+  --color-primary-hover: var(--noor-primary-hover);
+  --color-primary-active: var(--noor-primary-active);
   --color-on-primary: var(--noor-on-primary);
   --color-danger: var(--noor-danger);
   --color-success: var(--noor-success);

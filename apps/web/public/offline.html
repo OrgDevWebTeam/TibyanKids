@@ -15,8 +15,9 @@
         place-content: center;
         gap: 2rem;
         padding: 1.5rem;
-        background: #ffffff;
-        color: #18181b;
+        /* Core / Background and Text primary from the design system. */
+        background: #fbf8f3;
+        color: #2a2420;
       }
       section {
         max-width: 28rem;
@@ -46,5 +47,35 @@
       <p>Check your connection, then try again.</p>
       <a href="/">Try again</a>
     </section>
+    <script>
+      // Show the visitor's language only. The address bar still holds the page that failed to
+      // load, so its first segment (/ar or /en) gives the language; otherwise the choice saved by
+      // the language switcher. When neither is known, or scripts are off, both stay visible.
+      (function () {
+        var first = location.pathname.split("/")[1];
+        var saved = null;
+        try {
+          saved = localStorage.getItem("noor.locale");
+        } catch (error) {
+          // Storage can be blocked; the path is enough.
+        }
+        var locale = first === "ar" || first === "en" ? first : saved;
+        if (locale !== "ar" && locale !== "en") return;
+
+        document.documentElement.lang = locale;
+        document.documentElement.dir = locale === "ar" ? "rtl" : "ltr";
+        var sections = document.querySelectorAll("section[lang]");
+        for (var i = 0; i < sections.length; i++) {
+          var section = sections[i];
+          if (section.lang === locale) {
+            document.title = section.querySelector("h1").textContent;
+            // "Try again" reloads the page that failed, not the home page.
+            section.querySelector("a").href = location.href;
+          } else {
+            section.hidden = true;
+          }
+        }
+      })();
+    </script>
   </body>
 </html>
