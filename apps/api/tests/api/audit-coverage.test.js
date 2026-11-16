@@ -2,6 +2,7 @@ import { describe, it, before, after } from "node:test";
 import assert from "node:assert/strict";
 import AuditEvent from "../../src/Models/AuditEvent.js";
 import { startTestApp, stopTestApp, api, registerParent, createChild } from "../helpers/api.js";
+import mongoose from "mongoose";
 
 const consent = (childId, status) => ({ childId, status, policyVersion: "v1" });
 
@@ -61,6 +62,38 @@ describe("audit coverage (SEC-007)", () => {
     assert.ok(!text.includes("Sara"), "child name found in the audit log");
     assert.ok(!text.includes("password123"), "password found in the audit log");
     assert.ok(!text.includes(a.token), "token found in the audit log");
+  });
+
+  it("another family's attempt on a child is refused (404) and logged on every route", async () => {
+    const b = await registerParent();
+    const attempts = [
+      ["GET", `/children/${id}`],
+      ["PATCH", `/children/${id}`, { name: "Hacked" }],
+      ["PATCH", `/children/${id}/archive`],
+      ["GET", `/consents/${id}`],
+      ["GET", `/consents/${id}/status`],
+      ["POST", "/consents", consent(id, "granted")],
+    ];
+    for (const [method, path, body] of attempts) {
+      const res = await api(path, { method, token: b.token, body });
+      assert.equal(res.status, 404, `${method} ${path} should be 404`);
+    }
+
+    const events = await AuditEvent.find({ action: "access.denied", actorId: b.userId });
+    assert.equal(events.length, attempts.length);
+    for (const event of events) {
+      assert.equal(event.result, "denied");
+      assert.equal(event.targetType, "Child");
+      assert.equal(String(event.targetId), id);
+    }
+  });
+
+  it("asking for a child that does not exist is not logged as a denial", async () => {
+    const c = await registerParent();
+    const missing = new mongoose.Types.ObjectId();
+    const res = await api(`/children/${missing}`, { token: c.token });
+    assert.equal(res.status, 404);
+    assert.equal(await AuditEvent.countDocuments({ actorId: c.userId }), 0);
   });
 
   // SEC-007 categories that cannot be tested yet: nothing in the code writes them.

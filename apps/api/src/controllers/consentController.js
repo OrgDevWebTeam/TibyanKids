@@ -3,6 +3,7 @@ import Child from "../Models/Child.js";
 import ConsentRecord from "../Models/ConsentRecord.js";
 import AppError from "../utils/AppError.js";
 import { recordAudit } from "../utils/audit.js";
+import { auditIfOtherFamily } from "../utils/auditCrossFamily.js";
 
 export async function createConsent(req, res) {
   const { childId, status, policyVersion } = req.body;
@@ -56,6 +57,12 @@ export async function createConsent(req, res) {
         session,
       });
     });
+  } catch (error) {
+    // Logged outside the transaction, because a cancelled transaction would undo the event.
+    if (error instanceof AppError && error.statusCode === 404) {
+      await auditIfOtherFamily(req, childId);
+    }
+    throw error;
   } finally {
     await session.endSession();
   }
@@ -71,6 +78,7 @@ export async function listConsents(req, res) {
   const child = await Child.findOwned(req.params.childId, req.family._id);
 
   if (!child) {
+    await auditIfOtherFamily(req, req.params.childId);
     throw new AppError(404, "Child not found");
   }
 
@@ -86,6 +94,7 @@ export async function getConsentStatus(req, res) {
   const child = await Child.findOwned(req.params.childId, req.family._id);
 
   if (!child) {
+    await auditIfOtherFamily(req, req.params.childId);
     throw new AppError(404, "Child not found");
   }
 
