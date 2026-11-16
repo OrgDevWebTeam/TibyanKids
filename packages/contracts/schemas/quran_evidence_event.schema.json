@@ -1,0 +1,876 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noor/quran_evidence_event/1.0",
+  "title": "Noor Quran evidence event (docs/contracts/quran-evidence-integration.md)",
+  "description": "Source of truth for QuranEvidenceEvent. Change this first, then packages/contracts/src/quranEvidence.ts in the same pull request. The rules that compare two fields of the event (S5 no repeated effect, S7 key matches the event, S8 not superseding itself) cannot be written here; the zod schema checks them and quranEvidence.test.ts keeps both in step.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "eventId",
+    "idempotencyKey",
+    "source",
+    "revision",
+    "weightClass",
+    "domain",
+    "familyId",
+    "childId",
+    "attemptId",
+    "contentId",
+    "surah",
+    "ayah",
+    "level",
+    "occurredAt",
+    "supersedesEventId",
+    "effects"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0"
+    },
+    "eventId": {
+      "$ref": "#/$defs/objectId",
+      "description": "Created once by the emitter and reused on every retry."
+    },
+    "idempotencyKey": {
+      "type": "string",
+      "pattern": "^quran:(ai_result|teacher_decision):[a-f0-9]{24}:[1-9][0-9]*$",
+      "description": "quran:{source}:{sourceId}:{revision}. sourceId is attemptId for ai_result and teacher.decisionId for teacher_decision."
+    },
+    "source": {
+      "enum": ["ai_result", "teacher_decision"]
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "weightClass": {
+      "enum": ["preliminary", "professional"],
+      "description": "preliminary for ai_result, professional for teacher_decision (Architecture 7.1)."
+    },
+    "domain": {
+      "const": "quran"
+    },
+    "familyId": {
+      "$ref": "#/$defs/objectId",
+      "description": "Tenant scope."
+    },
+    "childId": {
+      "$ref": "#/$defs/objectId",
+      "description": "Must belong to familyId (checked on ingestion)."
+    },
+    "attemptId": {
+      "$ref": "#/$defs/objectId"
+    },
+    "contentId": {
+      "$ref": "#/$defs/objectId",
+      "description": "The quran_task Content."
+    },
+    "surah": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 114
+    },
+    "ayah": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "level": {
+      "enum": ["beginner", "intermediate", "advanced"]
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z$",
+      "description": "UTC."
+    },
+    "supersedesEventId": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/objectId"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The head of this attempt's chain, or null for the first event."
+    },
+    "effects": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "$ref": "#/$defs/effect"
+      }
+    },
+    "ai": {
+      "$ref": "#/$defs/aiBlock"
+    },
+    "teacher": {
+      "$ref": "#/$defs/teacherBlock"
+    }
+  },
+  "allOf": [
+    {
+      "description": "ai_result: preliminary, has ai, no teacher, at least one effect (S1, S2, S4). An error result has no supports (S11).",
+      "if": {
+        "properties": {
+          "source": {
+            "const": "ai_result"
+          }
+        },
+        "required": ["source"]
+      },
+      "then": {
+        "required": ["ai"],
+        "not": {
+          "required": ["teacher"]
+        },
+        "properties": {
+          "weightClass": {
+            "const": "preliminary"
+          },
+          "effects": {
+            "minItems": 1
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "ai": {
+                  "properties": {
+                    "decision": {
+                      "const": "error"
+                    }
+                  },
+                  "required": ["decision"]
+                }
+              },
+              "required": ["ai"]
+            },
+            "then": {
+              "properties": {
+                "effects": {
+                  "items": {
+                    "properties": {
+                      "effect": {
+                        "enum": ["countsAgainst", "diagnosticOnly"]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "description": "teacher_decision: professional, has teacher, no ai, no confidence in effects (S1, S2, S9). Label rules S3, S4, S10.",
+      "if": {
+        "properties": {
+          "source": {
+            "const": "teacher_decision"
+          }
+        },
+        "required": ["source"]
+      },
+      "then": {
+        "required": ["teacher"],
+        "not": {
+          "required": ["ai"]
+        },
+        "properties": {
+          "weightClass": {
+            "const": "professional"
+          },
+          "effects": {
+            "items": {
+              "properties": {
+                "confidence": {
+                  "type": "null"
+                }
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "teacher": {
+                  "properties": {
+                    "label": {
+                      "const": "correct"
+                    }
+                  },
+                  "required": ["label"]
+                }
+              },
+              "required": ["teacher"]
+            },
+            "then": {
+              "properties": {
+                "teacher": {
+                  "properties": {
+                    "resolutionState": {
+                      "const": "resolved"
+                    }
+                  }
+                },
+                "effects": {
+                  "minItems": 1,
+                  "items": {
+                    "properties": {
+                      "effect": {
+                        "const": "supports"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "teacher": {
+                  "properties": {
+                    "label": {
+                      "const": "needs_practice"
+                    }
+                  },
+                  "required": ["label"]
+                }
+              },
+              "required": ["teacher"]
+            },
+            "then": {
+              "properties": {
+                "teacher": {
+                  "properties": {
+                    "resolutionState": {
+                      "const": "needs_follow_up"
+                    }
+                  }
+                },
+                "effects": {
+                  "minItems": 1,
+                  "items": {
+                    "properties": {
+                      "effect": {
+                        "enum": ["countsAgainst", "diagnosticOnly"]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "teacher": {
+                  "properties": {
+                    "label": {
+                      "const": "poor_audio"
+                    }
+                  },
+                  "required": ["label"]
+                }
+              },
+              "required": ["teacher"]
+            },
+            "then": {
+              "properties": {
+                "teacher": {
+                  "properties": {
+                    "resolutionState": {
+                      "const": "needs_follow_up"
+                    }
+                  }
+                },
+                "effects": {
+                  "maxItems": 0
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "objectId": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{24}$",
+      "description": "MongoDB ObjectId as 24 lower-case hexadecimal characters."
+    },
+    "aiBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["decision", "model", "modelVersion"],
+      "properties": {
+        "decision": {
+          "enum": ["accepted", "error"],
+          "description": "Never uncertain: no event is emitted for it."
+        },
+        "model": {
+          "enum": ["quran-muaalem", "whisper-quran", "combined", "mock"],
+          "description": "mock only in MOCK_MODE; ingestion in production rejects it. Never none: the API fallback emits no event."
+        },
+        "modelVersion": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._/-]{1,100}$",
+          "description": "Exact revision (OPS-008). Restricted characters: no free text."
+        }
+      }
+    },
+    "teacherBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["decisionId", "teacherId", "label", "resolutionState"],
+      "properties": {
+        "decisionId": {
+          "$ref": "#/$defs/objectId"
+        },
+        "teacherId": {
+          "$ref": "#/$defs/objectId"
+        },
+        "label": {
+          "enum": ["correct", "needs_practice", "poor_audio"]
+        },
+        "resolutionState": {
+          "enum": ["resolved", "needs_follow_up"]
+        }
+      }
+    },
+    "effect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "competencyId",
+        "competencyCode",
+        "effect",
+        "wordIndex",
+        "errorCode",
+        "confidence"
+      ],
+      "properties": {
+        "competencyId": {
+          "$ref": "#/$defs/objectId"
+        },
+        "competencyCode": {
+          "type": "string",
+          "pattern": "^QUR_[A-Z][A-Z0-9_]*$",
+          "maxLength": 40,
+          "description": "Copy of Competency.code (immutable)."
+        },
+        "effect": {
+          "enum": ["supports", "countsAgainst", "diagnosticOnly"],
+          "description": "diagnosticOnly is for a competency that is not active (rule R6); the engine ignores it."
+        },
+        "wordIndex": {
+          "type": ["integer", "null"],
+          "minimum": 1
+        },
+        "errorCode": {
+          "enum": [
+            "ERR_MEM_OMISSION",
+            "ERR_MEM_SUBSTITUTION",
+            "ERR_MEM_INSERTION",
+            "ERR_PRON_LETTER_SUB",
+            "ERR_PRON_HARAKA",
+            "ERR_PRON_MADD_ASLI_SHORT",
+            "ERR_TAJ_MADD_SHORT",
+            "ERR_TAJ_GHONNA_OMIT",
+            "ERR_TAJ_QALQALA_OMIT",
+            null
+          ],
+          "description": "Only codes that map to a competency. ERR_TAJ_UNMAPPED and ERR_TECH_MODELS_DISAGREE always make the result uncertain, so they never reach an event."
+        },
+        "confidence": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "allOf": [
+        {
+          "description": "S6: supports carries no word, code or confidence.",
+          "if": {
+            "properties": {
+              "effect": {
+                "const": "supports"
+              }
+            },
+            "required": ["effect"]
+          },
+          "then": {
+            "properties": {
+              "wordIndex": {
+                "type": "null"
+              },
+              "errorCode": {
+                "type": "null"
+              },
+              "confidence": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "description": "S6: countsAgainst and diagnosticOnly name the word and the code.",
+          "if": {
+            "properties": {
+              "effect": {
+                "enum": ["countsAgainst", "diagnosticOnly"]
+              }
+            },
+            "required": ["effect"]
+          },
+          "then": {
+            "properties": {
+              "wordIndex": {
+                "type": "integer"
+              },
+              "errorCode": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "description": "ERR_MEM_OMISSION belongs to QUR_MEM_AYAH (KAN-38 section 5).",
+          "if": {
+            "properties": {
+              "errorCode": {
+                "const": "ERR_MEM_OMISSION"
+              }
+            },
+            "required": ["errorCode"]
+          },
+          "then": {
+            "properties": {
+              "competencyCode": {
+                "const": "QUR_MEM_AYAH"
+              }
+            }
+          }
+        },
+        {
+          "description": "ERR_MEM_SUBSTITUTION belongs to QUR_MEM_AYAH (KAN-38 section 5).",
+          "if": {
+            "properties": {
+              "errorCode": {
+                "const": "ERR_MEM_SUBSTITUTION"
+              }
+            },
+            "required": ["errorCode"]
+          },
+          "then": {
+            "properties": {
+              "competencyCode": {
+                "const": "QUR_MEM_AYAH"
+              }
+            }
+          }
+        },
+        {
+          "description": "ERR_MEM_INSERTION belongs to QUR_MEM_INSERTION (KAN-38 section 5).",
+          "if": {
+            "properties": {
+              "errorCode": {
+                "const": "ERR_MEM_INSERTION"
+              }
+            },
+            "required": ["errorCode"]
+          },
+          "then": {
+            "properties": {
+              "competencyCode": {
+                "const": "QUR_MEM_INSERTION"
+              }
+            }
+          }
+        },
+        {
+          "description": "ERR_PRON_LETTER_SUB belongs to QUR_PRON_LETTER (KAN-38 section 5).",
+          "if": {
+            "properties": {
+              "errorCode": {
+                "const": "ERR_PRON_LETTER_SUB"
+              }
+            },
+            "required": ["errorCode"]
+          },
+          "then": {
+            "properties": {
+              "competencyCode": {
+                "const": "QUR_PRON_LETTER"
+              }
+            }
+          }
+        },
+        {
+          "description": "ERR_PRON_HARAKA belongs to QUR_PRON_HARAKA (KAN-38 section 5).",
+          "if": {
+            "properties": {
+              "errorCode": {
+                "const": "ERR_PRON_HARAKA"
+              }
+            },
+            "required": ["errorCode"]
+          },
+          "then": {
+            "properties": {
+              "competencyCode": {
+                "const": "QUR_PRON_HARAKA"
+              }
+            }
+          }
+        },
+        {
+          "description": "ERR_PRON_MADD_ASLI_SHORT belongs to QUR_PRON_MADD_ASLI (KAN-38 section 5).",
+          "if": {
+            "properties": {
+              "errorCode": {
+                "const": "ERR_PRON_MADD_ASLI_SHORT"
+              }
+            },
+            "required": ["errorCode"]
+          },
+          "then": {
+            "properties": {
+              "competencyCode": {
+                "const": "QUR_PRON_MADD_ASLI"
+              }
+            }
+          }
+        },
+        {
+          "description": "ERR_TAJ_MADD_SHORT belongs to QUR_TAJ_MADD (KAN-38 section 5).",
+          "if": {
+            "properties": {
+              "errorCode": {
+                "const": "ERR_TAJ_MADD_SHORT"
+              }
+            },
+            "required": ["errorCode"]
+          },
+          "then": {
+            "properties": {
+              "competencyCode": {
+                "const": "QUR_TAJ_MADD"
+              }
+            }
+          }
+        },
+        {
+          "description": "ERR_TAJ_GHONNA_OMIT belongs to QUR_TAJ_GHUNNA (KAN-38 section 5).",
+          "if": {
+            "properties": {
+              "errorCode": {
+                "const": "ERR_TAJ_GHONNA_OMIT"
+              }
+            },
+            "required": ["errorCode"]
+          },
+          "then": {
+            "properties": {
+              "competencyCode": {
+                "const": "QUR_TAJ_GHUNNA"
+              }
+            }
+          }
+        },
+        {
+          "description": "ERR_TAJ_QALQALA_OMIT belongs to QUR_TAJ_QALQALA (KAN-38 section 5).",
+          "if": {
+            "properties": {
+              "errorCode": {
+                "const": "ERR_TAJ_QALQALA_OMIT"
+              }
+            },
+            "required": ["errorCode"]
+          },
+          "then": {
+            "properties": {
+              "competencyCode": {
+                "const": "QUR_TAJ_QALQALA"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "examples": [
+    {
+      "schemaVersion": "1.0",
+      "eventId": "6650f0c2a1b2c3d4e5f60f01",
+      "idempotencyKey": "quran:ai_result:6650f0c2a1b2c3d4e5f60d01:1",
+      "source": "ai_result",
+      "revision": 1,
+      "weightClass": "preliminary",
+      "domain": "quran",
+      "familyId": "6650f0c2a1b2c3d4e5f60a01",
+      "childId": "6650f0c2a1b2c3d4e5f60b01",
+      "attemptId": "6650f0c2a1b2c3d4e5f60d01",
+      "contentId": "6650f0c2a1b2c3d4e5f60c01",
+      "surah": 112,
+      "ayah": 1,
+      "level": "beginner",
+      "occurredAt": "2026-11-20T09:14:05Z",
+      "supersedesEventId": null,
+      "ai": {
+        "decision": "accepted",
+        "model": "combined",
+        "modelVersion": "mdd-0.1"
+      },
+      "effects": [
+        {
+          "competencyId": "6650f0c2a1b2c3d4e5f60e01",
+          "competencyCode": "QUR_MEM_AYAH",
+          "effect": "supports",
+          "wordIndex": null,
+          "errorCode": null,
+          "confidence": null
+        },
+        {
+          "competencyId": "6650f0c2a1b2c3d4e5f60e04",
+          "competencyCode": "QUR_TAJ_MADD",
+          "effect": "supports",
+          "wordIndex": null,
+          "errorCode": null,
+          "confidence": null
+        }
+      ]
+    },
+    {
+      "schemaVersion": "1.0",
+      "eventId": "6650f0c2a1b2c3d4e5f60f02",
+      "idempotencyKey": "quran:teacher_decision:6650f0c2a1b2c3d4e5f60d91:1",
+      "source": "teacher_decision",
+      "revision": 1,
+      "weightClass": "professional",
+      "domain": "quran",
+      "familyId": "6650f0c2a1b2c3d4e5f60a01",
+      "childId": "6650f0c2a1b2c3d4e5f60b01",
+      "attemptId": "6650f0c2a1b2c3d4e5f60d01",
+      "contentId": "6650f0c2a1b2c3d4e5f60c01",
+      "surah": 112,
+      "ayah": 1,
+      "level": "beginner",
+      "occurredAt": "2026-11-20T18:30:00Z",
+      "supersedesEventId": "6650f0c2a1b2c3d4e5f60f01",
+      "teacher": {
+        "decisionId": "6650f0c2a1b2c3d4e5f60d91",
+        "teacherId": "6650f0c2a1b2c3d4e5f60a99",
+        "label": "poor_audio",
+        "resolutionState": "needs_follow_up"
+      },
+      "effects": []
+    },
+    {
+      "schemaVersion": "1.0",
+      "eventId": "6650f0c2a1b2c3d4e5f60f03",
+      "idempotencyKey": "quran:ai_result:6650f0c2a1b2c3d4e5f60d02:1",
+      "source": "ai_result",
+      "revision": 1,
+      "weightClass": "preliminary",
+      "domain": "quran",
+      "familyId": "6650f0c2a1b2c3d4e5f60a01",
+      "childId": "6650f0c2a1b2c3d4e5f60b01",
+      "attemptId": "6650f0c2a1b2c3d4e5f60d02",
+      "contentId": "6650f0c2a1b2c3d4e5f60c01",
+      "surah": 112,
+      "ayah": 2,
+      "level": "beginner",
+      "occurredAt": "2026-11-20T09:16:40Z",
+      "supersedesEventId": null,
+      "ai": {
+        "decision": "error",
+        "model": "combined",
+        "modelVersion": "mdd-0.1"
+      },
+      "effects": [
+        {
+          "competencyId": "6650f0c2a1b2c3d4e5f60e01",
+          "competencyCode": "QUR_MEM_AYAH",
+          "effect": "countsAgainst",
+          "wordIndex": 1,
+          "errorCode": "ERR_MEM_SUBSTITUTION",
+          "confidence": 0.92
+        }
+      ]
+    },
+    {
+      "schemaVersion": "1.0",
+      "eventId": "6650f0c2a1b2c3d4e5f60f04",
+      "idempotencyKey": "quran:teacher_decision:6650f0c2a1b2c3d4e5f60d92:1",
+      "source": "teacher_decision",
+      "revision": 1,
+      "weightClass": "professional",
+      "domain": "quran",
+      "familyId": "6650f0c2a1b2c3d4e5f60a01",
+      "childId": "6650f0c2a1b2c3d4e5f60b01",
+      "attemptId": "6650f0c2a1b2c3d4e5f60d02",
+      "contentId": "6650f0c2a1b2c3d4e5f60c01",
+      "surah": 112,
+      "ayah": 2,
+      "level": "beginner",
+      "occurredAt": "2026-11-20T18:31:10Z",
+      "supersedesEventId": "6650f0c2a1b2c3d4e5f60f03",
+      "teacher": {
+        "decisionId": "6650f0c2a1b2c3d4e5f60d92",
+        "teacherId": "6650f0c2a1b2c3d4e5f60a99",
+        "label": "correct",
+        "resolutionState": "resolved"
+      },
+      "effects": [
+        {
+          "competencyId": "6650f0c2a1b2c3d4e5f60e01",
+          "competencyCode": "QUR_MEM_AYAH",
+          "effect": "supports",
+          "wordIndex": null,
+          "errorCode": null,
+          "confidence": null
+        },
+        {
+          "competencyId": "6650f0c2a1b2c3d4e5f60e04",
+          "competencyCode": "QUR_TAJ_MADD",
+          "effect": "supports",
+          "wordIndex": null,
+          "errorCode": null,
+          "confidence": null
+        }
+      ]
+    },
+    {
+      "schemaVersion": "1.0",
+      "eventId": "6650f0c2a1b2c3d4e5f60f05",
+      "idempotencyKey": "quran:ai_result:6650f0c2a1b2c3d4e5f60d03:1",
+      "source": "ai_result",
+      "revision": 1,
+      "weightClass": "preliminary",
+      "domain": "quran",
+      "familyId": "6650f0c2a1b2c3d4e5f60a01",
+      "childId": "6650f0c2a1b2c3d4e5f60b01",
+      "attemptId": "6650f0c2a1b2c3d4e5f60d03",
+      "contentId": "6650f0c2a1b2c3d4e5f60c02",
+      "surah": 1,
+      "ayah": 4,
+      "level": "beginner",
+      "occurredAt": "2026-11-21T09:20:12Z",
+      "supersedesEventId": null,
+      "ai": {
+        "decision": "accepted",
+        "model": "combined",
+        "modelVersion": "mdd-0.1"
+      },
+      "effects": [
+        {
+          "competencyId": "6650f0c2a1b2c3d4e5f60e04",
+          "competencyCode": "QUR_TAJ_MADD",
+          "effect": "countsAgainst",
+          "wordIndex": 1,
+          "errorCode": "ERR_TAJ_MADD_SHORT",
+          "confidence": 0.86
+        },
+        {
+          "competencyId": "6650f0c2a1b2c3d4e5f60e01",
+          "competencyCode": "QUR_MEM_AYAH",
+          "effect": "supports",
+          "wordIndex": null,
+          "errorCode": null,
+          "confidence": null
+        }
+      ]
+    },
+    {
+      "schemaVersion": "1.0",
+      "eventId": "6650f0c2a1b2c3d4e5f60f06",
+      "idempotencyKey": "quran:teacher_decision:6650f0c2a1b2c3d4e5f60d93:1",
+      "source": "teacher_decision",
+      "revision": 1,
+      "weightClass": "professional",
+      "domain": "quran",
+      "familyId": "6650f0c2a1b2c3d4e5f60a01",
+      "childId": "6650f0c2a1b2c3d4e5f60b01",
+      "attemptId": "6650f0c2a1b2c3d4e5f60d03",
+      "contentId": "6650f0c2a1b2c3d4e5f60c02",
+      "surah": 1,
+      "ayah": 4,
+      "level": "beginner",
+      "occurredAt": "2026-11-21T18:02:44Z",
+      "supersedesEventId": "6650f0c2a1b2c3d4e5f60f05",
+      "teacher": {
+        "decisionId": "6650f0c2a1b2c3d4e5f60d93",
+        "teacherId": "6650f0c2a1b2c3d4e5f60a99",
+        "label": "needs_practice",
+        "resolutionState": "needs_follow_up"
+      },
+      "effects": [
+        {
+          "competencyId": "6650f0c2a1b2c3d4e5f60e04",
+          "competencyCode": "QUR_TAJ_MADD",
+          "effect": "countsAgainst",
+          "wordIndex": 1,
+          "errorCode": "ERR_TAJ_MADD_SHORT",
+          "confidence": null
+        }
+      ]
+    },
+    {
+      "schemaVersion": "1.0",
+      "eventId": "6650f0c2a1b2c3d4e5f60f07",
+      "idempotencyKey": "quran:ai_result:6650f0c2a1b2c3d4e5f60d04:1",
+      "source": "ai_result",
+      "revision": 1,
+      "weightClass": "preliminary",
+      "domain": "quran",
+      "familyId": "6650f0c2a1b2c3d4e5f60a01",
+      "childId": "6650f0c2a1b2c3d4e5f60b01",
+      "attemptId": "6650f0c2a1b2c3d4e5f60d04",
+      "contentId": "6650f0c2a1b2c3d4e5f60c03",
+      "surah": 114,
+      "ayah": 4,
+      "level": "intermediate",
+      "occurredAt": "2026-11-21T09:25:30Z",
+      "supersedesEventId": null,
+      "ai": {
+        "decision": "accepted",
+        "model": "combined",
+        "modelVersion": "mdd-0.1"
+      },
+      "effects": [
+        {
+          "competencyId": "6650f0c2a1b2c3d4e5f60e06",
+          "competencyCode": "QUR_TAJ_GHUNNA",
+          "effect": "diagnosticOnly",
+          "wordIndex": 4,
+          "errorCode": "ERR_TAJ_GHONNA_OMIT",
+          "confidence": 0.9
+        },
+        {
+          "competencyId": "6650f0c2a1b2c3d4e5f60e01",
+          "competencyCode": "QUR_MEM_AYAH",
+          "effect": "supports",
+          "wordIndex": null,
+          "errorCode": null,
+          "confidence": null
+        },
+        {
+          "competencyId": "6650f0c2a1b2c3d4e5f60e04",
+          "competencyCode": "QUR_TAJ_MADD",
+          "effect": "supports",
+          "wordIndex": null,
+          "errorCode": null,
+          "confidence": null
+        }
+      ]
+    }
+  ]
+}
