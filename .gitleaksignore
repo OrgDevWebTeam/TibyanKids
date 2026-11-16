@@ -3,3 +3,6 @@
 
 # Placeholder JWT secret in an API test, not a real credential.
 bb449cfa77bb18795f979a5cadb56a18b11e9abb:apps/api/tests/api/isolation.test.js:generic-api-key:10
+
+# Placeholder JWT secret in the API test helper, not a real credential.
+a4e1c7a0abe54a9858030cd19fde16f38655dd38:apps/api/tests/helpers/api.js:generic-api-key:8
