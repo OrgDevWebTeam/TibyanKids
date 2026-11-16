@@ -64,6 +64,24 @@ auditEventSchema.pre("bulkWrite", function (ops) {
   }
 });
 
+auditEventSchema.pre("bulkWrite", function (ops) {
+  for (const op of ops || []) {
+    if (op.deleteOne || op.deleteMany) {
+      throw new Error("Audit events are append-only and cannot be deleted");
+    }
+  }
+});
+
+// Audit entries are never deleted by the app. Only a future retention job may delete them.
+auditEventSchema.pre(["deleteOne", "deleteMany", "findOneAndDelete"], function () {
+  throw new Error("Audit events are append-only and cannot be deleted");
+});
+
+// Same rule when deleting through a loaded document: saved.deleteOne()
+auditEventSchema.pre("deleteOne", { document: true, query: false }, function () {
+  throw new Error("Audit events are append-only and cannot be deleted");
+});
+
 auditEventSchema.pre("save", function () {
   if (!this.isNew) throw new Error("Audit events are append-only and cannot be updated");
 });
