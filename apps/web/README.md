@@ -54,6 +54,7 @@ src/
     dev/                  /dev/ui, /dev/rtl and /dev/session: development only
   features/               Data and rules of one feature: children
   components/             App-wide pieces: page frame, header, language switcher, offline banner
+  assets/                 The logo, from the design system's Logo page
   lib/
     api/                  API client
     session/              Session in memory, active child, area access rules
@@ -62,7 +63,8 @@ public/
   manifest.webmanifest    PWA manifest
   sw.js                   Service worker: caches build files and the offline page only
   offline.html            Shown when a page is opened without a connection
-  icons/                  PWA icons (placeholders until the brand assets arrive)
+  icons/                  PWA icons, made from the design system's app icon
+  favicon.ico             Browser tab icon (16, 32 and 48 px), from the same icon
 ```
 
 Screen IDs (G01, C01…) come from the UI Screens Spec. Each screen is added with its task; product
