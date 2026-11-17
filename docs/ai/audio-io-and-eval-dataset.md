@@ -312,6 +312,10 @@ because the teacher still checks a sample of accepted ayahs (FR-LIVE-005).
 
 ### B.9 One evaluation run (`runs/*.json`)
 
+Made by `services/ai/scripts/evaluate.py <noor-eval folder> --split dev|test` (the numbers:
+`services/ai/app/evaluation.py`). A test run is refused when `recordings.jsonl` or `labels.jsonl` no
+longer match the SHA-256 values frozen in `splits.json`.
+
 Stores: model names and exact versions, the decision-policy version, threshold, dataset hash from
 `splits.json`, which split was used, every metric from B.8, and the date. A run file holds metrics
 and versions only, no audio, transcripts or phoneme text. Runs are kept for the AI pilot report
