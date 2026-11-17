@@ -43,19 +43,34 @@ export async function api(path, { method = "GET", token, body } = {}) {
   return { status: res.status, json: await res.json().catch(() => ({})) };
 }
 
-/** Registers a new parent (and their family) and returns the token. */
-export async function registerParent() {
+/** Verifies a parent's email using the token the placeholder mailer recorded. */
+export async function verifyEmailFor(email) {
+  const { outbox } = await import("../../src/utils/mailer.js");
+  const mail = outbox.findLast((m) => m.to === email);
+  const res = await api("/auth/verify-email", { method: "POST", body: { token: mail.token } });
+  if (res.status !== 200) throw new Error(`could not verify ${email}: ${res.status}`);
+}
+
+/** Registers a new parent (and their family). Verified by default; pass { verified: false } to skip. */
+export async function registerParent({ verified = true } = {}) {
   counter += 1;
+  const email = `parent${counter}@test.com`;
   const res = await api("/auth/register", {
     method: "POST",
     body: {
       name: `Parent ${counter}`,
-      email: `parent${counter}@test.com`,
+      email,
       password: "password123",
       policyVersion: "v1",
     },
   });
-  return { token: res.json.token, userId: res.json.user.id, familyId: res.json.family.id };
+  if (verified) await verifyEmailFor(email);
+  return {
+    token: res.json.token,
+    userId: res.json.user.id,
+    familyId: res.json.family.id,
+    email,
+  };
 }
 
 /** Creates a child for the given parent and returns the child. */

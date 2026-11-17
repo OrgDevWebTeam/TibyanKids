@@ -18,12 +18,16 @@ export default async function authenticate(req, res, next) {
     return res.status(401).json({ status: "fail", message: "Invalid or expired token" });
   }
 
-  const user = await User.findById(payload.userId).select("role status");
+  const user = await User.findById(payload.userId).select("role status emailVerifiedAt");
 
   if (!user || user.status !== "active") {
     return res.status(401).json({ status: "fail", message: "Invalid or inactive account" });
   }
 
-  req.user = { _id: user._id, role: user.role };
+  req.user = {
+    _id: user._id,
+    role: user.role,
+    emailVerified: Boolean(user.emailVerifiedAt),
+  };
   next();
 }
