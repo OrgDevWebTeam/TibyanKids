@@ -19,6 +19,12 @@ const userSchema = new mongoose.Schema(
     role: { type: String, enum: ROLES, default: "parent", required: true },
 
     status: { type: String, enum: ["active", "suspended"], default: "active" },
+
+    country: { type: String, trim: true, maxlength: 60 },
+
+    termsAcceptedVersion: { type: String, trim: true, maxlength: 50 },
+
+    termsAcceptedAt: { type: Date },
   },
   {
     timestamps: true,
