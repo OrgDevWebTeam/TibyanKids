@@ -1,11 +1,13 @@
+import { randomBytes } from "node:crypto";
 import mongoose from "mongoose";
 import { MongoMemoryReplSet } from "mongodb-memory-server";
 
 // Settings must exist BEFORE the app is imported, because config/env.js checks them on import.
+// The JWT secret is random on every run, so no secret-looking value is written in this file.
 process.env.NODE_ENV = "development";
 process.env.DATABASE = "mongodb://x:<PASSWORD>@localhost/x";
 process.env.DATABASE_PASSWORD = "x";
-process.env.JWT_SECRET = "test-secret-that-is-at-least-32-characters-long";
+process.env.JWT_SECRET = randomBytes(32).toString("hex");
 
 let replset;
 let server;

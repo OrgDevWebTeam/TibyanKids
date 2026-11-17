@@ -8,7 +8,8 @@ import { recordAudit } from "./audit.js";
  */
 export async function auditIfOtherFamily(req, childId) {
   try {
-    const child = await Child.findById(childId).select("familyId");
+    // $eq makes sure the id is only ever compared as a value, never read as a query operator.
+    const child = await Child.findOne({ _id: { $eq: childId } }).select("familyId");
     if (child && !child.familyId.equals(req.family._id)) {
       await recordAudit({
         actor: req.user,
