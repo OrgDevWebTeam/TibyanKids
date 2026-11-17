@@ -25,12 +25,20 @@ const userSchema = new mongoose.Schema(
     termsAcceptedVersion: { type: String, trim: true, maxlength: 50 },
 
     termsAcceptedAt: { type: Date },
+
+    emailVerifiedAt: { type: Date, default: null },
+
+    verificationTokenHash: { type: String, select: false },
+
+    verificationExpiresAt: { type: Date, select: false },
   },
   {
     timestamps: true,
     toJSON: {
       transform: (_doc, ret) => {
         delete ret.passwordHash;
+        delete ret.verificationTokenHash;
+        delete ret.verificationExpiresAt;
         delete ret.__v;
         return ret;
       },

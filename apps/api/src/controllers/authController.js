@@ -3,6 +3,8 @@ import mongoose from "mongoose";
 import User from "../Models/User.js";
 import Family from "../Models/Family.js";
 import { signToken } from "../utils/token.js";
+import { createVerificationToken } from "../utils/verificationToken.js";
+import { mailer } from "../utils/mailer.js";
 
 const DUMMY_HASH = bcrypt.hashSync("not-a-real-password", 10);
 
@@ -10,6 +12,7 @@ export async function registerParent(req, res) {
   const { name, email, password, country, policyVersion } = req.body;
 
   const passwordHash = await bcrypt.hash(password, 10);
+  const verification = createVerificationToken();
 
   const session = await mongoose.startSession();
   let user;
@@ -27,6 +30,8 @@ export async function registerParent(req, res) {
             country,
             termsAcceptedVersion: policyVersion,
             termsAcceptedAt: new Date(),
+            verificationTokenHash: verification.tokenHash,
+            verificationExpiresAt: verification.expiresAt,
           },
         ],
         { session },
@@ -37,6 +42,13 @@ export async function registerParent(req, res) {
     });
   } finally {
     await session.endSession();
+  }
+
+  // The email goes out after the account is saved. A failed email must not undo the registration.
+  try {
+    await mailer.sendVerificationEmail({ to: user.email, token: verification.token });
+  } catch (error) {
+    console.error("Failed to send verification email:", error.message);
   }
 
   res.status(201).json({
