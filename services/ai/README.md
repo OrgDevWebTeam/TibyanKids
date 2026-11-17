@@ -9,11 +9,10 @@ over HTTP; browsers never do. It is Python, so it is not part of the pnpm worksp
 
 ## Where we are (week 3)
 
-- The endpoint returns **mock** results only (`MOCK_MODE=true`), so nobody needs a GPU to build
-  features. With `MOCK_MODE=false` it returns `503 MODELS_NOT_READY`.
-- The quality gate and both model adapters run on real audio from
-  [`scripts/run_real_audio.py`](scripts/run_real_audio.py). They are connected to the endpoint in
-  week 3, together with merging the two models.
+- With `MOCK_MODE=true` (the default) the endpoint returns **mock** results, so nobody needs a GPU
+  to build features.
+- With `MOCK_MODE=false` (the GPU machine) it runs the real pipeline (`app/pipeline.py`): quality
+  gate, both models, merged findings with word segments, one decision.
 
 ## How it works
 
