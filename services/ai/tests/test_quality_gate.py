@@ -1,6 +1,4 @@
-# The quality gate rules (app/audio.py check_quality). Owner: Qussai.
-# Generated audio only (tones and a quiet background), never recordings. Silero VAD is replaced by a
-# fake that reports where the tones are, so these tests need neither torch nor a GPU.
+# The quality gate rules (app/audio.py) with generated audio and a fake VAD.
 import numpy as np
 import pytest
 
@@ -42,13 +40,11 @@ def test_a_clean_reading_is_ok_and_the_clip_is_the_reading():
     samples, vad = recording(("silence", 1), ("speech", 3), ("silence", 1))
     quality, report, clip = check_quality(samples, vad)
     assert quality == "ok"
-    # 0.25 s before the reading, the 3 s reading, and the 1 s left after it (up to 3 s is kept)
     assert len(clip) == int(4.25 * SAMPLE_RATE)
     assert report["readingSeconds"] == 3.0
 
 
 def test_waiting_before_reading_is_not_noise():
-    # The old gate measured speech over the whole recording and called this too_noisy
     samples, vad = recording(("silence", 20), ("speech", 3), ("silence", 1))
     quality, _, clip = check_quality(samples, vad)
     assert quality == "ok"
@@ -56,7 +52,6 @@ def test_waiting_before_reading_is_not_noise():
 
 
 def test_silence_after_the_reading_is_cut_after_3_seconds():
-    # The child forgot to press stop. 3 s are kept for a long final madd the VAD does not hear.
     samples, vad = recording(("silence", 1), ("speech", 3), ("silence", 20))
     quality, _, clip = check_quality(samples, vad)
     assert quality == "ok"
@@ -73,7 +68,6 @@ def test_a_recording_over_the_limit_is_too_long():
 
 
 def test_a_reading_over_30_seconds_is_too_long():
-    # Whisper reads 30 s at most, so a longer reading would look like skipped words
     samples, vad = recording(("silence", 2), ("speech", 31), ("silence", 2))
     quality, report, clip = check_quality(samples, vad)
     assert quality == "too_long"
@@ -100,7 +94,6 @@ def test_very_quiet_speech_is_silent():
 
 
 def test_speech_in_loud_noise_is_too_noisy():
-    # Noise as loud as the speech, everywhere: nothing quiet between the words
     samples, vad = recording(("speech", 3))
     samples = samples + rng.normal(0, 0.07, len(samples)).astype(np.float32)
     quality, report, _ = check_quality(samples, vad)
@@ -109,7 +102,6 @@ def test_speech_in_loud_noise_is_too_noisy():
 
 
 def test_little_speech_inside_the_reading_is_too_noisy():
-    # Two short sounds far apart: the reading is mostly not speech
     samples, vad = recording(("speech", 0.3), ("silence", 5), ("speech", 0.3))
     quality, report, _ = check_quality(samples, vad)
     assert quality == "too_noisy"

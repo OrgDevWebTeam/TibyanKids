@@ -1,9 +1,9 @@
 // POST /api/v1/children/:id/recitation-attempts: one recorded ayah of a child. Owner: Qussai.
 //
-// Flow:
+// The fields are checked first by validate(recitationAttemptSchema) in the route. Then:
 //   1. The child belongs to this family, is active, and has active consent
-//   2. The audio and fields are valid, and the ayah is one of the 25 prototype ayat
-//   3. The same clientAttemptId again returns the saved attempt (VAL-010): no second analysis
+//   2. An audio file is there
+//   3. The same clientAttemptId again returns the saved attempt (VAL-010), or 409 for another ayah
 //   4. The AI service checks the recording (src/ai/aiClient.js)
 //   5. Then one of:
 //      - unreadable audio, or a quality-gate rejection: the child records again, nothing is saved
@@ -11,22 +11,19 @@
 //      - a result, or the fallback "uncertain" result when the AI failed: saved and returned.
 //        The child is never stuck because the AI is down or slow (FR-QUR-006)
 import mongoose from "mongoose";
-import Child from "../Models/Child.js";
 import ConsentRecord from "../Models/ConsentRecord.js";
 import QuranAttempt from "../Models/QuranAttempt.js";
-import { recitationAttemptSchema } from "../validations/recitationValidation.js";
+import { invalidInput } from "../middlewares/validate.js";
+import { findMyChild } from "../utils/findMyChild.js";
 
-function invalidInput(res, issues) {
-  return res.status(400).json({
-    status: "fail",
-    message: "Invalid input",
-    errors: issues.map((issue) => ({ field: issue.path.join("."), message: issue.message })),
-  });
+// True when a saved attempt is for the same ayah and level as this upload
+function sameRecording(attempt, { surah, ayah, level }) {
+  return attempt.surah === surah && attempt.ayah === ayah && attempt.level === level;
 }
 
 export async function createRecitationAttempt(req, res) {
-  // 1. The child. The same 404 for "missing" and "another family's child"
-  const child = await Child.findOwned(req.params.id, req.family._id).where("status").ne("archived");
+  // 1. The child
+  const child = await findMyChild(req);
   if (!child) {
     return res.status(404).json({ status: "fail", message: "Child not found" });
   }
@@ -35,19 +32,20 @@ export async function createRecitationAttempt(req, res) {
     return res.status(403).json({ status: "fail", message: "Active consent is required" });
   }
 
-  // 2. The fields and the audio
-  const fields = recitationAttemptSchema.safeParse(req.body ?? {});
-  if (!fields.success) {
-    return invalidInput(res, fields.error.issues);
-  }
+  // 2. The audio
   const file = req.file;
   if (!file || file.size === 0 || !file.mimetype.startsWith("audio/")) {
     return invalidInput(res, [{ path: ["audio"], message: "An audio file is required" }]);
   }
-  const { clientAttemptId, surah, ayah, level } = fields.data;
+  const { clientAttemptId, surah, ayah, level } = req.body;
 
   // 3. A repeated upload of the same recording
   const saved = await QuranAttempt.findOne({ childId: child._id, clientAttemptId });
+  if (saved && !sameRecording(saved, req.body)) {
+    return res
+      .status(409)
+      .json({ status: "fail", message: "clientAttemptId already used for another ayah" });
+  }
   if (saved) {
     return res.status(200).json({ status: "success", attempt: saved });
   }

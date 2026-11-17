@@ -1,5 +1,4 @@
-# The evaluation numbers (app/evaluation.py) on synthetic labels and fake model outputs, with
-# expected values worked out by hand. No audio, no GPU. Owner: Qussai.
+# The evaluation numbers (app/evaluation.py) on synthetic labels, values worked out by hand.
 import json
 
 import pytest
@@ -36,7 +35,6 @@ def finding(word, code):
     return make_finding(word, code, 0.9, 0, 0)
 
 
-# --- Gold labels ----------------------------------------------------------------------------------
 
 
 def test_two_teachers_who_agree_give_the_gold_label():
@@ -97,7 +95,6 @@ def test_a_code_not_yet_approved_never_stops_the_child():
     assert evaluation.gold_stopping_words({1: ["ERR_MEM_INSERTION"]}, "advanced") == {}
 
 
-# --- Decision metrics -----------------------------------------------------------------------------
 
 
 def cases_for_rates():
@@ -141,7 +138,6 @@ def test_no_recordings_gives_no_rate_instead_of_dividing_by_zero():
 
 def test_word_location_uses_the_first_word_the_child_would_hear_replayed():
     gold = {1: [], 2: ["ERR_MEM_OMISSION"], 3: []}
-    # Word 1 is only a tajweed reminder at beginner, so the first replayed word is word 2
     out = output("error", [finding(1, "ERR_TAJ_MADD_SHORT"), finding(2, "ERR_MEM_OMISSION")])
     case = {"recording": recording("R1"), "gold": gold, "output": out}
 
@@ -162,7 +158,6 @@ def test_false_accepts_are_split_by_the_category_of_the_gold_error():
     }
 
 
-# --- Quality gate and latency ---------------------------------------------------------------------
 
 
 def test_gate_precision_and_recall_leave_guard_rejections_apart():
@@ -190,7 +185,6 @@ def test_percentiles_use_the_nearest_rank():
     assert evaluation.percentile([], 0.5) is None
 
 
-# --- One run ---------------------------------------------------------------------------------------
 
 
 def test_children_and_seeded_adults_are_reported_apart():

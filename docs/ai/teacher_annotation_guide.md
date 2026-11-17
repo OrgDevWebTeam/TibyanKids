@@ -130,7 +130,7 @@ The recordings are children's voices, the most sensitive data we hold (Architect
    annotating teachers can reach it, and every access is logged.
 4. Only anonymous ids are used (`speakerId`, `recordingId`). No names or contact details in the
    annotation files.
-5. How long the audio is kept, and when it is deleted, follows decision OD-04 (week 3). Withdrawing
+5. How long the audio is kept, and when it is deleted, follows decision OD-04 (week 4, carried from week 3). Withdrawing
    consent stops the use and deletes the recording and its annotations (VAL-008).
 
 ---
@@ -140,7 +140,7 @@ The recordings are children's voices, the most sensitive data we hold (Architect
 - **Target:** 30 children who are not native Arabic speakers × 25 ayat (750 recordings), with their
   parents' consent. The search for families starts in week 1.
 - **Split:** by speaker, not by recording. The test set is **never touched** once it is fixed
-  (week 3).
+  (week 4, carried from week 3: it needs the children's recordings).
 - **Error balance:** most children's recordings will be correct, so the rarer categories (such as
   ghunna and qalqala) may have few examples. Therefore `seeded_adult` recordings with deliberate
   errors are added by adult volunteers, with their consent. **Their results are reported separately
@@ -158,4 +158,4 @@ The recordings are children's voices, the most sensitive data we hold (Architect
 | 8.2 | The policy for repeats and restarts                                       | Mohammad                            |
 | 8.3 | The acceptable level of agreement (kappa)                                 | The team (Ismail, Qussai, Mohammad) |
 | 8.4 | Who the supervising reviewer and the two annotating teachers are          | O-04 / OD-07                        |
-| 8.5 | How long the audio is kept                                                | OD-04 (week 3)                      |
+| 8.5 | How long the audio is kept                                                | OD-04 (week 4)                      |

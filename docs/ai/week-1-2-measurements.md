@@ -8,6 +8,12 @@
 Numbers only. No recordings are in the repository (it is public): the reference recitation of the
 25 prototype ayat is kept outside git in `datasets/reference-recitation/`.
 
+> **Update, week 3 (2026-11-17).** This page is a record of weeks 1–2 and is kept as measured. Since
+> then: the two models are merged and connected to `POST /v1/recitation/analyze` (#79, #80), they
+> run in Docker on the GPU machine (#83), the API sends recordings and saves the results (#85), and
+> `services/ai/scripts/evaluate.py` measures them on a labelled dataset (#86). Current state:
+> `services/ai/README.md` and `docs/ai/audio-io-and-eval-dataset.md` ("Status at the end of week 3").
+
 ## What was measured
 
 | Item       | Value                                                                                                |

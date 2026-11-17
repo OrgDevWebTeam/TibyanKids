@@ -118,8 +118,8 @@ Notes:
 
 ### 2.1 Targeted rules per lesson (needed for the advanced level)
 
-The advanced level needs to know which rules are targeted in each word. In week 3, together with
-the level rule tables, a file of this shape is created and approved by a qualified religious
+The advanced level needs to know which rules are targeted in each word. In week 4 (carried from
+week 3), together with the level rule tables, a file of this shape is created and approved by a qualified religious
 reviewer (O-04):
 
 ```json

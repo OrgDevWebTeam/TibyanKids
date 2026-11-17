@@ -1,17 +1,4 @@
-# One evaluation run on the labelled recordings (week 4 benchmark and every model change). Owner: Qussai.
-# Rules: docs/ai/audio-io-and-eval-dataset.md, Part B. The numbers: app/evaluation.py.
-#
-# Usage (from services/ai, on the GPU machine):
-#   python scripts/evaluate.py <noor-eval folder> --split dev
-#   python scripts/evaluate.py <noor-eval folder> --split test     # only after the test set is frozen
-#
-# For each recording of the split: decode, quality gate, then each model once. The decision of
-# quran-muaalem alone, whisper-quran alone and both combined is made at all three levels, so one run
-# compares the models (week 4: choose the main model, OD-02).
-#
-# Writes <folder>/runs/<date>-<time>-<split>.json (a new file every run): metrics and versions only. No audio, transcripts or
-# phoneme text, so the run file is safe to keep for the pilot report (B.9).
-# The recordings never leave the eval folder and are never copied into the repository.
+# One evaluation run (dataset doc, Part B): python scripts/evaluate.py <noor-eval folder> --split dev|test
 import argparse
 import json
 import sys
@@ -19,7 +6,6 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-# Lets this script do "from app..." like the service does
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app import evaluation  # noqa: E402
@@ -34,7 +20,7 @@ TIMED = ["decode", "gate", muaalem.NAME, whisper_quran.NAME]
 
 
 def audio_file(folder, recording_id):
-    # audio/<recordingId>.<ext>, the original upload (B.4)
+    """audio/<recordingId>.<ext>, the original upload."""
     matches = sorted((folder / "audio").glob(f"{recording_id}.*"))
     if not matches:
         raise FileNotFoundError(f"No audio file for {recording_id} in {folder / 'audio'}")
@@ -42,7 +28,7 @@ def audio_file(folder, recording_id):
 
 
 def check_one(path, recording):
-    """The models' output for one recording, in the shape app/evaluation.py reads."""
+    """The gate, each model once, and the decisions of each model and combined at every level."""
     seconds = {}
     ayah = get_ayah(recording["surah"], recording["ayah"])
 
@@ -69,7 +55,7 @@ def check_one(path, recording):
     try:
         whisper_findings = whisper_quran.find_errors(clip, [word["text_imlaei"] for word in ayah["words"]])
     except whisper_quran.Runaway:
-        whisper_findings = None  # its text cannot be trusted: uncertain, as in the service
+        whisper_findings = None  # uncertain, as in the service
     seconds[whisper_quran.NAME] = time.perf_counter() - started
 
     timings = get_word_timings(recording["surah"], recording["ayah"])
@@ -88,6 +74,7 @@ def check_one(path, recording):
 
 
 def print_tables(report):
+    """Prints the main numbers of each source, model and level."""
     for source, numbers in report.items():
         print()
         print(f"== {source}: {numbers['recordings']} recordings, {numbers['analysed']} analysed")
@@ -103,6 +90,7 @@ def print_tables(report):
 
 
 def main():
+    """Runs the split, writes runs/<date>-<time>-<split>.json (metrics only) and prints the tables."""
     parser = argparse.ArgumentParser(description="One evaluation run (docs/ai/audio-io-and-eval-dataset.md, B)")
     parser.add_argument("folder", type=Path, help="the noor-eval folder (B.4)")
     parser.add_argument("--split", required=True, choices=["dev", "test"])
