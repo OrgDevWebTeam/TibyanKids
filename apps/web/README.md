@@ -1,6 +1,6 @@
 # @noor/web
 
-The Noor Academy web app: a React single-page PWA built with Vite, in Arabic (RTL) and English (LTR).
+The Tibyan Kids web app: a React single-page PWA built with Vite, in Arabic (RTL) and English (LTR).
 
 Sources: ADR-0005 (stack); Architecture v1.0 section 5.2; UI Screens Spec v0.1; CRS FR-I18N-001 and NFR-I18N-001.
 

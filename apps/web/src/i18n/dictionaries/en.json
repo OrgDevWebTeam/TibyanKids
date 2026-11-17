@@ -1,10 +1,10 @@
 {
   "meta": {
-    "title": "Noor Academy",
+    "title": "Tibyan Kids",
     "description": "A personalized growth platform for Muslim children."
   },
   "landing": {
-    "title": "Noor Academy",
+    "title": "Tibyan Kids",
     "subtitle": "A personalized growth platform for Muslim children."
   },
   "screens": {
@@ -74,6 +74,6 @@
   },
   "maintenance": {
     "title": "We will be back soon",
-    "body": "Noor Academy is being updated. Please try again a little later."
+    "body": "Tibyan Kids is being updated. Please try again a little later."
   }
 }

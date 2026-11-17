@@ -45,9 +45,9 @@ Primitives take all their text as props, so the app passes it from its dictionar
 
 1. Logical CSS only (`ms-*`, `ps-*`, `start-*`, `text-start`); the lint rule enforces it.
 2. Colours come from the tokens, never raw hex values. The tokens follow the design system
-   (Figma, KAN-7). `tokens.test.ts` checks every text and control colour pair against WCAG AA
-   (4.5:1 text, 3:1 controls and focus). Pairs the design system does not meet yet (control
-   borders, warning text) are listed there as known gaps until the design changes them.
+   (Figma "Tibyan kids"). `tokens.test.ts` checks every text and control colour pair against
+   WCAG AA (4.5:1 text, 3:1 controls and focus). Pairs the design system does not meet yet
+   (input borders) are listed there as known gaps until the design changes them.
 3. Meaning is never carried by colour alone (NFR-A11Y-001).
 4. Number pads, media controls, logos and Quran text are never mirrored.
 

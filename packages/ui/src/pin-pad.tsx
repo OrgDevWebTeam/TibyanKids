@@ -60,7 +60,7 @@ function PadKey({
       disabled={disabled}
       onClick={onPress}
       onKeyDown={onKeyDown}
-      className="flex size-16 items-center justify-center rounded-control border border-control bg-surface text-2xl font-semibold text-ink hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:opacity-50"
+      className="flex size-16 items-center justify-center rounded-control border border-control bg-surface text-2xl font-semibold text-ink hover:bg-surface-muted focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:opacity-50"
     >
       {children}
     </button>
