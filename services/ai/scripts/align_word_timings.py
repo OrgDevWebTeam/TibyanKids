@@ -1,26 +1,4 @@
-# Proposes word timings for the reference recitation by forced alignment. Owners: Ismail + Qussai.
-# Architecture v3.0: word timings come from QUL, or are generated locally (CTC model) and then
-# reviewed by ear before they are used. This script is the local generator; its output is a
-# proposal until Ismail has listened to every word.
-#
-# Usage (from services/ai, on the GPU machine):
-#   python scripts/align_word_timings.py <folder with SSSAAA.mp3 files> <output .json>
-#
-# How it works:
-#   1. quran_transcript turns each ayah's Uthmani text into the phonemes quran-muaalem uses, and
-#      maps every Uthmani letter to its phonemes, so each word has a known run of phonemes.
-#   2. quran-muaalem (a CTC model, one frame every ~40 ms) gives the probability of every phoneme in
-#      every frame. The known phoneme sequence is force-aligned to those frames (CTC Viterbi), which
-#      gives the frames of each phoneme, and so of each word.
-#   3. In connected recitation words run into each other, so a word ends where the next one starts.
-#      Only a real pause (PAUSE_FRAMES or more of silence) leaves a gap; then the word ends KEEP_FRAMES
-#      after its last phoneme. Each word starts BACK_FRAMES early so its first sound is not cut.
-#
-# These three values were chosen by cutting each word out of the reference audio and asking
-# whisper-quran what it hears (2026-11-15): 51 of 97 words recognised, against 18 with the earlier
-# hand-made timings, and no word shorter than 200 ms (22 before).
-#
-# Recordings are never copied into the repository (it is public).
+# Proposes word timings by CTC forced alignment: python scripts/align_word_timings.py <folder> <output.json>
 import json
 import sys
 from pathlib import Path
@@ -29,24 +7,21 @@ import numpy as np
 import torch
 from quran_transcript import quran_phonetizer
 
-# Lets this script do "from app..." like the service does
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.adapters import muaalem  # noqa: E402
 from app.audio import SAMPLE_RATE, decode_audio  # noqa: E402
 from app.reference import get_ayah  # noqa: E402
 
-PAUSE_FRAMES = 10  # about 400 ms of silence between two words counts as a pause
-KEEP_FRAMES = 3  # before a pause, a word ends about 120 ms after its last phoneme
-BACK_FRAMES = 1  # a word starts about 40 ms before its first phoneme
+# Chosen by asking whisper-quran to recognise each cut-out word (51 of 97, against 18 before)
+PAUSE_FRAMES = 10  # about 400 ms
+KEEP_FRAMES = 3  # about 120 ms
+BACK_FRAMES = 1  # about 40 ms
 BLANK = 0  # the CTC blank of quran-muaalem's phoneme level ([PAD])
 
 
 def ctc_viterbi(log_probs, labels):
-    """
-    The most likely CTC path for a known label sequence. log_probs: frames x vocabulary.
-    Returns, for every frame, the position of its label in `labels`, or -1 for a blank frame.
-    """
+    """For each frame, the position of its label in `labels` on the most likely CTC path, or -1 for blank."""
     frames = log_probs.shape[0]
     states = [BLANK]
     for label in labels:
@@ -58,7 +33,6 @@ def ctc_viterbi(log_probs, labels):
     score[0, 1] = log_probs[0, states[1]]
     for t in range(1, frames):
         for s in range(count):
-            # Stay, move one state on, or skip a blank between two different labels
             options = [(score[t - 1, s], s)]
             if s >= 1:
                 options.append((score[t - 1, s - 1], s - 1))
@@ -78,7 +52,7 @@ def ctc_viterbi(log_probs, labels):
 
 
 def word_frames(model, samples, uthmani_text):
-    """Returns ([(first frame, last frame + 1) per word], milliseconds per frame)."""
+    """([(first frame, last frame + 1) per word], milliseconds per frame)."""
     reference = quran_phonetizer(uthmani_text, muaalem.moshaf_settings(), remove_spaces=True)
     labels = model.multi_level_tokenizer.tokenize(
         [reference.phonemes], [reference.sifat], to_dict=True, return_tensors="pt", padding="longest"
@@ -96,7 +70,6 @@ def word_frames(model, samples, uthmani_text):
         if position >= 0:
             frames_of.setdefault(position, []).append(t)
 
-    # Each Uthmani letter maps to a run of phonemes; a word's phonemes are those of its letters
     spans, letter = [], 0
     for word in uthmani_text.split(" "):
         kept = [m for m in reference.mappings[letter : letter + len(word)] if not m.deleted]
@@ -108,7 +81,7 @@ def word_frames(model, samples, uthmani_text):
 
 
 def word_timings(spans, frame_ms, total_ms):
-    """Word start and end in milliseconds from the frames of each word (rules at the top)."""
+    """(start_ms, end_ms) per word: a word ends where the next starts, unless there is a pause."""
     starts, ends = [0], []
     for (_, end), (next_start, _) in zip(spans, spans[1:]):
         start = max(next_start - BACK_FRAMES, end)
@@ -120,6 +93,7 @@ def word_timings(spans, frame_ms, total_ms):
 
 
 def main():
+    """Aligns every prototype recording in the folder and writes the proposal."""
     if len(sys.argv) != 3:
         print("Usage: python scripts/align_word_timings.py <folder> <output.json>")
         sys.exit(1)

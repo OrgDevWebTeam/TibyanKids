@@ -50,7 +50,7 @@ folder holding another one is refused.
 **ffmpeg.** Running a GPL program as a separate process on our own machine creates no obligation
 for our code. If we ever give someone a copy (for example a Docker image with ffmpeg inside), the
 GPL applies to that copy: either offer its source, or use an LGPL build that has no GPL parts. The
-mock Docker image (`Dockerfile`) has no ffmpeg. The real-model image (`Dockerfile.gpu`) contains
+laptop Docker image (`Dockerfile`) has no ffmpeg (mock mode decodes no audio). The real-model image (`Dockerfile.gpu`) contains
 Debian's GPL build above: it is built and run on our own GPU machine only, and is **never pushed to a
 registry or given to anyone**. If that ever has to change, switch it to an LGPL build first.
 On the 25 reference recordings, the image (ffmpeg 7.1.5) gives the same decisions, findings and word

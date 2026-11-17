@@ -1,8 +1,5 @@
 import Child from "../Models/Child.js";
-
-function findMyChild(req) {
-  return Child.findOwned(req.params.id, req.family._id).where("status").ne("archived");
-}
+import { findMyChild } from "../utils/findMyChild.js";
 
 export async function createChild(req, res) {
   const child = await Child.create({

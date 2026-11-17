@@ -1,15 +1,9 @@
-# How quran-muaalem's errors become our codes (app/adapters/muaalem.py error_code()). Owner: Qussai.
-# Mapping table: docs/ai/tajweed_taxonomy_and_feedback.md, section 1.4.
-#
-# Needs the GPU packages (quran-muaalem, quran-transcript), so it runs on the GPU machine and is
-# skipped in CI. No model is loaded and no audio is used: the errors are built by hand.
+# How quran-muaalem's errors become our codes (app/adapters/muaalem.py), errors built by hand.
 from types import SimpleNamespace
 
 import pytest
 
-pytest.importorskip("quran_muaalem")
-
-from quran_transcript.phonetics.tajweed_rulses import (  # noqa: E402
+from quran_transcript.phonetics.tajweed_rulses import (
     AaredMaddRule,
     Ghonnah,
     MaddRule,
@@ -18,11 +12,10 @@ from quran_transcript.phonetics.tajweed_rulses import (  # noqa: E402
     Qalqalah,
 )
 
-from app.adapters.muaalem import error_code  # noqa: E402
+from app.adapters.muaalem import error_code
 
 
 def rule(cls):
-    # error_code() only asks which kind of rule it is, so the rule's own settings do not matter
     return cls.__new__(cls)
 
 
@@ -49,7 +42,6 @@ def test_qalqala():
 
 
 def test_ghunna_rules_are_ghunna_even_though_one_is_a_madd_subclass():
-    # The trap: in quran_transcript this ghunna rule is a subclass of MaddRule
     assert issubclass(MoshaddadOrModghamNoonRule, MaddRule)
     assert error_code(error("tajweed", [rule(MoshaddadOrModghamNoonRule)], 2, 4)) == "ERR_TAJ_GHONNA_OMIT"
     assert error_code(error("tajweed", [rule(Ghonnah)])) == "ERR_TAJ_GHONNA_OMIT"

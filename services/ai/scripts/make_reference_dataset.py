@@ -1,18 +1,4 @@
-# Builds a small smoke-test dataset in the noor-eval layout (B.4) from the 25 reference recordings,
-# so scripts/evaluate.py can be run end to end before the children's recordings exist. Owner: Qussai.
-#
-# Usage (from services/ai):
-#   python scripts/make_reference_dataset.py <reference recordings folder> <output folder>
-#   python scripts/make_reference_dataset.py ../../datasets/reference-recitation ../../../noor-eval-smoke
-#
-# For each prototype ayah it writes:
-#   REF_SSSAAA      the reference recitation as it is: every word labelled "correct"
-#   SKIP_SSSAAA     the same recording with its middle word cut out (ffmpeg): that word labelled
-#                   ERR_MEM_OMISSION, every other word "correct"
-# Every recording is source "seeded_adult" (an adult professional reciter, edited on purpose), so its
-# numbers are always reported apart from children's (B.2). Not a measure of accuracy on children.
-#
-# The output folder must be outside the repository: it holds audio.
+# Smoke-test dataset from the 25 reference recordings, outside the repo: python scripts/make_reference_dataset.py <recordings> <output>
 import json
 import subprocess
 import sys
@@ -25,7 +11,7 @@ from app.evaluation import sha256_of  # noqa: E402
 from app.reference import get_ayah, get_word_timings  # noqa: E402
 
 REPO = Path(__file__).resolve().parents[3]
-SPEAKER = "SPK_REF"  # one speaker: the reference reciter
+SPEAKER = "SPK_REF"
 
 
 def cut_word(source, target, start_ms, end_ms):
@@ -39,10 +25,11 @@ def cut_word(source, target, start_ms, end_ms):
 
 
 def recording(recording_id, surah, ayah):
+    """One recordings.jsonl row: seeded_adult, so never mixed with children's numbers."""
     return {
         "recordingId": recording_id,
         "speakerId": SPEAKER,
-        "consentId": "CON_REF",  # a published reference recitation (docs/ai/model-register.md), not a child
+        "consentId": "CON_REF",
         "source": "seeded_adult",
         "ageBand": None,
         "surah": surah,
@@ -56,7 +43,7 @@ def recording(recording_id, surah, ayah):
 
 
 def labels(recording_id, word_count, skipped_word=None):
-    """Two teachers who agree (round 1) on every word."""
+    """Two teachers who agree (round 1) on every word; the skipped word is ERR_MEM_OMISSION."""
     lines = []
     for annotator in ["TCH_A", "TCH_B"]:
         for word in range(1, word_count + 1):
@@ -74,10 +61,12 @@ def labels(recording_id, word_count, skipped_word=None):
 
 
 def write_jsonl(path, rows):
+    """Writes rows as a .jsonl file."""
     path.write_text("".join(json.dumps(row, ensure_ascii=False) + "\n" for row in rows), encoding="utf-8")
 
 
 def main():
+    """For each ayah: the reading as it is (REF_) and with its middle word cut out (SKIP_)."""
     if len(sys.argv) != 3:
         sys.exit("Usage: python scripts/make_reference_dataset.py <reference recordings folder> <output folder>")
     source_folder, out = Path(sys.argv[1]), Path(sys.argv[2]).resolve()
@@ -93,13 +82,11 @@ def main():
             continue
         word_count = len(reference["words"])
 
-        # The reading as it is
         ref_id = f"REF_{file.stem}"
         (out / "audio" / f"{ref_id}.mp3").write_bytes(file.read_bytes())
         recordings.append(recording(ref_id, surah, ayah))
         all_labels += labels(ref_id, word_count)
 
-        # The same reading with its middle word skipped
         skipped = (word_count + 1) // 2
         start_ms, end_ms = get_word_timings(surah, ayah)[skipped]
         skip_id = f"SKIP_{file.stem}"

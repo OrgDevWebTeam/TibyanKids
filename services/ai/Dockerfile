@@ -1,11 +1,11 @@
-# Docker image for the AI service (mock mode on laptops). Owner: Qussai.
-# Build from services/ai/: docker build -t noor-ai .
-FROM python:3.11-slim
+# AI service image for laptops (MOCK_MODE=true). Build from services/ai/: docker build -t noor-ai .
+# It installs the model packages too, because every module imports them at the top; no model is loaded.
+FROM python:3.12-slim
 
 WORKDIR /app
 
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements.txt requirements-gpu.txt ./
+RUN pip install --no-cache-dir -r requirements.txt -r requirements-gpu.txt
 
 COPY app ./app
 

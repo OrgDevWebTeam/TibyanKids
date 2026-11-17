@@ -1,10 +1,4 @@
-# The reference data of the prototype ayat. Owner: Qussai.
-# Sources (5 surahs, 25 ayat):
-#   packages/contracts/data/reference_quran_text.json    the text of each ayah and its words
-#   packages/contracts/data/reference_word_timings.json  where each word is in the reference audio
-#
-# The folder comes from REFERENCE_DATA_DIR. Without it, the repository folder is used, which works
-# when the service runs from a checkout but not inside the Docker image (only app/ is copied there).
+# The text and word timings of the 25 prototype ayat (packages/contracts/data or REFERENCE_DATA_DIR).
 import json
 import os
 from pathlib import Path
@@ -12,16 +6,15 @@ from pathlib import Path
 TEXT_FILE_NAME = "reference_quran_text.json"
 TIMINGS_FILE_NAME = "reference_word_timings.json"
 
-# Loaded once, on first use
 ayat = {}
 timings = {}
 
 
 def data_dir():
+    """REFERENCE_DATA_DIR, or the repository's packages/contracts/data when it is not set."""
     configured = os.environ.get("REFERENCE_DATA_DIR")
     if configured:
         return Path(configured)
-    # services/ai/app/reference.py -> repository root -> packages/contracts/data
     parents = Path(__file__).resolve().parents
     if len(parents) < 4:
         raise RuntimeError("Set REFERENCE_DATA_DIR to the folder that holds reference_quran_text.json")
@@ -29,6 +22,7 @@ def data_dir():
 
 
 def load_ayat():
+    """Reads the reference text into `ayat`."""
     with open(data_dir() / TEXT_FILE_NAME, encoding="utf-8") as f:
         surahs = json.load(f)
     for surah in surahs:
@@ -37,6 +31,7 @@ def load_ayat():
 
 
 def load_timings():
+    """Reads the word timings into `timings`."""
     with open(data_dir() / TIMINGS_FILE_NAME, encoding="utf-8") as f:
         entries = json.load(f)
     for entry in entries:
@@ -45,21 +40,14 @@ def load_timings():
 
 
 def get_ayah(surah, ayah):
-    """
-    Returns {"text_uthmani": ..., "words": [{"position", "text", "text_imlaei"}, ...]}, or None if not a
-    prototype ayah. "text" is the Uthmani word, "text_imlaei" the same word in ordinary spelling.
-    """
+    """{"text_uthmani", "words": [{"position", "text", "text_imlaei"}]}, or None if not a prototype ayah."""
     if not ayat:
         load_ayat()
     return ayat.get((surah, ayah))
 
 
 def get_word_timings(surah, ayah):
-    """
-    Returns {word position: (start_ms, end_ms)} in the reference recitation of this ayah.
-    Only called for a prototype ayah (get_ayah() is checked first), so a missing ayah means the
-    reference data is broken: it raises instead of returning nothing.
-    """
+    """{word position: (start_ms, end_ms)}; raises if the ayah has no timings (broken data)."""
     if not timings:
         load_timings()
     words = timings.get((surah, ayah))
@@ -69,12 +57,7 @@ def get_word_timings(surah, ayah):
 
 
 def add_word_segments(findings, word_timings):
-    """
-    Returns the findings with wordStartMs and wordEndMs set from the reference recitation, so the app
-    can replay only that word (FR-QUR-005). Called once, on the final findings of an ayah.
-    word_timings: the result of get_word_timings() for the same ayah.
-    A finding on a word without a timing raises: the replay would otherwise play nothing, silently.
-    """
+    """The findings with wordStartMs and wordEndMs of their word; raises if a word has no timing."""
     with_segments = []
     for finding in findings:
         if finding.wordIndex not in word_timings:
