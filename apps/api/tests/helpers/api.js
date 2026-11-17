@@ -6,6 +6,7 @@ process.env.NODE_ENV = "development";
 process.env.DATABASE = "mongodb://x:<PASSWORD>@localhost/x";
 process.env.DATABASE_PASSWORD = "x";
 process.env.JWT_SECRET = "test-secret-that-is-at-least-32-characters-long";
+process.env.MAIL_LOG = "off";
 
 let replset;
 let server;

@@ -9,9 +9,11 @@ export const mailer = {
   async sendVerificationEmail({ to, token }) {
     if (config.nodeEnv === "development") {
       outbox.push({ to, token });
-      // Development only: no email provider exists yet, so the link is printed here.
-      // eslint-disable-next-line no-console
-      console.log(`[dev mail] to ${to}: ${config.clientOrigin}/verify-email?token=${token}`);
+      if (process.env.MAIL_LOG !== "off") {
+        // Development only: no email provider exists yet, so the link is printed here.
+        // eslint-disable-next-line no-console
+        console.log(`[dev mail] to ${to}: ${config.clientOrigin}/verify-email?token=${token}`);
+      }
       return;
     }
     throw new Error("No email provider is configured yet");
