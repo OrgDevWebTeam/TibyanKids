@@ -23,6 +23,9 @@ CODES = {
     "ERR_TECH_MODELS_DISAGREE": ("technical", "FEEDBACK_TEACHER_REVIEW"),
 }
 
+# Which category comes first when one word has several errors (taxonomy 1.1)
+CATEGORY_ORDER = ["memorization", "pronunciation", "tajweed", "technical"]
+
 # Codes that always send the ayah to the teacher
 ALWAYS_UNCERTAIN = {"ERR_TAJ_UNMAPPED", "ERR_TECH_MODELS_DISAGREE"}
 
