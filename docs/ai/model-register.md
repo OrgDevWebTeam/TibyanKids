@@ -31,25 +31,30 @@ folder holding another one is refused.
 
 ## 2. Libraries on the recitation path
 
-| Package            | Version             | Licence (package metadata)                                                                          | Notes                                                                 |
-| ------------------ | ------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| `quran-muaalem`    | 0.3.0               | **QML 1.0** (`LicenseRef-QML-1.0`)                                                                  | The inference code. Its conditions bind the app: see §5               |
-| `quran-transcript` | 0.6.4               | MIT                                                                                                 | Phonetizer and error explainer. Ships Tanzil text (CC BY 3.0, see §3) |
-| `transformers`     | 4.57.6              | Apache-2.0                                                                                          | Pinned below 5: quran-muaalem does not work with transformers 5       |
-| `torch`            | 2.14.1+cu130        | Apache-2.0 AND Apache-2.0 WITH LLVM-exception AND BSD-2-Clause AND BSD-3-Clause AND BSL-1.0 AND MIT | CUDA build for the GPU machine                                        |
-| `huggingface-hub`  | 0.36.2              | Apache-2.0                                                                                          | Downloads the pinned model files                                      |
-| `numpy`            | 2.5.4               | BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0                                                  |                                                                       |
-| `silero-vad`       | 6.2.3               | MIT                                                                                                 | Includes the VAD model (§1)                                           |
-| `fastapi`          | 0.162.5             | MIT                                                                                                 | The AI service                                                        |
-| `uvicorn`          | 0.54.0              | BSD-3-Clause                                                                                        |                                                                       |
-| `pydantic`         | 2.14.3              | MIT                                                                                                 | The result contract                                                   |
-| `python-multipart` | 0.0.33              | Apache-2.0                                                                                          | Audio uploads                                                         |
-| **ffmpeg**         | 9.0.2 (GPU machine) | **GPL v3** for this build (`--enable-gpl --enable-version3`, gyan.dev full build)                   | Run as a separate program, never linked into our code (see below)     |
+| Package            | Version                            | Licence (package metadata)                                                                          | Notes                                                                 |
+| ------------------ | ---------------------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `quran-muaalem`    | 0.3.0                              | **QML 1.0** (`LicenseRef-QML-1.0`)                                                                  | The inference code. Its conditions bind the app: see §5               |
+| `quran-transcript` | 0.6.4                              | MIT                                                                                                 | Phonetizer and error explainer. Ships Tanzil text (CC BY 3.0, see §3) |
+| `transformers`     | 4.57.6                             | Apache-2.0                                                                                          | Pinned below 5: quran-muaalem does not work with transformers 5       |
+| `torch`            | 2.14.1+cu130                       | Apache-2.0 AND Apache-2.0 WITH LLVM-exception AND BSD-2-Clause AND BSD-3-Clause AND BSL-1.0 AND MIT | CUDA build for the GPU machine                                        |
+| `huggingface-hub`  | 0.36.2                             | Apache-2.0                                                                                          | Downloads the pinned model files                                      |
+| `numpy`            | 2.5.4                              | BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0                                                  |                                                                       |
+| `silero-vad`       | 6.2.3                              | MIT                                                                                                 | Includes the VAD model (§1)                                           |
+| `fastapi`          | 0.162.5                            | MIT                                                                                                 | The AI service                                                        |
+| `uvicorn`          | 0.54.0                             | BSD-3-Clause                                                                                        |                                                                       |
+| `pydantic`         | 2.14.3                             | MIT                                                                                                 | The result contract                                                   |
+| `python-multipart` | 0.0.33                             | Apache-2.0                                                                                          | Audio uploads                                                         |
+| **ffmpeg**         | 9.0.2 (GPU machine)                | **GPL v3** for this build (`--enable-gpl --enable-version3`, gyan.dev full build)                   | Run as a separate program, never linked into our code (see below)     |
+| **ffmpeg**         | 7.1.5-0+deb13u1 (`Dockerfile.gpu`) | **GPL v2+** for this build (`--enable-gpl`, Debian 13 package)                                      | The real-model Docker image. **Never distributed** (see below)        |
 
 **ffmpeg.** Running a GPL program as a separate process on our own machine creates no obligation
 for our code. If we ever give someone a copy (for example a Docker image with ffmpeg inside), the
 GPL applies to that copy: either offer its source, or use an LGPL build that has no GPL parts. The
-mock Docker image has no ffmpeg; the real image (week 3 onwards) must record its ffmpeg build here.
+mock Docker image (`Dockerfile`) has no ffmpeg. The real-model image (`Dockerfile.gpu`) contains
+Debian's GPL build above: it is built and run on our own GPU machine only, and is **never pushed to a
+registry or given to anyone**. If that ever has to change, switch it to an LGPL build first.
+On the 25 reference recordings, the image (ffmpeg 7.1.5) gives the same decisions, findings and word
+segments as the GPU machine (ffmpeg 9.0.2).
 
 Versions are those installed on the GPU machine on 2026-11-15. The dependency audit in CI covers
 known vulnerabilities; this table covers licences.

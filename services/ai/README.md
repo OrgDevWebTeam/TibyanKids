@@ -159,6 +159,22 @@ copied into this repository** (it is public).
 For each file the script prints the gate result, the result of each model in the contract format,
 the seconds per model and the GPU memory used.
 
+### The real service in Docker
+
+`Dockerfile.gpu` is the AI service with the real models (Python 3.12, torch 2.14.1 for CUDA 13,
+ffmpeg). It needs the NVIDIA driver and container toolkit (Docker Desktop on Windows: WSL 2), and
+`services/ai/models/` filled by `scripts/download_models.py`. From the repository root:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build ai
+```
+
+- The models are mounted read-only from `services/ai/models/`, never copied into the image.
+- The container never downloads anything (`HF_HUB_OFFLINE=1`): without the models it stops at
+  startup.
+- **Never push this image or give it to anyone:** it contains Debian's ffmpeg, which is GPL
+  (`docs/ai/model-register.md`, section 2).
+
 ## Run the test
 
 ```bash
@@ -174,7 +190,7 @@ from inside the repository.
 
 | Variable                 | Default              | Meaning                                                                                                                                    |
 | ------------------------ | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `MOCK_MODE`              | `true`               | Fake results from the endpoint. `false` returns 503 until week 3                                                                           |
+| `MOCK_MODE`              | `true`               | Fake results from the endpoint. `false` loads the real models at startup (`false` in `Dockerfile.gpu`)                                     |
 | `CONFIDENCE_THRESHOLD`   | `0.70`               | Below this a finding makes the ayah `uncertain`. Provisional until week 4 (OD-02)                                                          |
 | `REFERENCE_DATA_DIR`     | repo                 | Folder with `reference_quran_text.json`. The repo's `packages/contracts/data` when unset; `/data/reference` in Docker (mounted by Compose) |
 | `MODELS_DIR`             | `services/ai/models` | Local model files (not in git), filled by `scripts/download_models.py`. Without them the Hugging Face cache is used                        |

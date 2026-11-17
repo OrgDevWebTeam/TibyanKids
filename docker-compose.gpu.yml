@@ -1,0 +1,23 @@
+# The AI service with the real models, on the GPU machine only. Owner: Qussai.
+# Adds to docker-compose.yml: same "ai" service, same port, but the real image and the GPU.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build ai
+#
+# Needs: the NVIDIA driver and container toolkit, and services/ai/models filled by
+# scripts/download_models.py (see services/ai/models/README.md). Laptops use docker-compose.yml alone.
+services:
+  ai:
+    build:
+      context: ./services/ai
+      dockerfile: Dockerfile.gpu
+    image: noor-ai-gpu
+    environment:
+      MOCK_MODE: "false"
+      MODELS_DIR: /models
+    volumes:
+      # The pinned model files, read-only. Not in the image (2.6 GB, and never in git)
+      - ./services/ai/models:/models:ro
+    gpus: all
+    healthcheck:
+      # Loading both models takes about 10 s before the service answers
+      start_period: 60s
