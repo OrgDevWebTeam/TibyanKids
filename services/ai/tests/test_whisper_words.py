@@ -1,6 +1,4 @@
-# whisper-quran's word logic (app/adapters/whisper_quran.py): normalising spelling, comparing the
-# words heard with the reference words, and grouping the model's tokens into words. Owner: Qussai.
-# Plain text in, plain results out: no model and no GPU.
+# whisper-quran's word logic: spelling, word comparison, token grouping.
 import json
 from pathlib import Path
 
@@ -13,12 +11,9 @@ OMISSION = "ERR_MEM_OMISSION"
 SUBSTITUTION = "ERR_MEM_SUBSTITUTION"
 INSERTION = "ERR_MEM_INSERTION"
 
-# Al-Ikhlas 1 as Imlaei reference words (text_imlaei), and the same ayah without diacritics
 IKHLAS_1 = ["قُلْ", "هُوَ", "اللَّهُ", "أَحَدٌ"]
 IKHLAS_1_PLAIN = ["قل", "هو", "الله", "احد"]
 
-# What whisper-quran wrote for the reference recitation of each prototype ayah (all correct readings).
-# Recorded on the GPU machine with the model revision in app/adapters/whisper_quran.py.
 REFERENCE_TRANSCRIPTS = json.loads(
     (Path(__file__).parent / "data" / "whisper_reference_transcripts.json").read_text(encoding="utf-8")
 )
@@ -48,8 +43,6 @@ def test_the_same_ayah_in_plain_spelling_has_no_errors():
     assert compare_words(IKHLAS_1, IKHLAS_1_PLAIN) == []
 
 
-# Each finding is (wordIndex, code, evidence): evidence holds the positions (from 0) of the said words
-# whose confidence the finding takes.
 
 
 def test_a_skipped_word_rests_on_the_said_words_around_the_gap():
@@ -73,17 +66,14 @@ def test_an_extra_word_at_the_end_points_to_the_last_word():
 
 
 def test_an_extra_word_before_the_first_word_points_to_word_1():
-    # There is no word before it, so the first word is used
     assert compare_words(["a", "b"], ["x", "a", "b"]) == [(1, INSERTION, (0,))]
 
 
 def test_fewer_said_words_in_a_changed_part():
-    # b and c were replaced by one word: b is different, c was skipped
     assert compare_words(["a", "b", "c", "d"], ["a", "x", "d"]) == [(2, SUBSTITUTION, (1,)), (3, OMISSION, (1,))]
 
 
 def test_more_said_words_in_a_changed_part():
-    # b was replaced by two words: b is different, and one word was added after it
     assert compare_words(["a", "b", "c"], ["a", "x", "y", "c"]) == [(2, SUBSTITUTION, (1,)), (2, INSERTION, (2,))]
 
 
@@ -100,7 +90,6 @@ def test_a_finding_without_evidence_has_confidence_0():
 
 
 def test_group_words_starts_a_word_at_each_space_token():
-    # Byte-level tokens: "Ġ" is a space. A word's confidence is its lowest token probability.
     tokens = ["ب", "ِ", "Ġال", "ر"]
     assert group_words(tokens, [0.9, 1.0, 0.8, 0.95]) == [([0, 1], 0.9), ([2, 3], 0.8)]
 
@@ -115,7 +104,6 @@ def test_group_words_with_no_tokens():
 
 @pytest.mark.parametrize("name", sorted(REFERENCE_TRANSCRIPTS))
 def test_every_reference_recitation_is_read_without_errors(name):
-    # Regression test for false errors on correct readings, such as الرحمن in 1:1 and 1:3 and اله in 114:3
     ayah = reference.get_ayah(int(name[:3]), int(name[3:]))
     words = [word["text_imlaei"] for word in ayah["words"]]
     assert compare_words(words, REFERENCE_TRANSCRIPTS[name].split()) == []

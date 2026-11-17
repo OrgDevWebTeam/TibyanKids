@@ -1,5 +1,4 @@
-# The HTTP endpoints (app/main.py): what the API receives in mock and real mode. Owner: Qussai.
-# Real mode uses a fake pipeline, so no GPU is needed (the pipeline itself: test_pipeline.py).
+# The HTTP endpoints (app/main.py) in mock and real mode, with a fake pipeline.
 import pytest
 from fastapi.testclient import TestClient
 
@@ -46,7 +45,6 @@ def test_a_file_over_5_mb_is_rejected():
 
 
 def test_the_mock_uses_the_real_segment_of_word_1():
-    # Mock rule: ayah 3 -> word 1 read as a different word. Al-Fatiha 1:3 word 1 is 0-1524 ms
     response = post(surah=1, ayah=3)
 
     finding = response.json()["findings"][0]
@@ -92,7 +90,6 @@ def test_any_other_error_is_a_500_in_the_same_error_shape(real_mode, monkeypatch
         raise ValueError("No word timings for 1:1")
 
     monkeypatch.setattr(pipeline, "analyze_recording", broken)
-    # By default the test client raises the server's error instead of returning the response
     response = TestClient(app, raise_server_exceptions=False).post(
         "/v1/recitation/analyze",
         files={"audio": ("rec.webm", b"\x00" * 2000, "audio/webm")},

@@ -1,11 +1,5 @@
 import Child from "../Models/Child.js";
-import { auditIfOtherFamily } from "../utils/auditCrossFamily.js";
-
-async function findMyChild(req) {
-  const child = await Child.findOwned(req.params.id, req.family._id).where("status").ne("archived");
-  if (!child) await auditIfOtherFamily(req, req.params.id);
-  return child;
-}
+import { findMyChild } from "../utils/findMyChild.js";
 
 export async function createChild(req, res) {
   const child = await Child.create({

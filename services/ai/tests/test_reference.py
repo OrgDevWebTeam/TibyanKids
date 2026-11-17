@@ -1,4 +1,4 @@
-# Loading the reference text and word timings (app/reference.py). Owner: Qussai.
+# Loading the reference text and word timings (app/reference.py).
 import json
 
 import pytest
@@ -9,7 +9,6 @@ from app.policy import make_finding
 
 @pytest.fixture(autouse=True)
 def fresh_cache(monkeypatch):
-    # Each test loads the text again, from the folder it chooses
     monkeypatch.setattr(reference, "ayat", {})
     monkeypatch.setattr(reference, "timings", {})
     monkeypatch.delenv("REFERENCE_DATA_DIR", raising=False)
@@ -58,7 +57,6 @@ def test_each_finding_gets_the_segment_of_its_word():
     result = reference.add_word_segments(findings, {1: (0, 520), 2: (520, 1240), 3: (1240, 2400)})
 
     assert [(f.wordIndex, f.wordStartMs, f.wordEndMs) for f in result] == [(1, 0, 520), (3, 1240, 2400)]
-    # Everything else stays the same
     assert [f.code for f in result] == ["ERR_MEM_OMISSION", "ERR_PRON_HARAKA"]
 
 

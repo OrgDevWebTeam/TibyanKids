@@ -1,14 +1,5 @@
-# quran-muaalem adapter: one recording of one ayah -> contract result. Owner: Qussai.
-# Mapping from the model's errors to our codes: docs/ai/tajweed_taxonomy_and_feedback.md, section 1.4.
-# Licence: QML 1.0 (docs/ai/genai_and_safety_boundaries.md, section 3).
-#
-# Steps:
-#   1. quran_phonetizer turns the expected ayah (Uthmani text) into reference phonemes.
-#   2. The model listens to the recording and predicts the phonemes the child said.
-#   3. explain_error compares the two and returns each error with its tajweed rule.
-#   4. Each error becomes one finding: the word it is in, our code, and a confidence.
+# quran-muaalem adapter: sound and tajweed errors in one recorded ayah (taxonomy section 1.4).
 import os
-import time
 from functools import cache
 from importlib.metadata import version
 
@@ -25,25 +16,21 @@ from quran_transcript.phonetics.tajweed_rulses import (
 )
 
 from app.model_files import check_revision, local_copy
-from app.policy import CATEGORY_ORDER, decide, make_finding
-from app.schemas import AnalysisResult, Finding
+from app.policy import CATEGORY_ORDER, make_finding
+from app.schemas import Finding
 
-NAME = "quran-muaalem"  # the model's name in every result (AnalysisResult.model)
-HF_REPO = "obadx/muaalem-model-v3_2"  # where the model lives on Hugging Face
-# Exact model revision (Hugging Face commit), so an update on the Hub never changes results silently.
-# The week 2 run used this one. Change it only together with an evaluation run (AI release rules).
+NAME = "quran-muaalem"
+HF_REPO = "obadx/muaalem-model-v3_2"
+# Change the pin only together with an evaluation run
 HF_REVISION = os.environ.get("MUAALEM_REVISION", "01a1ef9fbe40d144ef845101e89ff924aed3fef5")
-# The files the model needs (download_models.py copies the same ones)
 HF_FILES = ["*.json", "*.safetensors"]
 SAMPLE_RATE = 16000
 
 
-@cache  # loaded once, on first use; later calls return the same model
+@cache
 def load_model():
+    """The model at the pinned revision, from services/ai/models/ or the Hugging Face cache."""
     check_revision(HF_REVISION, "MUAALEM_REVISION")
-    # services/ai/models/ when it holds the pinned revision (scripts/download_models.py). Otherwise
-    # the pinned files from the Hugging Face cache: Muaalem() takes no revision, so they are fetched
-    # first and loaded from disk.
     folder = local_copy(HF_REPO, HF_REVISION) or snapshot_download(
         HF_REPO, revision=HF_REVISION, allow_patterns=HF_FILES
     )
@@ -51,12 +38,12 @@ def load_model():
 
 
 def model_version():
-    # Package version + exact model revision (OPS-008)
+    """Package version and exact model revision (OPS-008)."""
     return f"{version('quran-muaalem')} {HF_REPO}@{HF_REVISION[:12]}"
 
 
 def moshaf_settings() -> MoshafAttributes:
-    # Expected madd lengths (taxonomy item 5.3, still open). Set them in .env to change them.
+    """Hafs with the expected madd lengths, which can be changed in .env (taxonomy 5.3)."""
     return MoshafAttributes(
         rewaya="hafs",
         madd_monfasel_len=int(os.environ.get("MADD_MONFASEL_LEN", "2")),
@@ -72,23 +59,7 @@ def word_index(uthmani_text: str, char_position: int) -> int:
 
 
 def predicted_positions(ref_phonemes: str, predicted_phonemes: str) -> dict:
-    """
-    For each place in the REFERENCE phonemes, the positions of the PREDICTED phonemes lined up with it.
-
-    Why: explain_error() says where an error is in the reference phonemes (error.ph_pos), but the
-    confidence lives on the predicted phonemes (the model's probability for each sound it heard). So
-    we line the two up again, the same way explain_error() does, and keep the link.
-
-    Both strings are cut into groups (a letter with its vowel, a long vowel, ...) and the groups are
-    aligned. The key is (start of the group in the reference, kind): kind is "insert" for a group the
-    child added, which has no reference sound of its own, and "other" for everything else.
-
-    Real example, Al-Ikhlas 1 with the first letter said as ك instead of ق:
-        reference groups  قُ | ل | هُ | ...     predicted groups  كُ | ل | هُ | ...
-        explain_error() -> one error at ph_pos (0, 2), reference phonemes 0-1 ("قُ")
-        result          -> {(0, "other"): [0, 1], (2, "other"): [2], (3, "other"): [3, 4], ...}
-    so the error's confidence is the lowest probability of predicted phonemes 0 and 1 ("كُ").
-    """
+    """For each reference phoneme group, (start, "insert" or "other") -> the predicted phonemes aligned with it."""
     ref_groups = chunck_phonemes(ref_phonemes)
     predicted_groups = chunck_phonemes(predicted_phonemes)
     positions = {}
@@ -107,11 +78,7 @@ def predicted_positions(ref_phonemes: str, predicted_phonemes: str) -> dict:
 
 
 def confidence(error, positions: dict, probs) -> float:
-    """
-    The lowest probability of the predicted phonemes of this error (see predicted_positions()).
-    A deleted sound was not heard at all, so it has no probability: 0, which sends the ayah to the
-    teacher (taxonomy 1.4, rule 2).
-    """
+    """The lowest probability of the error's predicted phonemes; 0 for a sound that was not heard."""
     kind = "insert" if error.speech_error_type == "insert" else "other"
     values = [float(probs[i]) for i in positions.get((error.ph_pos[0], kind), [])]
     if not values:
@@ -120,24 +87,19 @@ def confidence(error, positions: dict, probs) -> float:
 
 
 def error_code(error) -> str | None:
-    """
-    Our error code for one error found by muaalem, or None when it is not an error for us.
-    The mapping table: docs/ai/tajweed_taxonomy_and_feedback.md, section 1.4.
-    """
-    if error.error_type == "normal":  # one letter said as another
+    """Our code for one muaalem error, or None when it is not an error for us."""
+    if error.error_type == "normal":
         return "ERR_PRON_LETTER_SUB"
-    if error.error_type == "tashkeel":  # a wrong short vowel (haraka)
+    if error.error_type == "tashkeel":
         return "ERR_PRON_HARAKA"
 
-    # Otherwise error_type == "tajweed": the code depends on the tajweed rule of that sound.
     if not error.ref_tajweed_rules:
-        return "ERR_TAJ_UNMAPPED"  # no rule we know: never guess, the teacher checks it
+        return "ERR_TAJ_UNMAPPED"
     rule = error.ref_tajweed_rules[0]
 
     if isinstance(rule, Qalqalah):
         return "ERR_TAJ_QALQALA_OMIT"
-    # Keep this BEFORE the madd check: in quran_transcript, MoshaddadOrModghamNoonRule (a ghunna rule)
-    # is a subclass of MaddRule, so the madd check would catch it too.
+    # Before the madd check: MoshaddadOrModghamNoonRule (ghunna) is a subclass of MaddRule
     if isinstance(rule, (Ghonnah, MoshaddadOrModghamNoonRule)):
         return "ERR_TAJ_GHONNA_OMIT"
     if isinstance(rule, MaddRule):
@@ -146,24 +108,17 @@ def error_code(error) -> str | None:
 
 
 def madd_code(rule, error) -> str | None:
-    """The code for a madd (a vowel held longer) that was not held as expected."""
-    counts = error.predicted_len or 0  # how many counts the child held it
-    # A madd before a pause (aarid) is accepted from 2 counts: the tolerance for children (taxonomy 1.4)
+    """The code for a madd that was not held as expected (an aarid madd is fine from 2 counts)."""
+    counts = error.predicted_len or 0
     if isinstance(rule, AaredMaddRule) and counts >= 2:
         return None
-    # Held too long: our taxonomy has no code for it, so the teacher checks it
     if error.predicted_len is not None and counts > (error.expected_len or 0):
         return "ERR_TAJ_UNMAPPED"
     return "ERR_TAJ_MADD_SHORT"
 
 
 def find_errors(samples, uthmani_text: str) -> list[Finding]:
-    """
-    The sound and tajweed errors in one recording of one ayah: at most one finding per word, in word
-    order. Nothing is decided here: decide() turns findings into accepted / error / uncertain.
-    samples: 16 kHz mono float32 audio that passed the quality gate (the clip).
-    uthmani_text: the ayah's text in Uthmani script, as in reference_quran_text.json.
-    """
+    """At most one finding per word (the most important category), in word order; decides nothing."""
     reference = quran_phonetizer(uthmani_text, moshaf_settings(), remove_spaces=True)
     output = load_model()([samples], [reference], sampling_rate=SAMPLE_RATE)[0]
     predicted = output.phonemes.text
@@ -176,36 +131,15 @@ def find_errors(samples, uthmani_text: str) -> list[Finding]:
     )
     positions = predicted_positions(reference.phonemes, predicted)
 
-    # One finding per word: the error of the most important category (taxonomy 1.1); on a tie, the
-    # first one found
     findings_by_word = {}
     for error in errors:
         code = error_code(error)
         if code is None:
             continue
         word = word_index(uthmani_text, error.uthmani_pos[0])
-        # Segment 0-0 here: the real one is added once, on the final findings (reference.add_word_segments)
         finding = make_finding(word, code, confidence(error, positions, output.phonemes.probs), 0, 0)
         current = findings_by_word.get(word)
         if current is None or CATEGORY_ORDER.index(finding.category) < CATEGORY_ORDER.index(current.category):
             findings_by_word[word] = finding
 
     return [findings_by_word[word] for word in sorted(findings_by_word)]
-
-
-def analyze(samples, uthmani_text: str, level: str, attempt_id: str) -> AnalysisResult:
-    """
-    This model alone: its errors (find_errors()) and the decision for the child's level, as one
-    result. Used by scripts/run_real_audio.py; the service will combine both models' findings first.
-    """
-    started = time.perf_counter()
-    decision, findings = decide(find_errors(samples, uthmani_text), level)
-    return AnalysisResult(
-        attemptId=attempt_id,
-        model=NAME,
-        modelVersion=model_version(),
-        decision=decision,
-        quality="ok",
-        findings=findings,
-        processingMs=int((time.perf_counter() - started) * 1000),
-    )

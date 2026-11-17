@@ -162,6 +162,18 @@ describe("recitation attempts", () => {
     assert.equal(await QuranAttempt.countDocuments(), 1);
   });
 
+  it("refuses a clientAttemptId already used for another ayah", async () => {
+    const owner = await makeParent("a@test.dev");
+    const child = await makeChild(owner);
+
+    await upload(owner.token, child._id, { ayah: "1" });
+    const reused = await upload(owner.token, child._id, { ayah: "2" });
+
+    assert.equal(reused.status, 409);
+    assert.equal(aiCalls.length, 1);
+    assert.equal(await QuranAttempt.countDocuments(), 1);
+  });
+
   it("saves an uncertain attempt when the AI service fails, so the child goes on", async () => {
     const owner = await makeParent("a@test.dev");
     const child = await makeChild(owner);

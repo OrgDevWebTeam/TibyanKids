@@ -1,5 +1,4 @@
-# Keeps the AI service in line with the contract source of truth. Owner: Qussai.
-# packages/contracts/schemas/recitation_result.schema.json + safe_messages_v1_1.json
+# The service and the mock follow the contract's JSON Schema and message list.
 import json
 import re
 import typing
@@ -78,7 +77,6 @@ def test_schema_rejects_a_quality_rejection_with_findings():
 
 
 def test_every_message_key_in_the_contract_doc_exists_in_safe_messages():
-    # The contract doc names keys the app must be able to show, such as FEEDBACK_AUDIO_TOO_LONG
     named = set(re.findall(r"FEEDBACK_[A-Z_]+", CONTRACT_DOC.read_text(encoding="utf-8")))
     assert named, "the contract doc names no message keys"
     assert sorted(named - set(MESSAGES)) == []
