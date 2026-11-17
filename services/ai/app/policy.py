@@ -6,6 +6,7 @@ import os
 
 from app.schemas import Finding
 
+POLICY_VERSION = "v0"  # stored with every evaluation run (docs/ai/audio-io-and-eval-dataset.md, B.9)
 DEFAULT_THRESHOLD = 0.70
 
 # Which code goes with which category and child-safe message

@@ -84,6 +84,9 @@ week-3 work.
 | `app/adapters/whisper_quran.py`                        | whisper-quran: transcript → word comparison → findings                                              |
 | `scripts/run_real_audio.py`                            | Runs the gate and both models on a folder of recordings (GPU machine)                               |
 | `scripts/download_models.py`                           | Puts the pinned model files into `services/ai/models/` (GPU machine)                                |
+| `app/evaluation.py`                                    | Evaluation numbers: gold labels, false reject / accept, word location, gate, latency (no models)    |
+| `scripts/evaluate.py`                                  | One evaluation run on a labelled dataset (GPU machine). Writes `runs/*.json`                        |
+| `scripts/make_reference_dataset.py`                    | A smoke-test dataset from the 25 reference recordings, written outside the repository               |
 | `scripts/align_word_timings.py`                        | Proposes word timings for the reference recitation (GPU machine)                                    |
 | `tests/test_contract.py`                               | The service and the mock follow the contract's JSON Schema and message list                         |
 | `tests/test_policy.py`                                 | The decision rules                                                                                  |
@@ -91,6 +94,7 @@ week-3 work.
 | `tests/test_whisper_words.py`                          | whisper-quran's word logic: spelling, word comparison, token grouping                               |
 | `tests/test_whisper_model.py`                          | whisper-quran's model side with a fake model: `find_errors()`, `analyze()`, the output cap, loading |
 | `tests/test_muaalem_codes.py`                          | How quran-muaalem's errors become our codes (GPU machine only, skipped in CI)                       |
+| `tests/test_evaluation.py`                             | The evaluation numbers, on synthetic labels with values worked out by hand                          |
 | `tests/test_reference.py`, `tests/test_model_files.py` | Loading the reference text and the model files                                                      |
 
 CI runs every test without a GPU: the models are faked or not needed. Changes to the model code are
