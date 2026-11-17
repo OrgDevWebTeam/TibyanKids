@@ -8,6 +8,8 @@ RUN npm install -g pnpm@9.15.0
 WORKDIR /repo
 COPY . .
 RUN pnpm install --frozen-lockfile
+# The shared contract (the AI result zod schema) is compiled TypeScript: build it first.
+RUN pnpm --filter @noor/contracts build
 # Standalone folder with production dependencies only.
 RUN pnpm --filter @noor/api deploy --prod /out
 
