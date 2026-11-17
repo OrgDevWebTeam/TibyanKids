@@ -186,7 +186,7 @@ def find_errors(samples, uthmani_text: str) -> list[Finding]:
         if code is None:
             continue
         word = word_index(uthmani_text, error.uthmani_pos[0])
-        # No word timings yet, so the replay segment is 0-0 until the new timings are added
+        # Segment 0-0 here: the real one is added once, on the final findings (reference.add_word_segments)
         finding = make_finding(word, code, confidence(error, positions, output.phonemes.probs), 0, 0)
         current = findings_by_word.get(word)
         if current is None or CATEGORY_ORDER.index(finding.category) < CATEGORY_ORDER.index(current.category):
