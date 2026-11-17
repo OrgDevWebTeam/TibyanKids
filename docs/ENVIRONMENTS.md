@@ -14,8 +14,9 @@ Four environments. **Only production holds real family data.** Everything else u
 - Each environment has its own database, users, secrets and AI keys. Nothing is shared.
 - Secrets live in the managed secret store, never in the repo or in `NEXT_PUBLIC_*` variables.
 - The API refuses to start if its required settings are missing or invalid, for example a short
-  `JWT_SECRET` or no database (see `apps/api/src/config/env.js`). It does not check for a local
-  database or TLS, so those must be checked when staging and production are set up.
+  `JWT_SECRET` or no database (see `apps/api/src/config/env.js`). In staging and production it also
+  refuses a database connection without TLS and a local database (SEC-003, see
+  `apps/api/src/config/envRules.js` and `apps/api/docs/secrets.md`).
 - The browser never calls the AI service. Only the API does (`AI_SERVICE_URL`), and it checks
   every reply against the AI result contract (`docs/contracts/ai-result.md`).
 - No child identity crosses the AI boundary (see ADR-0004).

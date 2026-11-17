@@ -8,9 +8,9 @@ This file explains where secrets live, how they are kept out of source control, 
 
 ## Where secrets live
 
-- Secrets live only in `server/.env` on each developer's or server's machine.
+- Secrets live only in `apps/api/.env` on each developer's or server's machine.
 - `.env` and `.env.*` are listed in `.gitignore`, so they are never committed.
-- `server/.env.example` shows the variable names with placeholder values only. It is the only env file that is committed.
+- `apps/api/.env.example` shows the variable names with placeholder values only. It is the only env file that is committed.
 
 ## Current secrets
 
@@ -36,13 +36,35 @@ Future secrets (for example the key of an email service) must be added to `.env.
 - `NODE_ENV` selects the environment. It must be `development`, `staging` or `production`.
 - `src/config/env.js` checks the configuration when the server starts. If a variable is missing or invalid, the server prints what is wrong and exits. It never starts with a bad configuration.
 - The password is URL-encoded before it is placed in the connection string, so special characters do not break the connection.
+- Outside development, `src/config/envRules.js` also refuses a database connection that is not encrypted or is local (see the next section).
+
+## Encryption of sensitive data (SEC-003)
+
+### In transit
+
+- **Database.** The server connects to MongoDB Atlas over TLS. In staging and production the server refuses to start unless `DATABASE` uses `mongodb+srv://` (TLS is on by default) or `tls=true`, TLS is not turned off (`tls=false`, `ssl=false`), and the host is not local. The rule is in `src/config/envRules.js` and tested in `tests/config/envRules.test.js`. Development is not restricted, so a local database still works on a laptop.
+- **API.** HTTPS is provided by the hosting platform in front of the container. No host is chosen yet (see `docs/DEPLOYMENT.md`), so this is not verified. The hosting decision must allow HTTPS only. The server already sends the HSTS header (through `helmet`).
+- **AI service.** It is internal and never exposed to browsers. On a laptop it is reached over plain HTTP on localhost. For staging and production the connection must stay on a private network or use TLS. This is not decided yet (open question below).
+
+### At rest
+
+- **Passwords** are stored only as bcrypt hashes and are never returned by a query (`select: false`).
+- **Email verification tokens** are stored only as SHA-256 hashes, with an expiry.
+- **Audio** is not stored by the API. It is sent to the AI service and dropped.
+- **Database storage.** Encryption at rest is a property of the MongoDB Atlas cluster (ADR-0003). It cannot be checked from the code, so it must be confirmed for the chosen Atlas tier and recorded here.
+
+### Open questions
+
+1. Which Atlas tier is used for staging and production, and is encryption at rest confirmed for it?
+2. Which host serves the API, and does it enforce HTTPS only?
+3. How is the connection to the AI service protected in staging and production (private network or TLS)?
 
 ## Rotation
 
 If a secret is shared by mistake (chat, screenshot, commit, log):
 
 1. Replace it: for the database password, change it in MongoDB Atlas (Database Access, edit the user's password). For `JWT_SECRET`, generate a new random value.
-2. Update `server/.env` on every machine that uses it.
+2. Update `apps/api/.env` on every machine that uses it.
 3. Tell the team.
 4. If it was committed to git, treat it as exposed even after the file is deleted, because it stays in the git history.
 
