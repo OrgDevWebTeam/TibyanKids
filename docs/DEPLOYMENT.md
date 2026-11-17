@@ -27,6 +27,9 @@ When a host is chosen:
    and `CLIENT_ORIGIN`. The API refuses to start if any of them is missing or invalid.
 5. There are no migrations to run. The API uses mongoose, which creates collections and indexes
    from the models when it connects.
+6. Choose an email provider (CRS 9.1, OPS-009), replace the placeholder mailer in
+   `apps/api/src/utils/mailer.js`, and add the provider's key as an environment secret. Without
+   one, no parent can verify their email, so no parent can create a child (FR-AUTH-001).
 
 ## Environments
 

@@ -1,6 +1,6 @@
 # Secrets Handling (SEC-004)
 
-Last updated: 2026-11-11
+Last updated: 2026-11-17
 
 ## Purpose
 
@@ -19,7 +19,7 @@ This file explains where secrets live, how they are kept out of source control, 
 | `DATABASE_PASSWORD` | Password of the MongoDB Atlas database user                                            | `src/config/env.js` |
 | `JWT_SECRET`        | Key used to sign login tokens. Anyone who has it can create a valid token for any user | `src/config/env.js` |
 
-Non-secret settings are kept in the same file for convenience: `NODE_ENV`, `PORT`, `CLIENT_ORIGIN`, `JWT_EXPIRES_IN`, and the `DATABASE` connection string with the `<PASSWORD>` placeholder.
+Non-secret settings are kept in the same file for convenience: `NODE_ENV`, `PORT`, `CLIENT_ORIGIN`, `JWT_EXPIRES_IN`, `AI_SERVICE_URL`, `AI_TIMEOUT_MS`, `AUTH_RATE_LIMIT` (register and login requests per IP per 15 minutes, default 20), and the `DATABASE` connection string with the `<PASSWORD>` placeholder.
 
 Future secrets (for example the key of an email service) must be added to `.env.example` as names only, and listed in the table above.
 
@@ -77,6 +77,7 @@ Secrets should also be rotated when a team member who knew them leaves the proje
 ## Logs
 
 - Never log secrets, tokens, passwords or full request bodies.
+- One development-only exception: with no email provider yet, the placeholder mailer (`src/utils/mailer.js`) prints the email verification link to the console when `NODE_ENV` is `development`. Tests turn it off with `MAIL_LOG=off`. In staging and production the mailer refuses to run and never logs the token. The token is also single-use and expires after 24 hours.
 - Audit entries only accept `meta` keys from `ALLOWED_META_KEYS`, and only short text values, for this reason (see `docs/authorization-review.md`).
 
 ## Checks before every commit
