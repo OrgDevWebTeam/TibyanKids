@@ -17,6 +17,7 @@ const schema = z.object({
   AI_SERVICE_URL: z.string().url().default("http://127.0.0.1:8000"),
   // After this the ayah is marked uncertain and the session goes on (NFR-PERF: 20 s at most)
   AI_TIMEOUT_MS: z.coerce.number().int().positive().max(20000).default(20000),
+  AUTH_RATE_LIMIT: z.coerce.number().int().positive().default(20),
 });
 
 const result = schema.safeParse(process.env);
@@ -40,6 +41,7 @@ const config = Object.freeze({
   clientOrigin: env.CLIENT_ORIGIN,
   aiServiceUrl: env.AI_SERVICE_URL,
   aiTimeoutMs: env.AI_TIMEOUT_MS,
+  authRateLimit: env.AUTH_RATE_LIMIT,
 });
 
 export default config;
