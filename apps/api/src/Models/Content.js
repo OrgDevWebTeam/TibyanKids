@@ -48,6 +48,18 @@ const contentSchema = new mongoose.Schema(
 
     version: { type: Number, default: 1, min: 1 },
 
+    // All versions of one piece of content share the id of its first version (FR-CMS-001).
+    // Content created before versions existed has no rootId: its own _id is the root.
+    rootId: { type: mongoose.Schema.Types.ObjectId, ref: "Content", immutable: true },
+
+    // The published version this one was made from (null for a first version)
+    previousVersion: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Content",
+      default: null,
+      immutable: true,
+    },
+
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -59,6 +71,10 @@ const contentSchema = new mongoose.Schema(
 );
 
 contentSchema.pre("validate", function () {
+  // A first version is the root of its own lineage
+  if (this.isNew && !this.rootId) {
+    this.rootId = this._id;
+  }
   // Quran tasks and Family Loop missions always need a reviewer's approval before publishing
   // (safety doc 2.3: missions come from a reviewed table; ADR-0008).
   if (this.type === "quran_task" || this.type === "mission") {
@@ -88,6 +104,11 @@ contentSchema.index({
   level: 1,
 });
 contentSchema.index({ competencies: 1 });
+// One version number per lineage. Content from before versions existed has no rootId and is skipped.
+contentSchema.index(
+  { rootId: 1, version: 1 },
+  { unique: true, partialFilterExpression: { rootId: { $exists: true } } },
+);
 
 const Content = mongoose.model("Content", contentSchema);
 export default Content;
