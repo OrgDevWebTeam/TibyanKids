@@ -73,6 +73,21 @@ export async function registerParent({ verified = true } = {}) {
   };
 }
 
+/** Staff accounts cannot be created through the API yet, so tests create them directly. */
+export async function makeStaff(role) {
+  const { default: User } = await import("../../src/Models/User.js");
+  const { signToken } = await import("../../src/utils/token.js");
+  counter += 1;
+  const user = await User.create({
+    name: role,
+    email: `${role}${counter}@test.com`,
+    passwordHash: "not-a-real-hash",
+    role,
+    emailVerifiedAt: new Date(),
+  });
+  return { id: String(user._id), token: signToken(user) };
+}
+
 /** Creates a child for the given parent and returns the child. */
 export async function createChild(token, overrides = {}) {
   const year = new Date().getFullYear() - 9; // 9 years old, inside the allowed 6-14 range

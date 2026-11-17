@@ -3,26 +3,7 @@ import assert from "node:assert/strict";
 import mongoose from "mongoose";
 import AuditEvent from "../../src/Models/AuditEvent.js";
 import Competency from "../../src/Models/Competency.js";
-import User from "../../src/Models/User.js";
-import { startTestApp, stopTestApp, api, registerParent } from "../helpers/api.js";
-
-// Loaded after the test helper, because the token code reads the settings the helper sets.
-const { signToken } = await import("../../src/utils/token.js");
-
-let counter = 0;
-
-/** Staff accounts cannot be created through the API yet, so tests create them directly. */
-async function makeStaff(role) {
-  counter += 1;
-  const user = await User.create({
-    name: role,
-    email: `${role}${counter}@test.com`,
-    passwordHash: "not-a-real-hash",
-    role,
-    emailVerifiedAt: new Date(),
-  });
-  return { id: String(user._id), token: signToken(user) };
-}
+import { startTestApp, stopTestApp, api, registerParent, makeStaff } from "../helpers/api.js";
 
 describe("content versions and audit trail (FR-CMS-001)", () => {
   let admin;

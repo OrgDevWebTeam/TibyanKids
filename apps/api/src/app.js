@@ -9,6 +9,7 @@ import AppError from "./utils/AppError.js";
 import consentRoutes from "./routes/consentRoutes.js";
 import curriculumRoutes from "./routes/curriculumRoutes.js";
 import contentRoutes from "./routes/contentRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 import { createAiClient } from "./ai/aiClient.js";
 
 const app = express();
@@ -41,6 +42,7 @@ app.use("/api/v1/children", childrenRoutes);
 app.use("/api/v1/consents", consentRoutes);
 app.use("/api/v1/curriculum", curriculumRoutes);
 app.use("/api/v1/content", contentRoutes);
+app.use("/api/v1/admin", adminRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
