@@ -218,7 +218,7 @@ def find_errors(samples, reference_words: list[str]) -> list[Finding]:
     for error in compare_words(reference_words, said_words):
         if error.word not in findings_by_word:
             confidence = finding_confidence(error.evidence, confidences)
-            # No word timings yet, so the replay segment is 0-0 until the new timings are added
+            # Segment 0-0 here: the real one is added once, on the final findings (reference.add_word_segments)
             findings_by_word[error.word] = make_finding(error.word, error.code, confidence, 0, 0)
 
     return [findings_by_word[word] for word in sorted(findings_by_word)]
