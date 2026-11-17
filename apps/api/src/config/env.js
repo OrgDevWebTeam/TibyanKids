@@ -13,6 +13,7 @@ const schema = z.object({
   JWT_SECRET: z.string().min(32),
   JWT_EXPIRES_IN: z.string().default("7d"),
   CLIENT_ORIGIN: z.string().url().default("http://localhost:5173"),
+  AUTH_RATE_LIMIT: z.coerce.number().int().positive().default(20),
 });
 
 const result = schema.safeParse(process.env);
@@ -34,6 +35,7 @@ const config = Object.freeze({
   jwtSecret: env.JWT_SECRET,
   jwtExpiresIn: env.JWT_EXPIRES_IN,
   clientOrigin: env.CLIENT_ORIGIN,
+  authRateLimit: env.AUTH_RATE_LIMIT,
 });
 
 export default config;
