@@ -45,7 +45,7 @@ Checks one recorded ayah.
 | Form field  | Type    | Meaning                                                                                            |
 | ----------- | ------- | -------------------------------------------------------------------------------------------------- |
 | `audio`     | file    | The child's recording. Audio only, max 5 MB. Input rules in `docs/ai/audio-io-and-eval-dataset.md` |
-| `attemptId` | text    | Noor attempt id (a UUID made by the API)                                                           |
+| `attemptId` | text    | Noor attempt id made by the API (its MongoDB id). No child or family id is ever sent               |
 | `surah`     | integer | Surah number (1–114)                                                                               |
 | `ayah`      | integer | Ayah number (from 1)                                                                               |
 | `level`     | text    | `beginner`, `intermediate` or `advanced`. Decides what stops the child (CRS §5.4)                  |

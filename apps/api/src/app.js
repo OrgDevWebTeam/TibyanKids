@@ -9,8 +9,15 @@ import AppError from "./utils/AppError.js";
 import consentRoutes from "./routes/consentRoutes.js";
 import curriculumRoutes from "./routes/curriculumRoutes.js";
 import contentRoutes from "./routes/contentRoutes.js";
+import { createAiClient } from "./ai/aiClient.js";
 
 const app = express();
+
+// The internal AI service. Tests replace it with a fake (app.locals.aiClient = ...)
+app.locals.aiClient = createAiClient({
+  baseUrl: config.aiServiceUrl,
+  timeoutMs: config.aiTimeoutMs,
+});
 
 // security
 app.use(helmet());

@@ -12,6 +12,8 @@ import {
   archiveChild,
 } from "../controllers/childrenController.js";
 import { apiLimiter } from "../middlewares/rateLimiter.js";
+import audioUpload from "../middlewares/audioUpload.js";
+import { createRecitationAttempt } from "../controllers/recitationController.js";
 
 const router = Router();
 router.use(apiLimiter);
@@ -23,5 +25,7 @@ router.get("/", listChildren);
 router.get("/:id", getChild);
 router.patch("/:id", validate(updateChildSchema), updateChild);
 router.patch("/:id/archive", archiveChild);
+// One recorded ayah (multipart: audio, clientAttemptId, surah, ayah, level)
+router.post("/:id/recitation-attempts", audioUpload, createRecitationAttempt);
 
 export default router;
