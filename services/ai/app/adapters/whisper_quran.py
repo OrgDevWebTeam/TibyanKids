@@ -1,89 +1,61 @@
-# whisper-quran adapter: one recording of one ayah -> contract result. Owner: Qussai.
-# Licence: Apache-2.0.
-#
-# Steps:
-#   1. The model writes down the words it hears (Arabic text with diacritics), each with its own
-#      confidence: the lowest probability of the word's tokens.
-#   2. The model writes ordinary (Imlaei) spelling, so it is compared with the Imlaei form of each
-#      reference word (text_imlaei in reference_quran_text.json), not the Uthmani one. Both are
-#      normalised first (no diacritics, one form per letter).
-#   3. The two word lists are compared. A skipped word, a different word or an extra word becomes a
-#      memorization finding (taxonomy 1.4: ERR_MEM_* come from this comparison), with the confidence
-#      of the said words it rests on.
-# The transcript itself never leaves this file (contract rule: model text is never shown to a child).
+# whisper-quran adapter: skipped, different and extra words in one recorded ayah (taxonomy 1.4).
 import difflib
 import os
 import re
-import time
 from functools import cache
 from typing import NamedTuple
 
-from app.model_files import check_revision, local_copy
-from app.policy import decide, make_finding
-from app.schemas import AnalysisResult, Finding
+import torch
+from transformers import WhisperForConditionalGeneration, WhisperProcessor
 
-NAME = "whisper-quran"  # the model's name in every result (AnalysisResult.model)
-HF_REPO = "tarteel-ai/whisper-base-ar-quran"  # where the model lives on Hugging Face
-# Exact model revision (Hugging Face commit), so an update on the Hub never changes results silently.
-# The week 2 run used this one. Change it only together with an evaluation run (AI release rules).
+from app.model_files import check_revision, local_copy
+from app.policy import make_finding
+from app.schemas import Finding
+
+NAME = "whisper-quran"
+HF_REPO = "tarteel-ai/whisper-base-ar-quran"
+# Change the pin only together with an evaluation run
 HF_REVISION = os.environ.get("WHISPER_QURAN_REVISION", "5c3c53fdf9272c4f6ee0bee09a1e5a4a615ee25c")
-# The files the model needs (download_models.py copies the same ones; the repo also holds
-# training logs, which are left out)
 HF_FILES = ["*.json", "*.txt", "pytorch_model.bin"]
 SAMPLE_RATE = 16000
-# Most tokens the model may write for one ayah. The longest prototype ayah (1:7) takes 75. The model
-# allows 1024 in its generation settings but has only 448 positions: past that, generation crashes
-# the GPU (CUDA device-side assert) and every later request fails until the service restarts. Noisy
-# audio can make the model repeat itself until it gets there (108:3 with heavy noise did).
+# Longest prototype ayah: 75 tokens; past 448 positions the GPU crashes (noisy audio can loop until then)
 MAX_NEW_TOKENS = 200
 
 
 class Runaway(Exception):
     """The model kept writing until MAX_NEW_TOKENS without finishing: its text cannot be trusted."""
 
-# Marks dropped before two words are compared (Unicode ranges):
-#   U+064B-U+065F  harakat and tanween: fatha, damma, kasra, shadda, sukun, ...
-#   U+0670         dagger alif (a small alif written above a letter)
-#   U+06D6-U+06ED  Quranic annotation marks, including the small waw and small yaa
-#   U+0640         tatweel (the stretching line)
-# The Imlaei text keeps a dagger alif only where ordinary spelling has no alif (الرَّحْمَٰنِ, إِلَٰهِ;
-# but الْعَالَمِينَ), so it is dropped, never turned into a full alif.
-MARKS = re.compile("[\u064b-\u065f\u0670\u06d6-\u06ed\u0640]")
-# Letters written in more than one way
+
+# Harakat and tanween, the dagger alif, Quranic marks and tatweel, dropped before comparing words
+MARKS = re.compile("[ً-ٰٟۖ-ۭـ]")
 SAME_LETTER = {
-    "ٱ": "ا",  # alif wasla -> alif
-    "أ": "ا",  # alif with hamza above -> alif
-    "إ": "ا",  # alif with hamza below -> alif
-    "آ": "ا",  # alif madda -> alif
-    "ى": "ي",  # alif maqsura -> yaa
-    "ؤ": "و",  # waw with hamza -> waw
-    "ئ": "ي",  # yaa with hamza -> yaa
-    "ة": "ه",  # taa marbuta -> haa
+    "ٱ": "ا",
+    "أ": "ا",
+    "إ": "ا",
+    "آ": "ا",
+    "ى": "ي",
+    "ؤ": "و",
+    "ئ": "ي",
+    "ة": "ه",
 }
 
-@cache  # loaded once, on first use; later calls return the same (processor, model)
-def load_model():
-    # Imported here so the word comparison can be tested without torch (CI has no GPU packages)
-    from transformers import WhisperForConditionalGeneration, WhisperProcessor
 
+@cache
+def load_model():
+    """(processor, model) at the pinned revision, from services/ai/models/ or the Hugging Face cache."""
     check_revision(HF_REVISION, "WHISPER_QURAN_REVISION")
-    # services/ai/models/ when it holds the pinned revision (scripts/download_models.py),
-    # otherwise the pinned revision from the Hugging Face cache.
     folder = local_copy(HF_REPO, HF_REVISION)
     source, pin = (str(folder), {}) if folder else (HF_REPO, {"revision": HF_REVISION})
     processor = WhisperProcessor.from_pretrained(source, **pin)
-    # use_safetensors=False loads the weights of the pinned commit itself. Otherwise transformers
-    # fetches a converted copy from the Hub's automatic conversion pull request (refs/pr/3), which is
-    # not part of the pin.
+    # use_safetensors=False: otherwise transformers fetches a converted copy that is not part of the pin
     model = WhisperForConditionalGeneration.from_pretrained(source, **pin, use_safetensors=False).to("cuda").eval()
-    # The prompt (start, language, task, no-timestamps) takes 4 positions before the text
     if MAX_NEW_TOKENS + 4 > model.config.max_target_positions:
         raise ValueError("MAX_NEW_TOKENS does not fit the model's positions")
     return processor, model
 
 
 def model_version():
-    # Exact model revision (OPS-008)
+    """Exact model revision (OPS-008)."""
     return f"{HF_REPO}@{HF_REVISION[:12]}"
 
 
@@ -95,13 +67,7 @@ def normalize(word: str) -> str:
 
 
 def group_words(tokens: list[str], probabilities: list[float]) -> list[tuple[list[int], float]]:
-    """
-    Groups the model's text tokens into words. Returns a list of (token positions, confidence).
-
-    tokens are the raw byte-level tokens: one that starts with "Ġ" (a space) begins a new word. A token
-    can hold part of an Arabic letter, so words are never cut out of decoded token text.
-    The confidence of a word is the lowest probability of its tokens (same rule as the muaalem adapter).
-    """
+    """(token positions, lowest probability) per word; a token starting with "Ġ" begins a new word."""
     words = []
     for position, (token, probability) in enumerate(zip(tokens, probabilities)):
         if token.startswith("Ġ") or not words:
@@ -112,12 +78,7 @@ def group_words(tokens: list[str], probabilities: list[float]) -> list[tuple[lis
 
 
 def transcribe(samples) -> tuple[list[str], list[float]]:
-    """
-    Returns (words, confidences): the words the model heard and, for each word, its confidence.
-    Raises Runaway when the model did not finish within MAX_NEW_TOKENS.
-    """
-    import torch
-
+    """(words, confidences) the model heard; raises Runaway when it did not finish."""
     processor, model = load_model()
     tokenizer = processor.tokenizer
     features = processor(samples, sampling_rate=SAMPLE_RATE, return_tensors="pt").input_features.to("cuda")
@@ -129,8 +90,7 @@ def transcribe(samples) -> tuple[list[str], list[float]]:
         raise Runaway()
     scores = model.compute_transition_scores(output.sequences, output.scores, normalize_logits=True)[0]
 
-    # One score per generated token. The language, task and end tokens are left out: they are forced
-    # or always certain, and would make every word look surer than it is.
+    # Special tokens are forced or always certain, so they would make every word look surer
     generated = output.sequences[0][-len(scores):].tolist()
     special = set(tokenizer.all_special_ids)
     text_ids = [token for token in generated if token not in special]
@@ -146,52 +106,40 @@ def transcribe(samples) -> tuple[list[str], list[float]]:
 
 
 class WordError(NamedTuple):
-    """One word that was not read as written, found by compare_words()."""
+    """One reference word (from 1) not read as written, and the said words (from 0) it rests on."""
 
-    word: int  # the reference word, counted from 1 (wordIndex in the contract)
-    code: str  # ERR_MEM_OMISSION, ERR_MEM_SUBSTITUTION or ERR_MEM_INSERTION
-    evidence: tuple[int, ...]  # positions (from 0) of the said words whose confidence it takes
+    word: int
+    code: str
+    evidence: tuple[int, ...]
 
 
 def compare_words(reference_words: list[str], said_words: list[str]) -> list[WordError]:
-    """
-    Returns a WordError for every reference word that was skipped, read as another word, or followed
-    by an extra word. The word number counts the reference words from 1.
-    An extra word points to the reference word just before it (contract rule for ERR_MEM_INSERTION).
-    evidence holds the positions (from 0) of the said words the finding rests on, for its confidence:
-    the word said instead, the extra word, or for a skipped word the said words around the gap.
-    """
+    """Skipped, different and extra words; an extra word points to the reference word before it."""
     expected = [normalize(w) for w in reference_words]
     said = [normalize(w) for w in said_words]
 
     def around(said_position):
-        # The said words just before and just after a gap
+        """The said words just before and just after a gap."""
         return tuple(p for p in (said_position - 1, said_position) if 0 <= p < len(said))
 
     errors = []
     matcher = difflib.SequenceMatcher(a=expected, b=said, autojunk=False)
-    # ref_start and ref_end count from 0, so reference word i is word number i + 1
     for operation, ref_start, ref_end, said_start, said_end in matcher.get_opcodes():
         if operation == "delete":
-            # Reference words that were not said
             for i in range(ref_start, ref_end):
                 errors.append(WordError(i + 1, "ERR_MEM_OMISSION", around(said_start)))
 
         elif operation == "insert":
-            # Extra words before reference word ref_start, so the word before them is number ref_start
             errors.append(WordError(max(ref_start, 1), "ERR_MEM_INSERTION", tuple(range(said_start, said_end))))
 
         elif operation == "replace":
             ref_count = ref_end - ref_start
             said_count = said_end - said_start
             different = min(ref_count, said_count)
-            # Words read as other words
             for k in range(different):
                 errors.append(WordError(ref_start + k + 1, "ERR_MEM_SUBSTITUTION", (said_start + k,)))
-            # More reference words than said words: the rest were skipped
             for i in range(ref_start + different, ref_end):
                 errors.append(WordError(i + 1, "ERR_MEM_OMISSION", tuple(range(said_start, said_end))))
-            # More said words than reference words: extra words after the last word of this part
             if said_count > ref_count:
                 extra = tuple(range(said_start + different, said_end))
                 errors.append(WordError(ref_end, "ERR_MEM_INSERTION", extra))
@@ -199,48 +147,18 @@ def compare_words(reference_words: list[str], said_words: list[str]) -> list[Wor
 
 
 def finding_confidence(evidence: tuple[int, ...], confidences: list[float]) -> float:
-    # Nothing heard to rest on (for example nothing said at all): 0, so the teacher checks it
+    """The lowest confidence of the said words a finding rests on; 0 when there are none."""
     return min((confidences[p] for p in evidence), default=0.0)
 
 
 def find_errors(samples, reference_words: list[str]) -> list[Finding]:
-    """
-    The skipped, different and extra words in one recording of one ayah: at most one finding per
-    word, in word order. Nothing is decided here: decide() turns findings into a decision.
-    samples: 16 kHz mono float32 audio that passed the quality gate (the clip).
-    reference_words: the ayah's words in Imlaei spelling (text_imlaei in reference_quran_text.json).
-    Raises Runaway when the model did not finish writing (see transcribe()).
-    """
+    """At most one finding per word (the first found), in word order; decides nothing; may raise Runaway."""
     said_words, confidences = transcribe(samples)
 
-    # One finding per word: the first one found
     findings_by_word = {}
     for error in compare_words(reference_words, said_words):
         if error.word not in findings_by_word:
             confidence = finding_confidence(error.evidence, confidences)
-            # Segment 0-0 here: the real one is added once, on the final findings (reference.add_word_segments)
             findings_by_word[error.word] = make_finding(error.word, error.code, confidence, 0, 0)
 
     return [findings_by_word[word] for word in sorted(findings_by_word)]
-
-
-def analyze(samples, reference_words: list[str], level: str, attempt_id: str) -> AnalysisResult:
-    """
-    This model alone: its errors (find_errors()) and the decision for the child's level, as one
-    result. Used by scripts/run_real_audio.py; the service will combine both models' findings first.
-    """
-    started = time.perf_counter()
-    try:
-        decision, findings = decide(find_errors(samples, reference_words), level)
-    except Runaway:
-        # The text is a loop, not what the child said: the teacher checks the ayah (FR-QUR-006)
-        decision, findings = "uncertain", []
-    return AnalysisResult(
-        attemptId=attempt_id,
-        model=NAME,
-        modelVersion=model_version(),
-        decision=decision,
-        quality="ok",
-        findings=findings,
-        processingMs=int((time.perf_counter() - started) * 1000),
-    )

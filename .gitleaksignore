@@ -7,7 +7,7 @@ bb449cfa77bb18795f979a5cadb56a18b11e9abb:apps/api/tests/api/isolation.test.js:ge
 # Placeholder JWT secret in the API test helper, not a real credential.
 a4e1c7a0abe54a9858030cd19fde16f38655dd38:apps/api/tests/helpers/api.js:generic-api-key:8
 
-# The same two commits after being cherry-picked into the week 3 PR (new commit ids).
-# The placeholder is removed from the files in the same PR: the helper now uses a random secret.
-1c73beb61b4f880b42755af5753182da5a48276f:apps/api/tests/api/isolation.test.js:generic-api-key:10
+# The same placeholder JWT secrets, re-created with new commit ids on Mousa's week 3 branches
+# (feature/week3-tests-audit-analytics, feature/week3-email-verification). Not real credentials.
 5b046fd44ddb8f78e4021d83d06aa0ce8de8b93d:apps/api/tests/helpers/api.js:generic-api-key:8
+1c73beb61b4f880b42755af5753182da5a48276f:apps/api/tests/api/isolation.test.js:generic-api-key:10

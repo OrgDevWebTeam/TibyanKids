@@ -16,6 +16,7 @@ import { apiLimiter } from "../middlewares/rateLimiter.js";
 import audioUpload from "../middlewares/audioUpload.js";
 import { createRecitationAttempt } from "../controllers/recitationController.js";
 import { getGrowth } from "../controllers/growthController.js";
+import { recitationAttemptSchema } from "../validations/recitationValidation.js";
 
 const router = Router();
 router.use(apiLimiter);
@@ -30,6 +31,11 @@ router.patch("/:id/archive", archiveChild);
 // The Growth Map of one child (API-004)
 router.get("/:id/growth", getGrowth);
 // One recorded ayah (multipart: audio, clientAttemptId, surah, ayah, level)
-router.post("/:id/recitation-attempts", audioUpload, createRecitationAttempt);
+router.post(
+  "/:id/recitation-attempts",
+  audioUpload,
+  validate(recitationAttemptSchema),
+  createRecitationAttempt,
+);
 
 export default router;

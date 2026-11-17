@@ -1,7 +1,4 @@
-# The AI result format as Pydantic models. Owner: Qussai.
-# Contract v3.0: docs/contracts/ai-result.md
-# Source of truth: packages/contracts/schemas/recitation_result.schema.json
-# tests/test_contract.py fails if this file drifts from the JSON schema.
+# The AI result format (docs/contracts/ai-result.md), kept in line with the JSON Schema by tests.
 from typing import List, Literal
 
 from pydantic import BaseModel, Field, model_validator
@@ -24,7 +21,6 @@ ErrorCode = Literal[
     "ERR_TECH_MODELS_DISAGREE",
 ]
 
-# Which code prefix belongs to which category
 CATEGORY_PREFIX = {
     "memorization": "ERR_MEM_",
     "pronunciation": "ERR_PRON_",
@@ -34,21 +30,19 @@ CATEGORY_PREFIX = {
 
 
 class Finding(BaseModel):
-    """One problem found in one word."""
+    """One problem in one word, with the segment of the reference recitation to replay."""
 
-    # 1 = first word of the ayah (same as "position" in the reference files)
     wordIndex: int = Field(ge=1)
     category: Category
     code: ErrorCode
     confidence: float = Field(ge=0, le=1)
-    # Part of the REFERENCE recitation to replay for this word
     wordStartMs: int = Field(ge=0)
     wordEndMs: int = Field(ge=0)
-    # Child-safe message key. Text from a model is never shown to a child.
     messageKey: str = Field(pattern=r"^FEEDBACK_[A-Z_]+$")
 
     @model_validator(mode="after")
     def check_finding(self):
+        """The code belongs to the category, and the segment does not end before it starts."""
         if not self.code.startswith(CATEGORY_PREFIX[self.category]):
             raise ValueError(f"code {self.code} does not belong to category {self.category}")
         if self.wordEndMs < self.wordStartMs:
@@ -69,7 +63,7 @@ class AnalysisResult(BaseModel):
 
     @model_validator(mode="after")
     def check_quality_rejection(self):
-        # A quality rejection is not an attempt: always uncertain, no findings
+        """A quality rejection is not an attempt: always uncertain, with no findings."""
         if self.quality != "ok" and (self.decision != "uncertain" or self.findings):
             raise ValueError("a quality rejection must be uncertain with no findings")
         return self

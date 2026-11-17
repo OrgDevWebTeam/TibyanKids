@@ -1,15 +1,4 @@
-# Runs the quality gate and both models on real recordings (week 2 exit gate). Owner: Qussai.
-#
-# Usage (from services/ai, on the GPU machine):
-#   python scripts/run_real_audio.py <folder> <level>
-#
-#   folder: one mp3 per ayah, named SSSAAA.mp3 (surah and ayah, 3 digits each), e.g. 001001.mp3
-#   level:  beginner, intermediate or advanced (decides what stops the child)
-#
-# Prints, for each recording: the gate result, then the decision and findings of each model alone,
-# with how long it took, then of both models combined (app/combine.py, with the word segments).
-# At the end: the GPU memory used. Nothing is written to disk.
-# Recordings are never copied into the repository (it is public).
+# Gate and models on a folder of SSSAAA.mp3 recordings: python scripts/run_real_audio.py <folder> <level>
 import json
 import sys
 import time
@@ -17,7 +6,6 @@ from pathlib import Path
 
 import torch
 
-# Lets this script do "from app..." like the service does
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.adapters import muaalem, whisper_quran  # noqa: E402
@@ -30,6 +18,7 @@ LEVELS = ["beginner", "intermediate", "advanced"]
 
 
 def print_decision(label, findings, level):
+    """Prints the decision for these findings at this level, and the findings."""
     decision, findings = decide(findings, level)
     print(f"  {label}: {decision}")
     for finding in findings:
@@ -37,6 +26,7 @@ def print_decision(label, findings, level):
 
 
 def main():
+    """Prints, per recording: the gate, each model alone, then both combined; then the GPU memory used."""
     if len(sys.argv) != 3 or sys.argv[2] not in LEVELS:
         print("Usage: python scripts/run_real_audio.py <folder> <beginner|intermediate|advanced>")
         sys.exit(1)
@@ -78,10 +68,8 @@ def main():
         quality, report, clip = check_quality(samples)
         print(f"  gate: {quality} {json.dumps(report)}")
         if quality != "ok":
-            # A rejected recording never reaches the models
             continue
 
-        # Each model alone (find_errors() decides nothing, so decide() runs for each)
         started = time.perf_counter()
         muaalem_findings = muaalem.find_errors(clip, ayah["text_uthmani"])
         print_decision(f"{muaalem.NAME} ({time.perf_counter() - started:.2f} s)", muaalem_findings, level)
@@ -91,12 +79,10 @@ def main():
         try:
             whisper_findings = whisper_quran.find_errors(clip, words)
         except whisper_quran.Runaway:
-            # Its text cannot be trusted: the ayah goes to the teacher, nothing to combine
             print(f"  {whisper_quran.NAME} ({time.perf_counter() - started:.2f} s): uncertain (runaway)")
             continue
         print_decision(f"{whisper_quran.NAME} ({time.perf_counter() - started:.2f} s)", whisper_findings, level)
 
-        # Both models together, with the word segments to replay
         combined = combine_findings(muaalem_findings, whisper_findings)
         combined = add_word_segments(combined, get_word_timings(surah, ayah_number))
         print_decision("combined", combined, level)

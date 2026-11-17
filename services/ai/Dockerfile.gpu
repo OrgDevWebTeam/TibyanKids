@@ -19,9 +19,7 @@ RUN apt-get update \
 
 WORKDIR /app
 
-# torch first, from the CUDA 13 index: from PyPI pip would install another build
-RUN pip install --no-cache-dir torch==2.14.1 --index-url https://download.pytorch.org/whl/cu130
-
+# requirements-gpu.txt points pip at the CUDA 13 index for torch
 COPY requirements.txt requirements-gpu.txt ./
 RUN pip install --no-cache-dir -r requirements.txt -r requirements-gpu.txt
 
