@@ -1,5 +1,5 @@
 .venv
 __pycache__
 .pytest_cache
-# Model files (2.9 GB) are not part of the mock image
+# Model files (2.6 GB) are never in an image: the GPU image mounts them (docker-compose.gpu.yml)
 models

@@ -1,0 +1,41 @@
+# Docker image for the AI service with the real models (the GPU machine only). Owner: Qussai.
+# Laptops use ./Dockerfile (mock mode). Start this one with docker-compose.gpu.yml (repository root).
+#
+# Same setup as the GPU machine where the week 1-3 numbers were measured: Python 3.12 and
+# torch 2.14.1 for CUDA 13. The torch wheel brings its own CUDA libraries, so the host only needs
+# the NVIDIA driver and the NVIDIA container toolkit (Docker Desktop on Windows: WSL 2 backend).
+#
+# Not in the image: the model files (mounted from services/ai/models, see models/README.md) and
+# the reference data (mounted from packages/contracts/data).
+#
+# Licence: this image contains Debian's ffmpeg, which is GPL. It is built and run on our own GPU
+# machine only. Never push it to a registry or give a copy to anyone (docs/ai/model-register.md).
+FROM python:3.12-slim
+
+# ffmpeg decodes every upload (app/audio.py)
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# torch first, from the CUDA 13 index: from PyPI pip would install another build
+RUN pip install --no-cache-dir torch==2.14.1 --index-url https://download.pytorch.org/whl/cu130
+
+COPY requirements.txt requirements-gpu.txt ./
+RUN pip install --no-cache-dir -r requirements.txt -r requirements-gpu.txt
+
+COPY app ./app
+
+ENV MOCK_MODE=false
+ENV MODELS_DIR=/models
+ENV REFERENCE_DATA_DIR=/data/reference
+# No runtime call to any outside service (Architecture v3.0, AP-06): the models come only from the
+# mounted folder. If it is missing, the service fails at startup instead of downloading them.
+ENV HF_HUB_OFFLINE=1
+ENV TRANSFORMERS_OFFLINE=1
+
+EXPOSE 8000
+# One worker: each worker would load its own copy of the models (1.6 GB of GPU memory each), and
+# the GPU checks one recording at a time anyway (app/pipeline.py, MODELS_LOCK)
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
