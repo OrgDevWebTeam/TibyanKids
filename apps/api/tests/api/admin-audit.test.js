@@ -2,7 +2,14 @@ import { describe, it, before, after } from "node:test";
 import assert from "node:assert/strict";
 import mongoose from "mongoose";
 import AuditEvent from "../../src/Models/AuditEvent.js";
-import { startTestApp, stopTestApp, api, registerParent, makeStaff } from "../helpers/api.js";
+import {
+  startTestApp,
+  stopTestApp,
+  api,
+  apiRaw,
+  registerParent,
+  makeStaff,
+} from "../helpers/api.js";
 
 // Loaded after the test helper, because the audit code reads the settings the helper sets.
 const { recordAudit } = await import("../../src/utils/audit.js");
@@ -139,5 +146,79 @@ describe("admin audit view (FR-ADM-002)", () => {
       }
     }
     assert.ok(await AuditEvent.findById(id));
+  });
+
+  describe("export (CSV)", () => {
+    const EXPORT = `${PATH}/export`;
+    const HEADER = "createdAt,action,result,actorId,actorRole,targetType,targetId,meta";
+
+    it("is only for a platform admin", async () => {
+      assert.equal((await apiRaw(EXPORT)).status, 401);
+      assert.equal((await apiRaw(EXPORT, { token: parent.token })).status, 403);
+      assert.equal((await apiRaw(EXPORT, { token: contentAdmin.token })).status, 403);
+    });
+
+    it("downloads the filtered events as a CSV file", async () => {
+      const res = await apiRaw(`${EXPORT}?action=consent.withdrawn`, {
+        token: platformAdmin.token,
+      });
+      assert.equal(res.status, 200);
+      assert.match(res.headers.get("content-type"), /^text\/csv/);
+      assert.match(res.headers.get("content-disposition"), /^attachment; filename="audit-events-/);
+      assert.equal(res.headers.get("cache-control"), "no-store");
+      assert.equal(res.headers.get("x-export-truncated"), "false");
+
+      const lines = res.text.trim().split("\r\n");
+      assert.equal(lines[0], HEADER);
+      assert.equal(lines.length - 1, 12);
+      assert.ok(lines.slice(1).every((line) => line.includes(",consent.withdrawn,")));
+    });
+
+    it("writes an audit.exported event, with the filter names and no values", async () => {
+      const before = await AuditEvent.countDocuments({ action: "audit.exported" });
+      await apiRaw(`${EXPORT}?action=consent.granted&result=success`, {
+        token: platformAdmin.token,
+      });
+
+      const events = await AuditEvent.find({ action: "audit.exported" }).sort({ createdAt: -1 });
+      assert.equal(events.length, before + 1);
+      assert.equal(String(events[0].actorId), platformAdmin.id);
+      assert.equal(events[0].meta.reason, "filters: action,result");
+    });
+
+    it("refuses invalid filters, and pagination parameters", async () => {
+      for (const query of ["action=nope", "limit=5", "page=2", "from=2026-12-01&to=2026-11-01"]) {
+        const res = await apiRaw(`${EXPORT}?${query}`, { token: platformAdmin.token });
+        assert.equal(res.status, 400, `${query} should be refused`);
+      }
+    });
+
+    it("keeps a spreadsheet from running a cell that starts like a formula", async () => {
+      await recordAudit({
+        actor: { _id: new mongoose.Types.ObjectId(), role: "=SUM(1+1)" },
+        action: "content.archived",
+        target: { type: "Content", id: new mongoose.Types.ObjectId() },
+      });
+      const res = await apiRaw(`${EXPORT}?action=content.archived`, {
+        token: platformAdmin.token,
+      });
+      assert.ok(res.text.includes(",'=SUM(1+1),"));
+      assert.ok(!res.text.includes(",=SUM(1+1),"));
+    });
+
+    it("stops at 5000 rows and says so", async () => {
+      const base = {
+        action: "user.suspended",
+        result: "success",
+        actorRole: "platform_admin",
+        targetType: "User",
+      };
+      await AuditEvent.insertMany(Array.from({ length: 5001 }, () => ({ ...base })));
+
+      const res = await apiRaw(`${EXPORT}?action=user.suspended`, { token: platformAdmin.token });
+      assert.equal(res.status, 200);
+      assert.equal(res.headers.get("x-export-truncated"), "true");
+      assert.equal(res.text.trim().split("\r\n").length, 5001); // the header and 5000 rows
+    });
   });
 });

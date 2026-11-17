@@ -12,6 +12,7 @@ export const AUDIT_ACTIONS = Object.freeze([
   "content.archived",
   "child.data_accessed",
   "access.denied",
+  "audit.exported",
 ]);
 
 export async function recordAudit({ actor, action, target, result = "success", meta, session }) {

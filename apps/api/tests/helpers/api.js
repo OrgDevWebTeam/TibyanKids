@@ -43,6 +43,15 @@ export async function api(path, { method = "GET", token, body } = {}) {
   return { status: res.status, json: await res.json().catch(() => ({})) };
 }
 
+/** Like api(), but returns the raw text and the headers, for answers that are not JSON (a CSV). */
+export async function apiRaw(path, { method = "GET", token } = {}) {
+  const res = await fetch(`${base}/api/v1${path}`, {
+    method,
+    headers: token ? { authorization: `Bearer ${token}` } : {},
+  });
+  return { status: res.status, text: await res.text(), headers: res.headers };
+}
+
 /** Verifies a parent's email using the token the placeholder mailer recorded. */
 export async function verifyEmailFor(email) {
   const { outbox } = await import("../../src/utils/mailer.js");
