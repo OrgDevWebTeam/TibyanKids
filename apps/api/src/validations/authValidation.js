@@ -25,3 +25,9 @@ export const loginSchema = z.object({
   email: text("Email").trim().toLowerCase().email("Email is not valid"),
   password: text("Password").min(1, "Password is required").max(72),
 });
+
+export const verifyEmailSchema = z
+  .object({
+    token: z.string().regex(/^[a-f0-9]{64}$/, "Invalid verification link"),
+  })
+  .strict();
