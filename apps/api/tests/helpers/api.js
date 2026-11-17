@@ -48,6 +48,7 @@ export async function registerParent() {
       name: `Parent ${counter}`,
       email: `parent${counter}@test.com`,
       password: "password123",
+      policyVersion: "v1",
     },
   });
   return { token: res.json.token, userId: res.json.user.id, familyId: res.json.family.id };

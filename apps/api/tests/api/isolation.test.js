@@ -27,7 +27,12 @@ const api = async (path, { method = "GET", token, body } = {}) => {
 const register = (n) =>
   api("/api/v1/auth/register", {
     method: "POST",
-    body: { name: `Parent ${n}`, email: `p${n}@test.com`, password: "password123" },
+    body: {
+      name: `Parent ${n}`,
+      email: `p${n}@test.com`,
+      password: "password123",
+      policyVersion: "v1",
+    },
   });
 
 describe("family isolation", () => {
