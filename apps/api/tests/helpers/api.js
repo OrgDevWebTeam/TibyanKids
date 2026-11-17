@@ -8,6 +8,7 @@ process.env.NODE_ENV = "development";
 process.env.DATABASE = "mongodb://x:<PASSWORD>@localhost/x";
 process.env.DATABASE_PASSWORD = "x";
 process.env.JWT_SECRET = randomBytes(32).toString("hex");
+process.env.MAIL_LOG = "off";
 
 let replset;
 let server;
