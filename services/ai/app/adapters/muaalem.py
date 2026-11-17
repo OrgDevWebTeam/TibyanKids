@@ -25,7 +25,7 @@ from quran_transcript.phonetics.tajweed_rulses import (
 )
 
 from app.model_files import check_revision, local_copy
-from app.policy import decide, make_finding
+from app.policy import CATEGORY_ORDER, decide, make_finding
 from app.schemas import AnalysisResult, Finding
 
 NAME = "quran-muaalem"  # the model's name in every result (AnalysisResult.model)
@@ -37,8 +37,6 @@ HF_REVISION = os.environ.get("MUAALEM_REVISION", "01a1ef9fbe40d144ef845101e89ff9
 HF_FILES = ["*.json", "*.safetensors"]
 SAMPLE_RATE = 16000
 
-# Which category comes first when one word has several errors (taxonomy 1.1)
-CATEGORY_ORDER = ["memorization", "pronunciation", "tajweed", "technical"]
 
 @cache  # loaded once, on first use; later calls return the same model
 def load_model():
