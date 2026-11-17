@@ -35,7 +35,7 @@ the ayah (Architecture §8.5).
 ### `GET /health`
 
 ```json
-{ "status": "ok", "mockMode": true, "models": [{ "name": "mock", "version": "0.2" }] }
+{ "status": "ok", "mockMode": true, "models": [{ "name": "mock", "version": "0.3" }] }
 ```
 
 ### `POST /v1/recitation/analyze`
@@ -57,14 +57,22 @@ The Arabic word check (`POST /v1/arabic/word`, FR-ARB-002) is added in week 5.
 Same shape as the API:
 
 ```json
-{ "error": { "code": "MODELS_NOT_READY", "message": "Real models are not installed yet" } }
+{ "error": { "code": "AYAH_NOT_SUPPORTED", "message": "2:255 is not a prototype ayah" } }
 ```
 
-| Status | Code               | When                                                    |
-| ------ | ------------------ | ------------------------------------------------------- |
-| 400    | `VALIDATION_ERROR` | A form field is missing or wrong                        |
-| 400    | `FILE_TOO_LARGE`   | Audio over 5 MB                                         |
-| 503    | `MODELS_NOT_READY` | `MOCK_MODE=false` (real models are connected in week 3) |
+| Status | Code                 | When                                                                                                |
+| ------ | -------------------- | --------------------------------------------------------------------------------------------------- |
+| 400    | `VALIDATION_ERROR`   | A form field is missing or wrong                                                                    |
+| 400    | `AYAH_NOT_SUPPORTED` | The surah and ayah are not one of the 25 prototype ayat. Checked first, also in `MOCK_MODE`         |
+| 400    | `FILE_TOO_LARGE`     | Audio over 5 MB                                                                                     |
+| 400    | `EMPTY_AUDIO`        | The file has no bytes. Not an attempt: the child records again                                      |
+| 400    | `DECODE_FAILED`      | ffmpeg cannot read the file (not audio). Not an attempt: the child records again                    |
+| 400    | `DECODE_TIMEOUT`     | ffmpeg took longer than 15 s. Not an attempt: the child records again                               |
+| 500    | `MODEL_FAILED`       | A model raised an unexpected error. The API saves the fallback result below and the teacher sees it |
+| 500    | `INTERNAL_ERROR`     | Any other unexpected error in the AI service. Handled like `MODEL_FAILED`                           |
+
+A recording the quality gate rejects (silent, too short, too noisy, too long) is **not** an error: it
+is a `200` result with that `quality`, `decision: "uncertain"` and no findings.
 
 ## The result
 
@@ -141,7 +149,7 @@ before the extra word.
 {
   "attemptId": "6650f0c2a1b2c3d4e5f60001",
   "model": "mock",
-  "modelVersion": "0.2",
+  "modelVersion": "0.3",
   "decision": "accepted",
   "quality": "ok",
   "findings": [],
@@ -155,7 +163,7 @@ before the extra word.
 {
   "attemptId": "6650f0c2a1b2c3d4e5f60002",
   "model": "mock",
-  "modelVersion": "0.2",
+  "modelVersion": "0.3",
   "decision": "error",
   "quality": "ok",
   "findings": [
@@ -179,7 +187,7 @@ before the extra word.
 {
   "attemptId": "6650f0c2a1b2c3d4e5f60003",
   "model": "mock",
-  "modelVersion": "0.2",
+  "modelVersion": "0.3",
   "decision": "uncertain",
   "quality": "ok",
   "findings": [
@@ -203,7 +211,7 @@ before the extra word.
 {
   "attemptId": "6650f0c2a1b2c3d4e5f60004",
   "model": "mock",
-  "modelVersion": "0.2",
+  "modelVersion": "0.3",
   "decision": "uncertain",
   "quality": "too_short",
   "findings": [],

@@ -1,0 +1,174 @@
+# The real recitation check (app/pipeline.py) with fake models and a fake gate, so no GPU is needed.
+# Owner: Qussai.
+import json
+import logging
+from types import SimpleNamespace
+
+import pytest
+
+from app import pipeline
+from app.audio import AudioError
+from app.policy import make_finding
+
+ATTEMPT = "attempt-1"
+
+
+class Runaway(Exception):
+    pass
+
+
+def fake_model(name, findings=None, error=None):
+    """An adapter with the same names as the real ones: NAME, model_version(), find_errors(), Runaway."""
+
+    def find_errors(samples, reference):
+        if error is not None:
+            raise error
+        return findings or []
+
+    return SimpleNamespace(NAME=name, model_version=lambda: "v1", find_errors=find_errors, Runaway=Runaway)
+
+
+@pytest.fixture(autouse=True)
+def fake_audio(monkeypatch):
+    # Every recording decodes and passes the gate, unless a test says otherwise
+    monkeypatch.setattr(pipeline, "decode_audio", lambda audio_bytes: "samples")
+    monkeypatch.setattr(pipeline, "check_quality", lambda samples: ("ok", {"snrDb": 30.0}, "clip"))
+    monkeypatch.delenv("CONFIDENCE_THRESHOLD", raising=False)
+
+
+def use_models(monkeypatch, muaalem_model=None, whisper_model=None):
+    monkeypatch.setattr(pipeline, "muaalem", muaalem_model or fake_model("quran-muaalem"))
+    monkeypatch.setattr(pipeline, "whisper_quran", whisper_model or fake_model("whisper-quran"))
+
+
+def analyze(level="beginner"):
+    # Al-Fatiha 1:1, words: 1 (0-520 ms), 2 (520-1240), 3 (1240-2400), 4 (2400-5120)
+    return pipeline.analyze_recording(b"audio", 1, 1, level, ATTEMPT)
+
+
+def test_no_findings_is_accepted_with_both_model_versions(monkeypatch):
+    use_models(monkeypatch)
+
+    result = analyze()
+
+    assert (result.decision, result.quality, result.findings) == ("accepted", "ok", [])
+    assert result.model == "combined"
+    assert result.modelVersion == "quran-muaalem v1 + whisper-quran v1"
+    assert result.attemptId == ATTEMPT
+
+
+def test_a_wrong_word_is_an_error_with_the_segment_of_that_word(monkeypatch):
+    whisper = fake_model("whisper-quran", [make_finding(2, "ERR_MEM_SUBSTITUTION", 0.9, 0, 0)])
+    # muaalem heard word 2 as wrong too, so the models agree
+    muaalem = fake_model("quran-muaalem", [make_finding(2, "ERR_PRON_LETTER_SUB", 0.9, 0, 0)])
+    use_models(monkeypatch, muaalem, whisper)
+
+    result = analyze()
+
+    assert result.decision == "error"
+    assert [(f.wordIndex, f.code, f.wordStartMs, f.wordEndMs) for f in result.findings] == [
+        (2, "ERR_MEM_SUBSTITUTION", 520, 1240)
+    ]
+
+
+def test_the_level_decides_what_stops_the_child(monkeypatch):
+    use_models(monkeypatch, fake_model("quran-muaalem", [make_finding(3, "ERR_PRON_HARAKA", 0.9, 0, 0)]))
+
+    assert analyze("beginner").decision == "accepted"
+    assert analyze("intermediate").decision == "error"
+
+
+def test_a_gate_rejection_never_reaches_the_models(monkeypatch):
+    monkeypatch.setattr(pipeline, "check_quality", lambda samples: ("silent", {"speechSeconds": 0.0}, None))
+    broken = fake_model("quran-muaalem", error=AssertionError("the models must not run"))
+    use_models(monkeypatch, broken, broken)
+
+    result = analyze()
+
+    assert (result.decision, result.quality, result.findings) == ("uncertain", "silent", [])
+
+
+def test_the_gate_and_the_models_run_inside_the_lock(monkeypatch):
+    # Silero VAD (in the gate) and both models must never run for two requests at once
+    def gate(samples):
+        assert pipeline.MODELS_LOCK.locked()
+        return "ok", {}, "clip"
+
+    def find_errors(samples, reference):
+        assert pipeline.MODELS_LOCK.locked()
+        return []
+
+    monkeypatch.setattr(pipeline, "check_quality", gate)
+    model = SimpleNamespace(NAME="m", model_version=lambda: "v1", find_errors=find_errors, Runaway=Runaway)
+    use_models(monkeypatch, model, model)
+
+    analyze()
+    assert not pipeline.MODELS_LOCK.locked()
+
+
+def test_unreadable_audio_raises_its_audio_error(monkeypatch):
+    def broken_decode(audio_bytes):
+        raise AudioError("DECODE_FAILED", "The file is not readable audio")
+
+    monkeypatch.setattr(pipeline, "decode_audio", broken_decode)
+    use_models(monkeypatch)
+
+    with pytest.raises(AudioError):
+        analyze()
+
+
+def test_a_whisper_runaway_is_uncertain_with_no_findings(monkeypatch):
+    muaalem = fake_model("quran-muaalem", [make_finding(1, "ERR_PRON_HARAKA", 0.9, 0, 0)])
+    use_models(monkeypatch, muaalem, fake_model("whisper-quran", error=Runaway()))
+
+    result = analyze()
+
+    assert (result.decision, result.quality, result.findings) == ("uncertain", "ok", [])
+
+
+@pytest.mark.parametrize("failing", ["quran-muaalem", "whisper-quran"])
+def test_a_model_crash_raises_model_failed(monkeypatch, failing):
+    crash = RuntimeError("CUDA error")
+    muaalem = fake_model("quran-muaalem", error=crash if failing == "quran-muaalem" else None)
+    whisper = fake_model("whisper-quran", error=crash if failing == "whisper-quran" else None)
+    use_models(monkeypatch, muaalem, whisper)
+
+    with pytest.raises(pipeline.ModelFailed) as raised:
+        analyze()
+    assert raised.value.model_name == failing
+
+
+def test_one_json_log_line_with_numbers_and_codes_only(monkeypatch, caplog):
+    whisper = fake_model("whisper-quran", [make_finding(4, "ERR_MEM_OMISSION", 0.3, 0, 0)])
+    use_models(monkeypatch, fake_model("quran-muaalem", [make_finding(4, "ERR_PRON_LETTER_SUB", 0.0, 0, 0)]), whisper)
+
+    with caplog.at_level(logging.INFO, logger="noor.ai"):
+        analyze()
+
+    assert len(caplog.records) == 1
+    entry = json.loads(caplog.records[0].getMessage())
+    assert entry["attemptId"] == ATTEMPT
+    assert (entry["surah"], entry["ayah"], entry["level"]) == (1, 1, "beginner")
+    assert (entry["quality"], entry["gate"]) == ("ok", {"snrDb": 30.0})
+    assert entry["models"] == {"quran-muaalem": "ok", "whisper-quran": "ok"}
+    assert set(entry["ms"]) == {"decode", "gate", "quran-muaalem", "whisper-quran", "total"}
+    assert entry["decision"] == "uncertain"
+    assert entry["findings"] == [{"code": "ERR_MEM_OMISSION", "wordIndex": 4, "confidence": 0.3}]
+
+
+def test_a_failed_request_is_logged_too(monkeypatch, caplog):
+    use_models(monkeypatch, fake_model("quran-muaalem", error=RuntimeError("CUDA error")))
+
+    with caplog.at_level(logging.INFO, logger="noor.ai"), pytest.raises(pipeline.ModelFailed):
+        analyze()
+
+    entry = json.loads(caplog.records[0].getMessage())
+    assert entry["error"] == "MODEL_FAILED"
+    assert entry["models"] == {"quran-muaalem": "error"}
+
+
+def test_no_models_listed_before_they_are_loaded(monkeypatch):
+    monkeypatch.setattr(pipeline, "muaalem", None)
+    monkeypatch.setattr(pipeline, "whisper_quran", None)
+
+    assert pipeline.model_versions() == []
