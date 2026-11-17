@@ -73,6 +73,11 @@ evidenceEventSchema.pre("save", function () {
 
 evidenceEventSchema.index({ familyId: 1, childId: 1, domain: 1, occurredAt: -1 });
 evidenceEventSchema.index({ childId: 1, competencyId: 1, occurredAt: -1 });
+// The same source (a completed activity or assessment) counts once for a competency
+evidenceEventSchema.index(
+  { sourceType: 1, sourceId: 1, competencyId: 1 },
+  { unique: true, partialFilterExpression: { sourceId: { $exists: true } } },
+);
 
 const EvidenceEvent = mongoose.model("EvidenceEvent", evidenceEventSchema);
 export default EvidenceEvent;
