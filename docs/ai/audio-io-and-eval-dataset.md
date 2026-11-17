@@ -1,7 +1,8 @@
 # Quran audio input/output and evaluation dataset requirements
 
 - Owners: Qussai (AI 1) + Ismail (AI 2). Jira: KAN-9, KAN-27.
-- Version: v1.3, 2026-11-15 (v1.2 was 2026-11-12, v1.1 was 2026-11-10, v1.0 was 2026-11-05).
+- Version: v1.4, 2026-11-17 (v1.3 was 2026-11-15, v1.2 was 2026-11-12, v1.1 was 2026-11-10, v1.0 was
+  2026-11-05).
 - Based on: CRS v3.0 (FR-QUR-002..004, VAL-014, VAL-016, SEC-006, SEC-011, SEC-017, SEC-018),
   Architecture v3.0 (§7.3, §8.1–8.7), Roadmap v3.0 (weeks 2–7).
 - Related: `docs/contracts/ai-result.md` (the result), `docs/ai/teacher_annotation_guide.md`
@@ -9,6 +10,17 @@
   `services/ai/app/audio.py` (the gate described in A.3).
 
 > 🔶 = proposal waiting for a decision. Everything else follows the CRS and Architecture.
+
+## What changed in v1.4
+
+| Section    | Change                                                                                                                             |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Status     | End of week 3: the gate and both models run behind the endpoint (#80), in Docker on the GPU machine (#83), called by the API (#85) |
+| A.3        | The API answer for each audio error code is decided (open item 10)                                                                 |
+| A.4        | Time per stage is logged (one JSON line per request)                                                                               |
+| B.9        | `scripts/evaluate.py` makes the run file (#86)                                                                                     |
+| Part C     | The test list is up to date                                                                                                        |
+| Open items | 7, 10 and 11 done. 2, 3, 6, 8 and 9 carried to week 4                                                                              |
 
 ## What changed in v1.3
 
@@ -29,14 +41,15 @@
 | A.3     | The "too short for the reference ayah" check is removed until the new word timings exist   |
 | Part C  | Gate tests removed. Only the contract test is kept                                         |
 
-## Status in week 2
+## Status at the end of week 3
 
-| Piece                       | State                                                                                                                |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| Decode (ffmpeg) and gate    | Written (`app/audio.py`). Run from `scripts/run_real_audio.py` only                                                  |
-| Endpoints                   | Mock only. The gate and the models are connected in week 3                                                           |
-| Quality values the contract | `ok`, `silent`, `too_short`, `too_noisy`, `too_long`                                                                 |
-| Word timings                | Set by hand for the 25 ayat (`reference_word_timings.json`), validator passes. Not used by the adapters yet (week 3) |
+| Piece                          | State                                                                                                                   |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| Decode (ffmpeg) and gate       | `app/audio.py`, run by the endpoint (`app/pipeline.py`) with `MOCK_MODE=false`                                          |
+| Endpoints                      | Real models with `MOCK_MODE=false` (#80), also in Docker (`Dockerfile.gpu`, #83). Mock mode stays the laptop default    |
+| Quality values in the contract | `ok`, `silent`, `too_short`, `too_noisy`, `too_long`                                                                    |
+| Word timings                   | Set by hand for the 25 ayat (`reference_word_timings.json`), validator passes. Every finding gets its word's segment    |
+| Evaluation                     | `scripts/evaluate.py` (#86), tried on a smoke dataset made from the reference recitation. Children's recordings: week 4 |
 
 ---
 
@@ -71,7 +84,7 @@ recording, so duration is checked after decoding (A.3).
 | Convert      | ffmpeg → 16 kHz, mono samples. The upload is written to a temporary folder that is deleted right after. ffmpeg runs without a shell, with a 15 s timeout, and decodes at most 61 s, so a small file that holds a very long recording is never decoded fully |
 | Quality gate | Silero VAD, loudness, signal-to-noise and clipping checks (`audio.py`). Result: `quality` = `ok`, `silent`, `too_short`, `too_noisy` or `too_long`                                                                                                          |
 | Reference    | The AI service loads the expected ayah text from `reference_quran_text.json` by `surah` + `ayah` (`app/reference.py`). It never searches the whole Quran                                                                                                    |
-| Models       | quran-muaalem (pronunciation and tajweed) and whisper-quran (word comparison). Merging the two is week 3. No generative language model is used in this path: the decision is deterministic and rule-based (`policy.py`)                                     |
+| Models       | quran-muaalem (pronunciation and tajweed) and whisper-quran (word comparison), merged into one list of findings (`app/combine.py`). No generative language model is used in this path: the decision is deterministic and rule-based (`policy.py`)           |
 | Output       | One result in the contract format. Model text is never returned to the API                                                                                                                                                                                  |
 
 #### Gate measurements
@@ -163,8 +176,9 @@ These are not quality results: the audio could not be read at all. All are `Audi
 | `DECODE_FAILED`  | ffmpeg cannot read it (not audio) |
 | `DECODE_TIMEOUT` | ffmpeg took longer than 15 s      |
 
-How each code becomes an API response is decided in week 3 (item 10). The AI service error shape
-stays `{"error": {"code", "message"}}`.
+The AI service answers `400` with the code, in its error shape `{"error": {"code", "message"}}`
+(`docs/contracts/ai-result.md`). The API saves no attempt and asks the child to record again (`422`,
+`"status": "record_again"`), like a quality-gate rejection (open item 10).
 
 ### A.4 Output
 
@@ -177,7 +191,7 @@ The result format is `docs/contracts/ai-result.md`. Debug detail stays inside th
 | The error `code` when the audio was rejected by an error                                                                           | Count guard and format rejections                                             |
 | Per model: name, version, status (`ok`, `timeout`, `error`, `disabled`), inference ms                                              | Latency target (NFR-PERF-003), kill switch                                    |
 | Per finding: `code`, `wordIndex`, `confidence` (the contract fields, no text)                                                      | Error analysis without any transcript                                         |
-| Time per stage (decode, gate, each model) — week 3                                                                                 | Find the slow step                                                            |
+| Time per stage (decode, gate, each model)                                                                                          | Find the slow step                                                            |
 
 Logs never contain audio, transcripts, phoneme strings of what the child said, child names or
 parent data (NFR-OBS-001, SEC-011). Contract v3.0 carries no phoneme or transcript text, and the
@@ -223,7 +237,7 @@ covers model use (SEC-017).
 3. Only anonymous ids (`recordingId`, `speakerId`). The list linking ids to families is kept by
    Mohammad, outside the dataset folder.
 4. Withdrawn consent → the recording, its labels and any derived files are deleted (VAL-008).
-5. Retention follows OD-04 (week 3).
+5. Retention follows OD-04 (week 4, carried from week 3).
 
 ### B.4 Folder layout (on the GPU machine only)
 
@@ -281,7 +295,7 @@ label. A recording where the gold label is `poor_audio` is a quality-gate test c
   (B.1, week 6). Until then recordings are used for evaluation only, and no model is trained on them.
 - **The threshold is tuned on dev and confirmed on test.** Tuning on the test set would make its
   numbers look better than reality.
-- The test set is frozen at the end of week 3. `splits.json` stores the speaker lists and a SHA-256
+- The test set is frozen once the children's recordings are labelled (week 4, carried from week 3). `splits.json` stores the speaker lists and a SHA-256
   of `recordings.jsonl` and `labels.jsonl`. Nothing in the test set is used for tuning or training.
 
 ### B.8 What we measure
@@ -325,24 +339,32 @@ and versions only, no audio, transcripts or phoneme text. Runs are kept for the 
 
 ## Part C. Tests
 
-The gate has no unit tests (decision of 2026-11-12). It is checked by running
-`services/ai/scripts/run_real_audio.py` on real recordings. The only test in the AI service is
-`tests/test_contract.py`, which keeps the result format in line with the JSON Schema.
+Everything below runs in CI without a GPU or any child's recording (generated audio, fake models):
+
+| Test                                           | What it checks                                                          |
+| ---------------------------------------------- | ----------------------------------------------------------------------- |
+| `tests/test_quality_gate.py`                   | The gate rules, with generated audio and a fake VAD                     |
+| `tests/test_pipeline.py`, `tests/test_main.py` | The real pipeline and the endpoints: errors, rejections, the lock, logs |
+| `tests/test_contract.py`                       | The result format follows the contract's JSON Schema                    |
+| `tests/test_evaluation.py`                     | The evaluation numbers of B.8                                           |
+
+On real audio, the GPU machine runs `services/ai/scripts/run_real_audio.py` on the 25 reference
+recordings after every model change, and `scripts/evaluate.py` on the labelled dataset (Part B).
 
 ---
 
 ## Open items
 
-| #   | Item                                                                                                                            | Who decides                   | Needed by                       |
-| --- | ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ------------------------------- |
-| 1   | ✅ Decided: 30 s, `quality: too_long` in the contract                                                                           | Qussai                        | Done                            |
-| 2   | Quality gate values (A.3): starting values are in the code, to be tuned                                                         | Qussai, from labels           | Week 3                          |
-| 3   | Split sizes (B.7)                                                                                                               | Qussai + Ismail               | Week 3                          |
-| 4   | Target numbers (B.8)                                                                                                            | Mohammad, from week 4 numbers | Week 4                          |
-| 5   | Who keeps the id-to-family list (B.3)                                                                                           | Mohammad                      | Week 2, before recordings start |
-| 6   | Retention of evaluation recordings after the pilot (OD-04)                                                                      | Mohammad                      | Week 3                          |
-| 7   | Noise detection: Silero VAD is in. An SNR estimate is still open                                                                | Qussai                        | Week 3                          |
-| 8   | Speech ratio definition (whole clip or trimmed) and its floor, from real children                                               | Qussai + Ismail               | Week 3                          |
-| 9   | Browser capture: format and constraints (echo cancellation, noise suppression, gain), from a capture test with adult volunteers | Osama + Ismail                | Week 3                          |
-| 10  | API response for each audio error code. Text of `FEEDBACK_AUDIO_TOO_LONG`                                                       | Ahmad + Qussai + Ismail       | Week 3                          |
-| 11  | Reject an unsupported surah/ayah pair before any processing                                                                     | Qussai                        | Week 3                          |
+| #   | Item                                                                                                                             | Who decides                   | Needed by                                |
+| --- | -------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ---------------------------------------- |
+| 1   | ✅ Decided: 30 s, `quality: too_long` in the contract                                                                            | Qussai                        | Done                                     |
+| 2   | Quality gate values (A.3): starting values are in the code, to be tuned                                                          | Qussai, from labels           | Week 4 (needs the children's recordings) |
+| 3   | Split sizes (B.7)                                                                                                                | Qussai + Ismail               | Week 4 (needs the children's recordings) |
+| 4   | Target numbers (B.8)                                                                                                             | Mohammad, from week 4 numbers | Week 4                                   |
+| 5   | Who keeps the id-to-family list (B.3)                                                                                            | Mohammad                      | Week 2, before recordings start          |
+| 6   | Retention of evaluation recordings after the pilot (OD-04)                                                                       | Mohammad                      | Week 4 (carried from week 3)             |
+| 7   | ✅ Done: Silero VAD and a signal-to-noise rule (below 15 dB → `too_noisy`, #54)                                                  | Qussai                        | Done                                     |
+| 8   | Speech ratio floor, from real children (the ratio is measured over the reading since v1.3)                                       | Qussai + Ismail               | Week 4 (needs the children's recordings) |
+| 9   | Browser capture: format and constraints (echo cancellation, noise suppression, gain), from a capture test with adult volunteers  | Osama + Ismail                | Week 4 (carried from week 3)             |
+| 10  | ✅ Done: audio error codes → `400` from the AI service (#80), "record again" from the API (#85). `FEEDBACK_AUDIO_TOO_LONG` (#58) | Ahmad + Qussai + Ismail       | Done                                     |
+| 11  | ✅ Done: `400 AYAH_NOT_SUPPORTED` before the audio is read (#80); the API checks the 25 ayat first (#85)                         | Qussai                        | Done                                     |

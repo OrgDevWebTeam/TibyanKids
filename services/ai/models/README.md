@@ -1,7 +1,7 @@
 # Model files (not in git)
 
 This folder holds the recitation models for the GPU machine. Only this README is in git: the
-repository is public and the model files are 2.9 GB.
+repository is public and the model files are 2.6 GB.
 
 Fill it, at the pinned revisions, from `services/ai`:
 

@@ -1,7 +1,7 @@
 # Where the model files come from. Owner: Qussai.
 #
 # On a GPU machine the models live in services/ai/models/ (not in git: the repository is public and
-# the files are 2.9 GB). scripts/download_models.py fills that folder with the pinned revisions and
+# the files are 2.6 GB). scripts/download_models.py fills that folder with the pinned revisions and
 # writes each model's revision into a REVISION file. The adapters load from there when it exists,
 # and from the Hugging Face cache otherwise.
 #
