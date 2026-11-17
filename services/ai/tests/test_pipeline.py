@@ -1,5 +1,4 @@
-# The real recitation check (app/pipeline.py) with fake models and a fake gate, so no GPU is needed.
-# Owner: Qussai.
+# The real check (app/pipeline.py) with fake models and a fake gate.
 import json
 import logging
 from types import SimpleNamespace
@@ -30,7 +29,6 @@ def fake_model(name, findings=None, error=None):
 
 @pytest.fixture(autouse=True)
 def fake_audio(monkeypatch):
-    # Every recording decodes and passes the gate, unless a test says otherwise
     monkeypatch.setattr(pipeline, "decode_audio", lambda audio_bytes: "samples")
     monkeypatch.setattr(pipeline, "check_quality", lambda samples: ("ok", {"snrDb": 30.0}, "clip"))
     monkeypatch.delenv("CONFIDENCE_THRESHOLD", raising=False)
@@ -39,10 +37,10 @@ def fake_audio(monkeypatch):
 def use_models(monkeypatch, muaalem_model=None, whisper_model=None):
     monkeypatch.setattr(pipeline, "muaalem", muaalem_model or fake_model("quran-muaalem"))
     monkeypatch.setattr(pipeline, "whisper_quran", whisper_model or fake_model("whisper-quran"))
+    monkeypatch.setattr(pipeline, "models_loaded", True)
 
 
 def analyze(level="beginner"):
-    # Al-Fatiha 1:1, words: 1 (0-520 ms), 2 (520-1240), 3 (1240-2400), 4 (2400-5120)
     return pipeline.analyze_recording(b"audio", 1, 1, level, ATTEMPT)
 
 
@@ -59,7 +57,6 @@ def test_no_findings_is_accepted_with_both_model_versions(monkeypatch):
 
 def test_a_wrong_word_is_an_error_with_the_segment_of_that_word(monkeypatch):
     whisper = fake_model("whisper-quran", [make_finding(2, "ERR_MEM_SUBSTITUTION", 0.9, 0, 0)])
-    # muaalem heard word 2 as wrong too, so the models agree
     muaalem = fake_model("quran-muaalem", [make_finding(2, "ERR_PRON_LETTER_SUB", 0.9, 0, 0)])
     use_models(monkeypatch, muaalem, whisper)
 
@@ -89,7 +86,6 @@ def test_a_gate_rejection_never_reaches_the_models(monkeypatch):
 
 
 def test_the_gate_and_the_models_run_inside_the_lock(monkeypatch):
-    # Silero VAD (in the gate) and both models must never run for two requests at once
     def gate(samples):
         assert pipeline.MODELS_LOCK.locked()
         return "ok", {}, "clip"
@@ -168,7 +164,6 @@ def test_a_failed_request_is_logged_too(monkeypatch, caplog):
 
 
 def test_no_models_listed_before_they_are_loaded(monkeypatch):
-    monkeypatch.setattr(pipeline, "muaalem", None)
-    monkeypatch.setattr(pipeline, "whisper_quran", None)
+    monkeypatch.setattr(pipeline, "models_loaded", False)
 
     assert pipeline.model_versions() == []

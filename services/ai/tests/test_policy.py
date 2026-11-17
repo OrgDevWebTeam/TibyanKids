@@ -1,5 +1,4 @@
-# Decision policy v0 (app/policy.py). Owner: Qussai.
-# Rules: docs/contracts/ai-result.md ("Rules") and CRS 5.4.
+# The decision rules (app/policy.py).
 import pytest
 
 from app.policy import CODES, DEFAULT_THRESHOLD, decide, make_finding
@@ -14,7 +13,6 @@ def finding(code, confidence=SURE, word=1):
 
 @pytest.fixture(autouse=True)
 def default_threshold(monkeypatch):
-    # Every test starts from the default, whatever the developer's .env says
     monkeypatch.delenv("CONFIDENCE_THRESHOLD", raising=False)
 
 
@@ -45,7 +43,6 @@ def test_uncertain_gives_every_finding_the_teacher_message():
     decision, result = decide(findings, "beginner")
     assert decision == "uncertain"
     assert [f.messageKey for f in result] == ["FEEDBACK_TEACHER_REVIEW"] * 2
-    # Everything else about the findings is kept for the teacher
     assert [(f.wordIndex, f.code) for f in result] == [(1, "ERR_MEM_OMISSION"), (2, "ERR_MEM_SUBSTITUTION")]
 
 
@@ -59,19 +56,16 @@ def test_some_codes_always_go_to_the_teacher(code, level):
 @pytest.mark.parametrize(
     "code, level, expected",
     [
-        # Beginner: only memorization stops the child
         ("ERR_MEM_OMISSION", "beginner", "error"),
         ("ERR_MEM_SUBSTITUTION", "beginner", "error"),
         ("ERR_PRON_LETTER_SUB", "beginner", "accepted"),
         ("ERR_PRON_HARAKA", "beginner", "accepted"),
         ("ERR_TAJ_MADD_SHORT", "beginner", "accepted"),
-        # Intermediate: memorization and pronunciation
         ("ERR_MEM_OMISSION", "intermediate", "error"),
         ("ERR_PRON_LETTER_SUB", "intermediate", "error"),
         ("ERR_PRON_HARAKA", "intermediate", "error"),
         ("ERR_TAJ_MADD_SHORT", "intermediate", "accepted"),
         ("ERR_TAJ_QALQALA_OMIT", "intermediate", "accepted"),
-        # Advanced without targeted rules: tajweed is only noted
         ("ERR_MEM_OMISSION", "advanced", "error"),
         ("ERR_PRON_HARAKA", "advanced", "error"),
         ("ERR_TAJ_MADD_SHORT", "advanced", "accepted"),
@@ -95,7 +89,6 @@ def test_targeted_tajweed_rules_do_not_stop_lower_levels():
 
 @pytest.mark.parametrize("code", ["ERR_MEM_INSERTION", "ERR_PRON_MADD_ASLI_SHORT", "ERR_TAJ_GHONNA_OMIT"])
 def test_proposed_codes_never_stop_a_child(code):
-    # Allowed by the contract but switched off until approved (taxonomy, open items)
     assert decide([finding(code)], "advanced", (code,))[0] == "accepted"
 
 
