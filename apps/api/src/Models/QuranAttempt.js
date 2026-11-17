@@ -73,6 +73,7 @@ const quranAttemptSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+// Kept on purpose, like every child-linked model: no code path can save an attempt for another family
 quranAttemptSchema.pre("validate", async function () {
   await assertChildInFamily(this, { requireActive: true });
 });

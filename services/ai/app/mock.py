@@ -1,23 +1,15 @@
-# Fake results for MOCK_MODE, so developers can test every path without a GPU. Owner: Qussai.
-#
-# Rules (always the same for the same input):
-#   audio smaller than 1 KB  -> quality "too_short" (not an attempt)
-#   ayah % 5 == 0            -> word 1 skipped with low confidence (0.4) -> "uncertain"
-#   ayah % 3 == 0            -> word 1 read as a different word (0.92)  -> "error" at every level
-#   anything else            -> "accepted"
-# So: ayah 1, 2, 4 accepted · ayah 3, 6, 9 error · ayah 5, 10, 15 uncertain.
-# The decision comes from the real decision policy, so the mock follows the same rules, and the
-# replay segment of word 1 comes from the real word timings.
+# Fake but rule-following results for MOCK_MODE: ayah % 5 uncertain, ayah % 3 error, else accepted.
 from app.policy import decide, make_finding
 from app.reference import add_word_segments, get_word_timings
 from app.schemas import AnalysisResult
 
 MOCK_MODEL = "mock"
-MOCK_VERSION = "0.3"  # 0.3: real word segments from reference_word_timings.json
+MOCK_VERSION = "0.3"
 MIN_AUDIO_BYTES = 1024
 
 
 def _result(attempt_id, decision, quality="ok", findings=None, processing_ms=0):
+    """One mock AnalysisResult."""
     return AnalysisResult(
         attemptId=attempt_id,
         model=MOCK_MODEL,
@@ -30,6 +22,7 @@ def _result(attempt_id, decision, quality="ok", findings=None, processing_ms=0):
 
 
 def mock_recitation(attempt_id, audio_size, surah, ayah, level="beginner", processing_ms=0):
+    """The same result for the same input, decided by the real policy with real word segments."""
     if audio_size < MIN_AUDIO_BYTES:
         return _result(attempt_id, "uncertain", quality="too_short", processing_ms=processing_ms)
 
@@ -43,4 +36,3 @@ def mock_recitation(attempt_id, audio_size, surah, ayah, level="beginner", proce
     findings = add_word_segments(findings, get_word_timings(surah, ayah))
     decision, findings = decide(findings, level)
     return _result(attempt_id, decision, findings=findings, processing_ms=processing_ms)
-

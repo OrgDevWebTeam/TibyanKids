@@ -1,5 +1,4 @@
-# Merging the two models' findings (app/combine.py). Owner: Qussai.
-# Rules: one finding per word by category priority (taxonomy 1.1); models disagree (taxonomy 4).
+# Merging the two models' findings (app/combine.py).
 from app.combine import combine_findings
 from app.policy import decide, make_finding
 
@@ -17,7 +16,6 @@ def test_no_findings_from_either_model_gives_none():
 
 
 def test_findings_on_different_words_are_all_kept_in_word_order():
-    # muaalem also heard word 1 as wrong (a missing sound), so this is not a disagreement
     muaalem = [finding(1, "ERR_PRON_LETTER_SUB", 0.0), finding(3, "ERR_PRON_HARAKA")]
     whisper = [finding(1, "ERR_MEM_OMISSION")]
 
@@ -62,7 +60,6 @@ def test_a_different_word_muaalem_heard_fine_is_a_disagreement():
 
 
 def test_an_extra_word_is_not_a_disagreement():
-    # muaalem cannot hear a word that is not in the ayah
     whisper = [finding(2, "ERR_MEM_INSERTION")]
 
     assert summary(combine_findings([], whisper)) == [(2, "ERR_MEM_INSERTION")]

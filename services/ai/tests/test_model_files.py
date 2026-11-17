@@ -1,4 +1,4 @@
-# Where the model files come from (app/model_files.py). Owner: Qussai.
+# Where the model files are loaded from (app/model_files.py).
 import pytest
 
 from app import model_files
