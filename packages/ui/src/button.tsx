@@ -4,22 +4,25 @@ import { cx } from "./cx";
 export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 export type ButtonSize = "md" | "lg";
 
+// As in the design system: a darker edge under primary and secondary buttons, darker shades on
+// hover and press. The design system has no danger button, so danger keeps its earlier style.
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
-  // As in the design system: darker shades on hover and press, grey when disabled. A loading
-  // button is disabled too, but keeps its colour so it still looks like the action in progress.
   primary: cx(
-    "bg-primary text-on-primary hover:bg-primary-hover active:bg-primary-active",
-    "[&:disabled:not([aria-busy=true])]:bg-line",
+    "bg-primary text-on-primary shadow-[0_4px_0_var(--color-primary-edge)]",
+    "hover:bg-primary-hover active:bg-primary-active",
   ),
-  secondary: "border border-control bg-surface text-ink hover:bg-surface-muted disabled:opacity-50",
-  ghost: "bg-transparent text-ink hover:bg-surface-muted disabled:opacity-50",
-  danger: "bg-danger text-on-primary hover:brightness-110 disabled:opacity-50",
+  secondary: cx(
+    "bg-secondary text-on-secondary shadow-[0_4px_0_var(--color-secondary-edge)]",
+    "hover:bg-secondary-hover active:bg-secondary-hover",
+  ),
+  ghost: "bg-transparent text-on-secondary hover:bg-background active:bg-secondary",
+  danger: "bg-danger text-on-primary hover:brightness-110",
 };
 
-// Button M (16px) and L (18px) from the design system, both semibold.
+// The design system's Button style: 16px in English and 21px in Arabic (text-body), bold.
 const SIZE_CLASSES: Record<ButtonSize, string> = {
-  md: "min-h-control px-5 text-base",
-  lg: "min-h-control px-6 text-lg",
+  md: "min-h-control px-8 text-body",
+  lg: "min-h-control px-10 text-lg",
 };
 
 /** Button styling as classes, so a link (for example a router `Link`) can look like a button. */
@@ -29,9 +32,13 @@ export function buttonClasses(
   fullWidth = false,
 ): string {
   return cx(
-    "inline-flex items-center justify-center gap-2 rounded-full font-semibold transition",
-    "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus",
+    "inline-flex items-center justify-center gap-2 rounded-button font-bold transition",
+    "focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus",
+    // Grey when disabled, in every variant. A loading button is disabled too, but keeps its
+    // colour so it still looks like the action in progress.
     "disabled:cursor-not-allowed",
+    "[&:disabled:not([aria-busy=true])]:bg-line [&:disabled:not([aria-busy=true])]:text-ink-disabled",
+    "[&:disabled:not([aria-busy=true])]:shadow-none",
     VARIANT_CLASSES[variant],
     SIZE_CLASSES[size],
     fullWidth && "w-full",
