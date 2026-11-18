@@ -5,6 +5,7 @@ import rateLimit from "express-rate-limit";
 import config from "./config/env.js";
 import authRoutes from "./routes/authRoutes.js";
 import childrenRoutes from "./routes/childrenRoutes.js";
+import missionRoutes from "./routes/missionRoutes.js";
 import AppError from "./utils/AppError.js";
 import consentRoutes from "./routes/consentRoutes.js";
 import curriculumRoutes from "./routes/curriculumRoutes.js";
@@ -39,6 +40,7 @@ const authLimiter = rateLimit({
 // Routes
 app.use("/api/v1/auth", authLimiter, authRoutes);
 app.use("/api/v1/children", childrenRoutes);
+app.use("/api/v1/missions", missionRoutes);
 app.use("/api/v1/consents", consentRoutes);
 app.use("/api/v1/curriculum", curriculumRoutes);
 app.use("/api/v1/content", contentRoutes);

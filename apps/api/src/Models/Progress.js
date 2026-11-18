@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { assertChildInFamily } from "../utils/assertChildInFamily.js";
 import { recordProgressEvidence } from "../growth/growthService.js";
+import { assignMissionForProgress } from "../missions/missionService.js";
 
 const progressSchema = new mongoose.Schema(
   {
@@ -72,6 +73,13 @@ progressSchema.post("save", async function (doc) {
     await recordProgressEvidence(doc, { session: doc.$session() });
   } catch (error) {
     console.error(`Growth evidence failed for progress ${doc._id}: ${error.message}`);
+  }
+  // Then a home mission, chosen with the growth state this completion just changed (FR-FAM-001).
+  // It has its own try/catch: a failed mission must not hide the evidence or fail the save.
+  try {
+    await assignMissionForProgress(doc, { session: doc.$session() });
+  } catch (error) {
+    console.error(`Mission assignment failed for progress ${doc._id}: ${error.message}`);
   }
 });
 

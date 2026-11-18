@@ -15,6 +15,8 @@ import {
   resultForActivityScore,
   resultForAssessmentLevel,
 } from "./growthRules.js";
+import MissionAssignment from "../Models/MissionAssignment.js";
+import { OBSERVATION_RESULT } from "../missions/familyLoopRules.js";
 
 const inSession = (query, session) => (session ? query.session(session) : query);
 
@@ -129,4 +131,51 @@ export async function recordAssessmentEvidence(assessment, { session } = {}) {
       { session },
     );
   }
+}
+
+/**
+ * A parent's observation of a home mission is evidence for every active competency of that mission
+ * (FR-FAM-002, FR-FAM-004, FR-GRW-001). "Not observed" is no evidence at all. Returns the evidence that was
+ * recorded, as a list of { evidence, state }.
+ */
+export async function recordObservationEvidence(observation, { session } = {}) {
+  if (!Object.hasOwn(OBSERVATION_RESULT, observation.status)) return [];
+
+  const assignment = await inSession(
+    MissionAssignment.findById(observation.assignmentId).select("missionId"),
+    session,
+  );
+  if (!assignment) return [];
+
+  const mission = await inSession(
+    Content.findById(assignment.missionId).select("competencies"),
+    session,
+  );
+  if (!mission || mission.competencies.length === 0) return [];
+
+  const competencies = await inSession(
+    Competency.find({ _id: { $in: mission.competencies }, active: true })
+      .select("_id")
+      .lean(),
+    session,
+  );
+
+  const recorded = [];
+  for (const competency of competencies) {
+    const saved = await recordEvidence(
+      {
+        familyId: observation.familyId,
+        childId: observation.childId,
+        competencyId: competency._id,
+        sourceType: "observation",
+        sourceId: observation._id,
+        weight: GROWTH_RULES.SOURCE_WEIGHT.observation,
+        result: OBSERVATION_RESULT[observation.status],
+        occurredAt: observation.createdAt ?? new Date(),
+      },
+      { session },
+    );
+    if (saved) recorded.push(saved);
+  }
+  return recorded;
 }

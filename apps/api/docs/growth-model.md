@@ -20,7 +20,7 @@ Files: `src/Models/EvidenceEvent.js`, `src/Models/GrowthState.js`, `src/growth/g
 - **A completed assessment.** When an `Assessment` becomes `completed`, each active competency of its domain gets one piece of evidence (source `assessment`). Its level decides the result: 4 or 5 is `met`, 2 or 3 is `partly_met`, 0 or 1 is `not_met`.
 - **Once only.** The same source counts once for a competency (a unique index), so saving a record twice does not add evidence.
 - **Never blocks the child.** If the Growth Map fails, the progress or assessment is still saved and the failure is logged with ids only.
-- **Parent observations** (FR-FAM-002, FR-FAM-004) will be a third source (`observation`, the lightest weight) when `ParentObservation` exists. `recordEvidence` already accepts it.
+- **A parent's observation** (FR-FAM-002, FR-FAM-004). When a parent records an observation of a family mission, each active competency of that mission gets one piece of evidence (source `observation`, weight 0.3, the lightest). `independent` is `met`, `reminder` is `partly_met`, and `not_observed` gives **no evidence**. See `family-loop.md`.
 
 ## How the growth state is derived
 
@@ -55,6 +55,5 @@ A competency or domain with no evidence is `not_assessed` and has no level, no c
 ## Not built yet
 
 - A teacher's limited read of the Growth Map (VAL-007) and a child's own read. No teacher or child sign-in exists yet.
-- Evidence from parent observations, until `ParentObservation` exists.
 - Export and deletion of evidence (SEC-015).
 - The weekly insight that uses this data (FR-PAR-002, see `parent-intelligence-inputs.md`).

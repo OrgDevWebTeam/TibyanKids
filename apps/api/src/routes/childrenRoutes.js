@@ -17,6 +17,12 @@ import audioUpload from "../middlewares/audioUpload.js";
 import { createRecitationAttempt } from "../controllers/recitationController.js";
 import { getGrowth } from "../controllers/growthController.js";
 import { recitationAttemptSchema } from "../validations/recitationValidation.js";
+import {
+  listChildMissions,
+  observeChildMission,
+  reflectChildMission,
+} from "../controllers/missionController.js";
+import { observeMissionSchema, reflectMissionSchema } from "../validations/missionValidation.js";
 
 const router = Router();
 router.use(apiLimiter);
@@ -30,6 +36,18 @@ router.patch("/:id", validate(updateChildSchema), updateChild);
 router.patch("/:id/archive", archiveChild);
 // The Growth Map of one child (API-004)
 router.get("/:id/growth", getGrowth);
+// The family loop: missions, a parent's observation, the child's reflection (FR-FAM-001 to FR-FAM-003, API-005)
+router.get("/:id/missions", listChildMissions);
+router.post(
+  "/:id/missions/:assignmentId/observe",
+  validate(observeMissionSchema),
+  observeChildMission,
+);
+router.post(
+  "/:id/missions/:assignmentId/reflect",
+  validate(reflectMissionSchema),
+  reflectChildMission,
+);
 // One recorded ayah (multipart: audio, clientAttemptId, surah, ayah, level)
 router.post(
   "/:id/recitation-attempts",
