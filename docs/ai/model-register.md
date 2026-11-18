@@ -5,8 +5,6 @@
 - Requirement: OPS-009 "Register of every open-source model and its licence". Also AP-06 (no
   runtime call to an outside service: everything below runs on our machines).
 - Related: `docs/ai/genai_and_safety_boundaries.md` §3 (QML 1.0 conditions and the AI notice).
-- Describes the AI service once the week-2 pull requests are merged: the revision pins (A6),
-  `text_imlaei` (A2) and `scripts/align_word_timings.py` (B1).
 
 Every model, library, data file and recording on the recitation path, with the licence checked at
 its source on 2026-11-15: package metadata for libraries, the Hugging Face model or dataset card for

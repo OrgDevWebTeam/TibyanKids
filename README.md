@@ -7,7 +7,9 @@ MERN monorepo for the Noor Academy prototype: MongoDB, Express, React, Node.js (
 | Path                 | Purpose                                                  |
 | -------------------- | -------------------------------------------------------- |
 | `apps/web`           | React (Vite) PWA, bilingual, RTL/LTR                     |
-| `apps/api`           | Express API                                              |
+| `apps/api`           | Express API (JavaScript, mongoose)                       |
+| `apps/worker`        | Background jobs (placeholder, nothing runs yet)          |
+| `services/ai`        | Python AI service that checks Quran recitation           |
 | `packages/contracts` | Shared types and schemas (locales, AI result, telemetry) |
 | `packages/ui`        | Bilingual/RTL UI primitives and design tokens            |
 | `packages/config`    | Shared TypeScript presets                                |

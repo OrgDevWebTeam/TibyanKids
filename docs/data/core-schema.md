@@ -1,30 +1,38 @@
 # MongoDB core schema
 
-Owners: Mohammad / Osama. Status: DRAFT. Decision record: `docs/adr/0003-mongodb.md`.
+Owners: Mohammad / Osama. Decision record: `docs/adr/0003-mongodb.md`. The source of truth is the
+mongoose models in `apps/api/src/Models/`; this page is the overview. Who may read and change each
+collection: `apps/api/docs/authorization-matrix.md`.
 
-## Rules (from ADR-0003)
+## Rules
 
-- Domain ids are random UUID strings (not ObjectIds).
-- Every child-owned document carries `familyId`, and **every query includes it** (repository layer).
-- Teachers see a child only through an active teacher assignment.
+- Ids are MongoDB ObjectIds. Access never depends on an id being hard to guess.
+- Every child-owned document carries `familyId` and `childId`, and every lookup uses the family
+  from the server (`Child.findOwned`). Model hooks check that the child belongs to the family
+  (`utils/assertChildInFamily.js`).
+- Teachers will see a child only through an active teacher assignment (no teacher routes yet).
 - Multi-document changes use transactions (replica set).
-- Collections get `$jsonSchema` validators once their shape is stable. See
-  `apps/api/migrations/1793700000000_audit-events.mjs` for the pattern.
 
-## Collections to define
+## Collections
 
-| Collection           | Purpose                    | Key fields to decide                                   | Indexes to decide    |
-| -------------------- | -------------------------- | ------------------------------------------------------ | -------------------- |
-| `families`           | Household account          | owner user id, locale, consent status                  |                      |
-| `users`              | Parents, teachers, admins  | internal id (separate from identity-provider id), role |                      |
-| `children`           | Child profiles (no login)  | `familyId`, display name, birth year, PIN hash         | `familyId`           |
-| `content`            | Surahs, lessons, missions  | version, locale variants, review state                 |                      |
-| `progress`           | Per-child learning state   | `familyId`, `childId`, content ref                     | `familyId + childId` |
-| `teacherAssignments` | Teacher-to-child access    | teacher id, `childId`, `familyId`, status, dates       | `teacherId + status` |
-| `audit_events`       | Append-only audit (exists) | see migration                                          | exists               |
+| Model               | Purpose                                        | Ownership                          | Indexes                                                       |
+| ------------------- | ---------------------------------------------- | ---------------------------------- | ------------------------------------------------------------- |
+| `User`              | Parents and staff (children have no login)     | the user's own id                  | `role + status`                                               |
+| `Family`            | Household; one per parent                      | `parentId`                         | `parentId` (unique)                                           |
+| `Child`             | Child profile: name, date of birth, levels     | `familyId`                         | `familyId + status`                                           |
+| `ConsentRecord`     | Parent consent, append-only                    | `familyId`, `childId`              | `childId + createdAt`                                         |
+| `Content`           | Lessons, Quran tasks, missions, with review    | none (global)                      | `competencies`                                                |
+| `Competency`        | Growth Graph competencies per domain           | none (reference data)              | `code` (unique), `domain + active`                            |
+| `Progress`          | A child's state on one content item            | `familyId`, `childId`              | `childId + contentId` (unique), `familyId + childId + status` |
+| `Assessment`        | A placement or check, with its item answers    | `familyId`, `childId`              | `familyId + childId + status`                                 |
+| `QuranAttempt`      | One recorded ayah and its AI result (no audio) | `familyId`, `childId`              | `childId + clientAttemptId` (unique), `familyId + childId`    |
+| `TeacherAssignment` | Which teacher may see which child              | `teacherId`, `childId`, `familyId` | `teacherId + status`, `childId + status`                      |
+| `AuditEvent`        | Append-only audit log (ids only, short `meta`) | none                               | by target, actor, action and time                             |
+
+The audio of a recitation is never stored: the API sends it to the AI service and drops it.
 
 ## Questions to answer
 
 1. Which fields are personal data, and what is the retention for each?
 2. How is a child deleted or exported on a parent's request?
-3. Which documents embed and which reference?
+3. How long are audit events kept, and what job deletes them?

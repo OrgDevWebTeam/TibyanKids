@@ -1,28 +1,31 @@
 # ADR-0006: Identity and authorization
 
-- Status: Proposed (owners: Mohammad / Osama)
-- Context: Parents sign in, children do not have accounts, staff need MFA, and children's data
-  must never cross family boundaries. MongoDB offers no row-level security (ADR-0003).
+- Status: Accepted for the prototype. Revised 2026-11-18: the first version proposed OIDC sign-in
+  through an outside identity provider, staff MFA and a child PIN. That code was removed with the
+  old API (#41). This version describes what `apps/api` does now. Owners: Mohammad / Osama.
+- Context: Parents sign in, children do not have their own login, and children's data must never
+  cross family boundaries. MongoDB offers no row-level security (ADR-0003).
 - Decisions:
-  - **Provider-agnostic OIDC.** The API verifies bearer tokens (signature, issuer, audience,
-    expiry; RS256/ES256 only) against the provider's JWKS. Cognito, Auth0 or Keycloak differ only
-    in `OIDC_ISSUER_URL`, `OIDC_AUDIENCE` and `OIDC_JWKS_URL`. With none configured, every
-    authenticated route returns 401. There is no development bypass.
-  - **Own user records.** Roles and family membership live in our `users` collection, keyed by an
-    internal UUID. The provider's `sub` is only a lookup key, so providers can be swapped.
-  - **Provisioning.** Only parents self-provision (a user plus a family on first login). Staff
-    accounts are created by an administrator.
-  - **Permissions, not roles.** Routes call `requirePermission(...)`. The role-to-permission map
-    is in `@noor/contracts`. Platform and content admins have no child-data permission by default.
-  - **MFA for staff** is checked from the standard `amr` claim and fails closed. Confirm how the
-    chosen provider reports MFA and adapt `auth/mfa.ts`.
-  - **Family isolation.** All child data goes through a repository whose methods require an
-    `AccessScope`: `family` (parent) or `teacher` (active assignments only). Cross-family and
-    unassigned access return 404, the same answer as "missing". Isolation is tested against a real
-    MongoDB in CI.
-  - **Child PIN.** Hashed with scrypt, limited by a lockout (5 failures, 15 minutes). It is a
-    convenience gate inside the parent's session, not a security boundary.
-  - **Audit.** Child creation, PIN changes and lockouts write insert-only audit events (ids only).
-    Writes are best-effort for now; make them transactional with the change (TODO).
+  - **Own accounts with email and password.** `POST /api/v1/auth/register` creates a parent and
+    their family. `POST /api/v1/auth/login` checks the password (bcrypt) and returns a JWT
+    (HS256, signed with `JWT_SECRET`, valid for `JWT_EXPIRES_IN`, default 7 days). A wrong email
+    and a wrong password get the same answer.
+  - **Registration is for parents only.** The role is fixed to `parent` on the server. Staff
+    accounts are not created through the API yet.
+  - **Every request is checked on the server.** `authenticate` reads the bearer token and loads the
+    user on every request, so a suspended user is refused at once. `authorize(...roles)` allows only
+    the listed roles; a refusal returns 403 and writes an `access.denied` audit event.
+    `loadFamily` gives parent routes the parent's active family.
+  - **Roles:** `child`, `parent`, `teacher`, `content_admin`, `reviewer`, `platform_admin`,
+    `analytics_support` (`apps/api/src/constants/index.js`). Who may do what is in
+    `apps/api/docs/authorization-matrix.md`.
+  - **Family isolation.** A child is always looked up with the family from the server
+    (`Child.findOwned(childId, familyId)`). Another family's child gets 404, the same answer as
+    "missing". Records linked to a child check that the child belongs to that family
+    (`utils/assertChildInFamily.js`).
+  - **Audit.** Consent changes, content publishing and denied access write append-only audit events
+    (ids only). Consent and publishing write the event in the same transaction as the change.
+- Not built yet: teacher routes, staff MFA, a child PIN or child mode, refresh tokens and token
+  revocation (`apps/api/docs/authorization-review.md`, F12).
 - Open questions: teacher assignment workflow and admin tooling, account deletion and export,
-  a user who is both parent and teacher, session lifetime and revocation.
+  a user who is both parent and teacher, whether staff need an outside identity provider with MFA.

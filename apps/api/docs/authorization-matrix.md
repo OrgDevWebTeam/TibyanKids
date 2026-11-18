@@ -1,6 +1,6 @@
 # Authorization Matrix
 
-Last updated: 2026-11-11
+Last updated: 2026-11-18
 
 ## Purpose
 
@@ -29,6 +29,7 @@ Rows marked (derived) are not in the CRS CRUD matrix. They are inferred from the
 | Content                                         | none (global)                      | Content Admin                                                   | Published and age-eligible: all users. Draft and in review: staff only                                  | Content Admin (drafts only). Publishing requires a Reviewer's approval when `reviewRequired` is true. Quran tasks and missions always require review | Content Admin (prefer archiving)           |
 | Competency (derived)                            | none (reference data)              | Content Admin                                                   | Any signed-in user                                                                                      | Content Admin                                                                                                                                        | Content Admin (prefer `active: false`)     |
 | TeacherAssignment (derived)                     | `teacherId`, `childId`, `familyId` | Platform Admin                                                  | Teacher (own); Parent (their children's); Platform Admin                                                | Platform Admin (end an assignment)                                                                                                                   | Not allowed. Set status to `ended` instead |
+| QuranAttempt (derived)                          | `familyId`, `childId`              | Parent, for their own active child with active consent          | Parent (own family)                                                                                     | Nobody. A new recording is a new attempt                                                                                                             | Not allowed through the app                |
 | AuditEvent                                      | none                               | System                                                          | Platform Admin only                                                                                     | Nobody (append-only)                                                                                                                                 | By retention policy only                   |
 
 ## Rules
@@ -58,4 +59,4 @@ Rows marked (derived) are not in the CRS CRUD matrix. They are inferred from the
 
 ## Not yet modeled
 
-These rows from CRS section 8.1 will be added when their models exist: FamilyMission, ParentObservation, QuranAttempt, TeacherReview, GrowthState.
+These rows from CRS section 8.1 will be added when their models exist: FamilyMission, ParentObservation, TeacherReview, GrowthState.
