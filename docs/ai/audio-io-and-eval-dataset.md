@@ -58,8 +58,9 @@
 ### A.1 Path of one recording
 
 1. The browser records one ayah with `MediaRecorder` (Osama).
-2. The API receives it on `POST /api/v1/attempts`, checks type and size, saves it in the private
-   folder with a random name, and sends it to the AI service (Ahmad).
+2. The API receives it on `POST /api/v1/children/:id/recitation-attempts`, checks the child's
+   consent, the type and the size, and sends it to the AI service (Ahmad). The audio is kept in
+   memory only and is not stored (retention: OD-04).
 3. The AI service converts it, runs the quality gate, runs the models, and returns one result in
    the contract format (Qussai).
 4. The API saves the result inside the attempt and returns it to the browser in the same request.
