@@ -143,7 +143,7 @@ English text for reading; check the file for the Arabic. The contract field is `
 
 Writing rules:
 
-1. **Gender-neutral:** the agent's lines are pre-recorded by a human voice (C-02), and Arabic
+1. **Gender-neutral:** Adeeb's lines (the agent) are pre-recorded by a human voice (C-02), and Arabic
    second-person forms show gender when spoken, so the messages use "we".
 2. No claim of mastery or closeness ("mastered", "very close"): the model's result is preliminary
    only (AP-04).
@@ -151,6 +151,8 @@ Writing rules:
 4. No promise of a time or a class for the review: a teacher may not be available
    (Architecture §8.4).
 5. Raw model text is never shown to a child, and neither are Whisper transcripts.
+6. 🔶 The messages are spoken by Adeeb, the agent (`docs/ai/genai_and_safety_boundaries.md` §1.1),
+   but do not use the name. A message that needs a person names the child's teacher, never Adeeb.
 
 | Key                               | English text                                                                                  | Used for                                                                |
 | :-------------------------------- | :-------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------- |

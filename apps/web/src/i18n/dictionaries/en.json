@@ -75,5 +75,8 @@
   "maintenance": {
     "title": "We will be back soon",
     "body": "Tibyan Kids is being updated. Please try again a little later."
+  },
+  "agent": {
+    "name": "Adeeb"
   }
 }

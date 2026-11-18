@@ -1,6 +1,6 @@
 /* global self, caches, fetch, URL */
 
-// Tibyan service worker.
+// Tibyan Kids service worker.
 // Privacy rule (UI spec): devices are often shared by a family, so pages and child data are
 // never stored for offline use. Only public build files are cached, plus one offline notice.
 

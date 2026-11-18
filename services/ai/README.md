@@ -1,4 +1,4 @@
-# Tibyan AI service
+# Tibyan Kids AI service
 
 Owner: Qussai. A small FastAPI program that checks Quran recitation recordings. The API calls it
 over HTTP; browsers never do. It is Python, so it is not part of the pnpm workspace or Turborepo.

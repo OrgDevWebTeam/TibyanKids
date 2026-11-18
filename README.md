@@ -1,6 +1,7 @@
 # Tibyan Kids
 
-MERN monorepo for the Tibyan Kids prototype: MongoDB, Express, React, Node.js (TypeScript).
+MERN monorepo for the Tibyan Kids (تبيان كيدز) prototype: MongoDB, Express, React, Node.js.
+The web app and the shared packages are TypeScript; the API is JavaScript.
 
 ## Layout
 

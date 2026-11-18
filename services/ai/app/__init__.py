@@ -1,1 +1,1 @@
-# Tibyan AI service package. Owner: Qussai.
+# Tibyan Kids AI service package. Owner: Qussai.

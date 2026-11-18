@@ -49,7 +49,3 @@ services/ai/models/*
 *.log
 
 *.zip
-
-*.zip
-
-*.zip
