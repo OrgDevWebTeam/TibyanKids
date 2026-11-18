@@ -1,5 +1,8 @@
 # Local development only. Synthetic data, no real credentials.
 # Staging and production use managed MongoDB (Atlas) with their own users and secrets.
+# Fixed project name, so containers and volumes do not depend on the folder name.
+name: tibyan-kids
+
 services:
   mongo:
     image: mongo:8
