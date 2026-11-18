@@ -19,7 +19,7 @@ describe("loadLocale", () => {
   it("returns the text of a language in the URL", async () => {
     const data = (await load("http://localhost/ar/today")) as LocaleData;
     expect(data.locale).toBe("ar");
-    expect(data.dict.meta.title).toBe("نور أكاديمي");
+    expect(data.dict.meta.title).toBe("تبيان كيدز");
   });
 
   it("adds a language to a path that has none, keeping the rest of the URL", async () => {
