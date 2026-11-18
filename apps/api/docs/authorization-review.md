@@ -1,7 +1,7 @@
 # Authorization Review
 
-Date: 2026-11-09 (updated 2026-11-16)
-Scope: models in `apps/api/src/Models` and routes in `apps/api/src/routes`, reviewed against `docs/authorization-matrix.md`.
+Date: 2026-11-09 (updated 2026-11-18)
+Scope: models in `apps/api/src/Models` and routes in `apps/api/src/routes`, reviewed against `authorization-matrix.md`.
 Not yet reviewed or built: teacher routes, the admin audit view, and creating staff accounts through the API. A second pass is needed when they exist.
 
 ## Findings
@@ -30,23 +30,25 @@ Not yet reviewed or built: teacher routes, the admin audit view, and creating st
 - `meta` may only use keys from `ALLOWED_META_KEYS` (`fromRole`, `toRole`, `reason`, `requestId`, `field`). Every value must be text of at most 200 characters. This stops secrets from being stored in a log that cannot be edited.
 - Consent changes and publishing write the audit event in the same transaction as the change. If the audit event fails, the change is not saved.
 - Denied role checks (`authorize` middleware) and self-approval of content are written as `access.denied` with result `denied`. If writing that event fails, the request is still denied.
-- When a parent asks for another family's child, the answer is still 404, and an `access.denied` event is written (children and consent routes). Asking for a child that does not exist is not logged.
-- Deleting audit entries is blocked in the application. Only a retention job may delete them, and that job is not built yet. Deployed environments also need a database user with insert-only rights on the audit collection (ADR-0003).
-- Tests: `tests/models/audit.test.js`, `tests/models/childLinked.test.js` and the API tests in `tests/api/` (audit coverage, and object-level tests for children and consents). Run them with `pnpm --filter @noor/api test`.
+- Deleting audit entries is not blocked in the model. Only a retention job may delete them, and that job is not built yet.
+- Tests: `tests/models/audit.test.js` and `tests/models/childLinked.test.js` (run with `pnpm --filter @noor/api test`).
 
 ## Route-level review
 
-| Routes                                       | Guards                                                         | Notes                                                                                                                                                                                              |
-| -------------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `POST /auth/register`, `POST /auth/login`    | Public, rate limited (20 per 15 minutes)                       | Role is fixed to `parent`. Login gives the same answer for a wrong email or a wrong password.                                                                                                      |
-| `/children`                                  | `authenticate`, `authorize("parent")`, `loadFamily`            | Every lookup uses `Child.findOwned` with the family from the server. Strict schemas: no `status` or `familyId` from the client. Another family's child gives 404 and is logged as `access.denied`. |
-| `/consents`                                  | Same three guards                                              | Grant or withdraw changes the `ConsentRecord`, `Child.status` and the audit event in one transaction. Consent records are never updated.                                                           |
-| `/curriculum/competencies` (read)            | `authenticate`                                                 | Any signed-in user.                                                                                                                                                                                |
-| `/curriculum/competencies` (write)           | `authenticate`, `authorize("content_admin", "platform_admin")` | The domain cannot change while content uses the competency. A competency used by published content cannot be deactivated.                                                                          |
-| `/content` (read)                            | `authenticate`                                                 | Staff and reviewers see every status. Everyone else sees only `published`, and a hidden item gives 404.                                                                                            |
-| `/content` (create, update, submit, publish) | `authorize("content_admin", "platform_admin")`                 | Only drafts can be updated. Publishing is a transaction with a `content.published` audit event. Review-required content cannot be published before it is approved.                                 |
-| `/content/:id/approve`                       | `authorize("reviewer", "platform_admin")`                      | The creator cannot approve their own content. The attempt is denied and logged.                                                                                                                    |
+| Routes                                       | Guards                                                         | Notes                                                                                                                                                                        |
+| -------------------------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /auth/register`, `POST /auth/login`    | Public, rate limited (20 per 15 minutes)                       | Role is fixed to `parent`. Login gives the same answer for a wrong email or a wrong password.                                                                                |
+| `/children`                                  | `authenticate`, `authorize("parent")`, `loadFamily`            | Every lookup uses `Child.findOwned` with the family from the server. Strict schemas: no `status` or `familyId` from the client. Another family's child gives 404.            |
+| `/consents`                                  | Same three guards                                              | Grant or withdraw changes the `ConsentRecord`, `Child.status` and the audit event in one transaction. Consent records are never updated.                                     |
+| `/curriculum/competencies` (read)            | `authenticate`                                                 | Any signed-in user.                                                                                                                                                          |
+| `/curriculum/competencies` (write)           | `authenticate`, `authorize("content_admin", "platform_admin")` | The domain cannot change while content uses the competency. A competency used by published content cannot be deactivated.                                                    |
+| `/content` (read)                            | `authenticate`                                                 | Staff and reviewers see every status. Everyone else sees only `published`, and a hidden item gives 404.                                                                      |
+| `/content` (create, update, submit, publish) | `authorize("content_admin", "platform_admin")`                 | Only drafts can be updated. Publishing is a transaction with a `content.published` audit event. Review-required content cannot be published before it is approved.           |
+| `/content/:id/approve`                       | `authorize("reviewer", "platform_admin")`                      | The creator cannot approve their own content. The attempt is denied and logged.                                                                                              |
+| `POST /children/:id/recitation-attempts`     | `authenticate`, `authorize("parent")`, `loadFamily`            | The child must be in the family, active and with active consent. The audio is sent to the AI service and never stored. The same `clientAttemptId` returns the saved attempt. |
 
-Automated API tests: object-level tests for children and consents (`tests/api/children-objectlevel.test.js`, `tests/api/consents-objectlevel.test.js`) and audit coverage (`tests/api/audit-coverage.test.js`). Tested by hand in Postman: auth and curriculum. Content workflow: smoke tested. Automated tests for auth, curriculum and content are not written yet.
+Tested by hand in Postman: auth, children (including cross-family access), consent, curriculum. Content workflow: smoke tested.
+
+Automated tests (`apps/api/tests/`): the recitation-attempts route, including another family's child, a child without consent and an anonymous request (`tests/quran/recitation.test.js`); the content review rules for missions (`tests/models/missionContent.test.js`); the audit and child-link model checks. The children, consent, curriculum and content routes have no automated route tests yet.
 
 Not built yet: teacher routes (VAL-007), the admin audit view (FR-ADM-002: platform admin only, paginated, read-only), creating staff accounts through the API (FR-ADM-001), and a limited teacher view of a child (F2).

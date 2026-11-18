@@ -11,7 +11,7 @@ This is the agreement between the API and the AI service. Every model, real or m
 | ---------------------------------------------------------- | --------------------------------------------------------- |
 | `packages/contracts/schemas/recitation_result.schema.json` | **The source of truth** (JSON Schema). Change this first. |
 | `services/ai/app/schemas.py`                               | Pydantic models in the AI service                         |
-| `packages/contracts/src/ai.ts`                             | TypeScript types for the API and web app                  |
+| `packages/contracts/src/ai.ts`                             | zod schema the API checks every reply with, and types     |
 
 If you change the contract, change all three in the same pull request. Tests on both sides fail
 when they drift apart.

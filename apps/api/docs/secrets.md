@@ -1,6 +1,6 @@
 # Secrets Handling (SEC-004)
 
-Last updated: 2026-11-11
+Last updated: 2026-11-18
 
 ## Purpose
 
@@ -8,9 +8,9 @@ This file explains where secrets live, how they are kept out of source control, 
 
 ## Where secrets live
 
-- Secrets live only in `server/.env` on each developer's or server's machine.
+- Secrets live only in `apps/api/.env` on each developer's or server's machine.
 - `.env` and `.env.*` are listed in `.gitignore`, so they are never committed.
-- `server/.env.example` shows the variable names with placeholder values only. It is the only env file that is committed.
+- `apps/api/.env.example` shows the variable names with placeholder values only. It is the only env file that is committed.
 
 ## Current secrets
 
@@ -19,7 +19,9 @@ This file explains where secrets live, how they are kept out of source control, 
 | `DATABASE_PASSWORD` | Password of the MongoDB Atlas database user                                            | `src/config/env.js` |
 | `JWT_SECRET`        | Key used to sign login tokens. Anyone who has it can create a valid token for any user | `src/config/env.js` |
 
-Non-secret settings are kept in the same file for convenience: `NODE_ENV`, `PORT`, `CLIENT_ORIGIN`, `JWT_EXPIRES_IN`, and the `DATABASE` connection string with the `<PASSWORD>` placeholder.
+Non-secret settings are kept in the same file for convenience: `NODE_ENV`, `PORT`, `CLIENT_ORIGIN`, `JWT_EXPIRES_IN`, `AI_SERVICE_URL`, `AI_TIMEOUT_MS`, and the `DATABASE` connection string with the `<PASSWORD>` placeholder.
+
+The AI service (`services/ai`) has no secret: it runs on our own machine and only the API can reach it.
 
 Future secrets (for example the key of an email service) must be added to `.env.example` as names only, and listed in the table above.
 
@@ -42,7 +44,7 @@ Future secrets (for example the key of an email service) must be added to `.env.
 If a secret is shared by mistake (chat, screenshot, commit, log):
 
 1. Replace it: for the database password, change it in MongoDB Atlas (Database Access, edit the user's password). For `JWT_SECRET`, generate a new random value.
-2. Update `server/.env` on every machine that uses it.
+2. Update `apps/api/.env` on every machine that uses it.
 3. Tell the team.
 4. If it was committed to git, treat it as exposed even after the file is deleted, because it stays in the git history.
 
@@ -55,7 +57,7 @@ Secrets should also be rotated when a team member who knew them leaves the proje
 ## Logs
 
 - Never log secrets, tokens, passwords or full request bodies.
-- Audit entries only accept `meta` keys from `ALLOWED_META_KEYS`, and only short text values, for this reason (see `docs/authorization-review.md`).
+- Audit entries only accept `meta` keys from `ALLOWED_META_KEYS`, and only short text values, for this reason (see `authorization-review.md`).
 
 ## Checks before every commit
 
