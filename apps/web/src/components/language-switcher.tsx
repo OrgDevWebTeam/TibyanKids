@@ -25,7 +25,7 @@ export function LanguageSwitcher({ current, label }: LanguageSwitcherProps) {
               lang={locale}
               dir={textDirection(locale)}
               onClick={() => rememberLocale(locale)}
-              className="rounded-md px-2 py-1 text-sm font-medium underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+              className="rounded-md px-2 py-1 text-sm font-medium underline-offset-4 hover:underline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus"
             >
               {LOCALE_NAMES[locale]}
             </Link>

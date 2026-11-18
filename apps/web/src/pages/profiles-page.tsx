@@ -62,7 +62,7 @@ export function Component() {
 }
 
 const CARD_CLASSES =
-  "flex min-h-32 w-full flex-col items-center justify-center gap-2 rounded-control border border-line bg-surface p-4 text-center hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
+  "flex min-h-32 w-full flex-col items-center justify-center gap-2 rounded-control border border-line bg-surface p-4 text-center hover:bg-surface-muted focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
 type ProfileGridProps = {
   profiles: ChildProfile[];
