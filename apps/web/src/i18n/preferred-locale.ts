@@ -11,7 +11,18 @@ export function pickLocale(saved: string | null, languages: readonly string[]): 
   return DEFAULT_LOCALE;
 }
 
-function savedLocale(): string | null {
+/**
+ * The language a page was in, for screens shown when the language itself may have failed to load:
+ * the first segment of the path (/ar or /en), else the saved choice. Undefined when neither says.
+ */
+export function pageLocale(pathname: string, saved: string | null): Locale | undefined {
+  const first = pathname.split("/")[1];
+  if (first && hasLocale(first)) return first;
+  return saved && hasLocale(saved) ? saved : undefined;
+}
+
+/** The language the user picked last, if the browser lets us read it. */
+export function savedLocale(): string | null {
   try {
     return localStorage.getItem(LOCALE_STORAGE_KEY);
   } catch {

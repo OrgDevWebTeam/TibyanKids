@@ -48,11 +48,18 @@ const TEXT_PAIRS: Array<[string, string]> = [
   ["danger", "surface-muted"],
   ["success", "surface"],
   ["success", "surface-muted"],
+  ["warning", "surface"],
+  ["warning", "surface-muted"],
   ["info", "surface"],
   ["info", "surface-muted"],
+  ["on-secondary", "secondary"],
+  ["on-secondary", "secondary-hover"],
+  ["on-secondary", "background"],
 ];
 
 const NON_TEXT_PAIRS: Array<[string, string]> = [
+  ["control-hover", "surface"],
+  ["control-hover", "background"],
   ["focus", "surface"],
   ["focus", "background"],
 ];
@@ -63,8 +70,6 @@ const NON_TEXT_PAIRS: Array<[string, string]> = [
  * system fixes the colour, as a reminder to move the pair back into the lists above.
  */
 const DESIGN_GAPS: Array<[string, string, number]> = [
-  ["warning", "surface", 4.5],
-  ["warning", "surface-muted", 4.5],
   ["control", "surface", 3],
   ["control", "background", 3],
 ];

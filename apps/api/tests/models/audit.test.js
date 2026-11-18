@@ -77,4 +77,48 @@ describe("audit logging", () => {
       /append-only/,
     );
   });
+
+  it("cannot delete an entry with deleteOne()", async () => {
+    const saved = await recordAudit({
+      actor: admin(),
+      action: "role.changed",
+      target: { type: "User", id: newId() },
+    });
+    await assert.rejects(() => AuditEvent.deleteOne({ _id: saved._id }), /append-only/);
+    assert.equal(await AuditEvent.countDocuments({ _id: saved._id }), 1);
+  });
+
+  it("cannot delete entries with deleteMany() or findOneAndDelete()", async () => {
+    const saved = await recordAudit({
+      actor: admin(),
+      action: "role.changed",
+      target: { type: "User", id: newId() },
+    });
+    await assert.rejects(() => AuditEvent.deleteMany({}), /append-only/);
+    await assert.rejects(() => AuditEvent.findOneAndDelete({ _id: saved._id }), /append-only/);
+    assert.equal(await AuditEvent.countDocuments({ _id: saved._id }), 1);
+  });
+
+  it("cannot delete an entry through a loaded document", async () => {
+    const saved = await recordAudit({
+      actor: admin(),
+      action: "role.changed",
+      target: { type: "User", id: newId() },
+    });
+    await assert.rejects(() => saved.deleteOne(), /append-only/);
+    assert.equal(await AuditEvent.countDocuments({ _id: saved._id }), 1);
+  });
+
+  it("cannot delete entries through bulkWrite()", async () => {
+    const saved = await recordAudit({
+      actor: admin(),
+      action: "role.changed",
+      target: { type: "User", id: newId() },
+    });
+    await assert.rejects(
+      () => AuditEvent.bulkWrite([{ deleteOne: { filter: { _id: saved._id } } }]),
+      /append-only/,
+    );
+    assert.equal(await AuditEvent.countDocuments({ _id: saved._id }), 1);
+  });
 });
