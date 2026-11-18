@@ -17,7 +17,7 @@
    - Architecture v3.0 §8.2: later, and only outside the child's path, a small local model may
      reword parent summaries **without adding any new fact**. Not in the prototype; needs a new
      decision (section 2.6).
-   - Everything the agent says to a child is pre-recorded and comes from the approved message
+   - Everything Adeeb, the agent, says to a child is pre-recorded and comes from the approved message
      keys (`safe_messages_v1_1.json`).
 
 2. **AI only scores audio** (AP-11), in three roles, each with one local model (Architecture §3,
@@ -48,6 +48,36 @@
 5. **Everything stays local** (AP-06, SEC-011, NFR-LOCAL-001). Child audio and data never leave our
    machines, are never sent to an outside service, and are never pasted into an AI tool used for
    development (SEC-018).
+
+### 1.1 The agent: Adeeb (أديب) 🔶
+
+🔶 Proposed name, waiting for the qualified religious reviewer (O-04), Ola (child UX) and Mohammad.
+
+- **Name:** Adeeb in English, أديب in Arabic. It means a well-mannered, cultured person, which fits
+  the values the Family Loop teaches (_adab_). The spelling is fixed: not "Adib" or "Addib".
+- **One source for the name:** the web dictionaries (`agent.name` in `apps/web/src/i18n/dictionaries/`).
+  Screens read it from there, never as text written into a component.
+- **Adeeb is a helper, never a teacher.** Never "Sheikh Adeeb", "Ustadh Adeeb" or "Teacher Adeeb", and
+  no line says Adeeb checks or corrects like a teacher does. The licence of the recitation model
+  forbids presenting the checker as a replacement for a teacher (QML 1.0 §2.1, §3 below). When a
+  recitation needs a person, the line names the child's teacher, not Adeeb.
+- **The AI notice keeps its official text** (§3.3). Adeeb's name is not put into it.
+- **Adeeb is not a chatbot.** Adeeb only plays approved, pre-recorded lines (rule 1 above). The child
+  never types or talks to Adeeb, and no screen suggests a conversation.
+- **Grammar and voice:** أديب is a male name. Lines that speak to the child stay gender-neutral
+  ("we", see `docs/ai/tajweed_taxonomy_and_feedback.md` §3). Lines that speak about Adeeb use the
+  male form (يقول أديب). The recorded voice matches a male character.
+- **The recitation feedback stays as it is.** The messages in `safe_messages_v1_1.json` do not use
+  the name; they are already in Adeeb's voice ("Let's listen together"). The AI result and the AI
+  service do not change: they only return message keys.
+
+🔶 Proposed first lines, to add once the name is approved. They are app text, not AI feedback, so
+they go in the web dictionaries and need a recording in both languages:
+
+| Key (proposal)       | English                                         | Arabic (to be written by an Arabic writer, not translated) |
+| -------------------- | ----------------------------------------------- | ---------------------------------------------------------- |
+| `agent.introduction` | Hi, I'm Adeeb! Let's learn together.            | —                                                          |
+| `agent.sessionStart` | Adeeb is ready. Let's start with today's verse. | —                                                          |
 
 ---
 
