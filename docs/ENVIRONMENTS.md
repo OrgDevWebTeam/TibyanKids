@@ -5,7 +5,7 @@ Four environments. **Only production holds real family data.** Everything else u
 | Component                             | Local                                | Development                 | Staging                     | Production                              |
 | ------------------------------------- | ------------------------------------ | --------------------------- | --------------------------- | --------------------------------------- |
 | **Frontend** (`apps/web`, React/Vite) | `pnpm dev`, API at localhost         | Own URL, dev API            | Own URL, staging API        | Own URL, prod API                       |
-| **Backend** (`apps/api`)              | `pnpm --filter @noor/api dev`        | Container, own secrets      | Container, own secrets      | Container, own secrets, manual approval |
+| **Backend** (`apps/api`)              | `pnpm --filter @tibyan/api dev`      | Container, own secrets      | Container, own secrets      | Container, own secrets, manual approval |
 | **MongoDB**                           | Docker Compose, replica set, no auth | Separate Atlas cluster/user | Separate Atlas cluster/user | Separate Atlas cluster/user, backups    |
 | **AI** (`services/ai`)                | Docker Compose, `MOCK_MODE=true`     | Mock mode                   | Real local models           | Real local models, monitored            |
 

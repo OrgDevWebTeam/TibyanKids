@@ -1,4 +1,4 @@
-import { EmptyState, buttonClasses } from "@noor/ui";
+import { EmptyState, buttonClasses } from "@tibyan/ui";
 import { Link } from "react-router";
 import { useI18n } from "@/i18n/locale-data";
 

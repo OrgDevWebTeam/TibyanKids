@@ -1,4 +1,4 @@
-import { Skeleton, SkeletonText } from "@noor/ui";
+import { Skeleton, SkeletonText } from "@tibyan/ui";
 
 // X06 — shown at once while the language and the first screen load, instead of a blank screen.
 export function LoadingPage() {

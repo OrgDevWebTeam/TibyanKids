@@ -1,4 +1,4 @@
-import { Button } from "@noor/ui";
+import { Button } from "@tibyan/ui";
 import { LOCALES, textDirection } from "@/i18n/config";
 import { pageLocale, savedLocale } from "@/i18n/preferred-locale";
 import { ALL_SHELL_TEXT } from "@/i18n/shell-text";

@@ -1,4 +1,4 @@
-import { AlertBanner, Button, Card, SelectField, TextField } from "@noor/ui";
+import { AlertBanner, Button, Card, SelectField, TextField } from "@tibyan/ui";
 import { type FormEvent, useState } from "react";
 import { useNavigate } from "react-router";
 import { PageTitle } from "@/components/page-title";

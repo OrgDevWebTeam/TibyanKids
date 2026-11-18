@@ -1,4 +1,4 @@
-import { SkeletonText } from "@noor/ui";
+import { SkeletonText } from "@tibyan/ui";
 import { Outlet, useNavigation } from "react-router";
 import { type Area } from "@/lib/session/area-access";
 import { ChildModeBar } from "./child-mode-bar";

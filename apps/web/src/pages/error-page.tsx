@@ -1,4 +1,4 @@
-import { Button, EmptyState } from "@noor/ui";
+import { Button, EmptyState } from "@tibyan/ui";
 import { useShellText } from "@/i18n/shell-text";
 
 // X06 — an error inside a page: a calm message and a retry button, under the normal header.

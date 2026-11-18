@@ -1,6 +1,6 @@
-# @noor/ui
+# @tibyan/ui
 
-Design tokens and UI primitives shared by the Noor Academy apps. Every primitive works in Arabic
+Design tokens and UI primitives shared by the Tibyan Kids apps. Every primitive works in Arabic
 (RTL) and English (LTR) without changes.
 
 Sources: Architecture v1.0 section 5.2; UI Screens Spec v0.1; CRS NFR-A11Y-001 and NFR-I18N-001.
@@ -13,14 +13,14 @@ step of its own. In the app's main stylesheet:
 ```css
 /* The tokens, plus the classes the primitives use */
 @import "tailwindcss";
-@import "@noor/ui/styles.css";
+@import "@tibyan/ui/styles.css";
 @source "../../../packages/ui/src";
 ```
 
 And in a component:
 
 ```tsx
-import { Button, TextField } from "@noor/ui";
+import { Button, TextField } from "@tibyan/ui";
 ```
 
 ## Contents
@@ -54,7 +54,7 @@ Primitives take all their text as props, so the app passes it from its dictionar
 ## Commands
 
 ```bash
-pnpm --filter @noor/ui lint
-pnpm --filter @noor/ui typecheck
-pnpm --filter @noor/ui test
+pnpm --filter @tibyan/ui lint
+pnpm --filter @tibyan/ui typecheck
+pnpm --filter @tibyan/ui test
 ```

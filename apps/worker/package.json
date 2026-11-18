@@ -1,5 +1,5 @@
 {
-  "name": "@noor/worker",
+  "name": "@tibyan/worker",
   "version": "0.0.0",
   "private": true,
   "description": "Async jobs and scheduled report execution (placeholder)",
@@ -10,10 +10,10 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@noor/contracts": "workspace:*"
+    "@tibyan/contracts": "workspace:*"
   },
   "devDependencies": {
-    "@noor/config": "workspace:*",
+    "@tibyan/config": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

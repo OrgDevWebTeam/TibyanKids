@@ -13,7 +13,7 @@ from app.schemas import AnalysisResult
 
 COMBINED_MODEL = "combined"
 
-log = logging.getLogger("noor.ai")
+log = logging.getLogger("tibyan.ai")
 
 # One recording at a time, the gate included: two requests at once corrupted Silero VAD and crashed the service
 MODELS_LOCK = threading.Lock()

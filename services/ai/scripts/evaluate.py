@@ -1,4 +1,4 @@
-# One evaluation run (dataset doc, Part B): python scripts/evaluate.py <noor-eval folder> --split dev|test
+# One evaluation run (dataset doc, Part B): python scripts/evaluate.py <tibyan-eval folder> --split dev|test
 import argparse
 import json
 import sys
@@ -92,7 +92,7 @@ def print_tables(report):
 def main():
     """Runs the split, writes runs/<date>-<time>-<split>.json (metrics only) and prints the tables."""
     parser = argparse.ArgumentParser(description="One evaluation run (docs/ai/audio-io-and-eval-dataset.md, B)")
-    parser.add_argument("folder", type=Path, help="the noor-eval folder (B.4)")
+    parser.add_argument("folder", type=Path, help="the tibyan-eval folder (B.4)")
     parser.add_argument("--split", required=True, choices=["dev", "test"])
     args = parser.parse_args()
     folder = args.folder

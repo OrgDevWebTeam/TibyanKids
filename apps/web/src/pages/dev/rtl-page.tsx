@@ -1,4 +1,4 @@
-import { TextField } from "@noor/ui";
+import { TextField } from "@tibyan/ui";
 import { type ReactNode } from "react";
 import { PageTitle } from "@/components/page-title";
 import { formatDate, formatNumber, plural, type PluralForms } from "@/i18n/format";

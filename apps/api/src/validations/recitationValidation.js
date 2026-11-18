@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { RECITATION_LEVELS } from "@noor/contracts";
+import { RECITATION_LEVELS } from "@tibyan/contracts";
 import { oneOf, text } from "./helpers.js";
 
 // The 25 prototype ayat (CRS v3.0, FR-QUR-009): surah -> number of ayat.

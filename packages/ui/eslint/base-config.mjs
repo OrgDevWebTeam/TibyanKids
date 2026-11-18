@@ -40,13 +40,13 @@ export function baseConfig(tsconfigRootDir) {
       // Components must work in Arabic (RTL) and English (LTR), and for assistive technology.
       files: ["src/**/*.tsx"],
       plugins: {
-        noor: { rules: { "no-physical-classes": noPhysicalClasses } },
+        tibyan: { rules: { "no-physical-classes": noPhysicalClasses } },
         "jsx-a11y": jsxA11y,
         "react-hooks": reactHooks,
       },
       rules: {
         ...jsxA11y.flatConfigs.recommended.rules,
-        "noor/no-physical-classes": "error",
+        "tibyan/no-physical-classes": "error",
         "react-hooks/rules-of-hooks": "error",
         "react-hooks/exhaustive-deps": "error",
       },

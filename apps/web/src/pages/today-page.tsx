@@ -1,4 +1,4 @@
-import { EmptyState } from "@noor/ui";
+import { EmptyState } from "@tibyan/ui";
 import { PageTitle } from "@/components/page-title";
 import { useI18n } from "@/i18n/locale-data";
 

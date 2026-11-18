@@ -1,8 +1,8 @@
 {
-  "name": "noor-academy",
+  "name": "tibyan-kids",
   "version": "0.0.0",
   "private": true,
-  "description": "Noor Academy - modular monolith monorepo (web, api, worker, shared packages)",
+  "description": "Tibyan Kids - modular monolith monorepo (web, api, worker, shared packages)",
   "packageManager": "pnpm@9.15.0",
   "engines": {
     "node": ">=22.0.0",

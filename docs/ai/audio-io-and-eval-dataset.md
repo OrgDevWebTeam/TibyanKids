@@ -201,7 +201,7 @@ gate report holds numbers only.
 **Phoneme diagnostics are not logged.** The predicted phonemes of a recitation are a phonetic
 transcript of the child's speech, so they never go to request logs or app telemetry. For error
 analysis (week 6), an offline evaluation run may keep per-recording model output, including phoneme
-detail, only inside the restricted `noor-eval/` folder (B.4), only for recordings whose consent
+detail, only inside the restricted `tibyan-eval/` folder (B.4), only for recordings whose consent
 covers model use (SEC-017).
 
 ---
@@ -243,7 +243,7 @@ covers model use (SEC-017).
 ### B.4 Folder layout (on the GPU machine only)
 
 ```text
-noor-eval/                      restricted, access logged
+tibyan-eval/                      restricted, access logged
 ├── audio/<recordingId>.<ext>   original upload, never edited
 ├── recordings.jsonl            one line per recording (B.5)
 ├── labels.jsonl                one line per word per teacher (B.6)
@@ -327,7 +327,7 @@ because the teacher still checks a sample of accepted ayahs (FR-LIVE-005).
 
 ### B.9 One evaluation run (`runs/*.json`)
 
-Made by `services/ai/scripts/evaluate.py <noor-eval folder> --split dev|test` (the numbers:
+Made by `services/ai/scripts/evaluate.py <tibyan-eval folder> --split dev|test` (the numbers:
 `services/ai/app/evaluation.py`). A test run is refused when `recordings.jsonl` or `labels.jsonl` no
 longer match the SHA-256 values frozen in `splits.json`.
 

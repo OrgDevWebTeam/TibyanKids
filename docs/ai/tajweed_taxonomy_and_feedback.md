@@ -1,6 +1,6 @@
 # Tajweed error taxonomy and safe feedback messages
 
-- **Project:** Noor Academy
+- **Project:** Tibyan Kids
 - **Owner:** Ismail (AI 2: data, tajweed and evaluation)
 - **Version:** v1.3, 2026-11-15 (English version of v1.2: week 1, after the review of PR #12 and the
   quran-muaalem mapping)

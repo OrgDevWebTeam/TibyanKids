@@ -1,4 +1,4 @@
-import { AlertBanner } from "@noor/ui";
+import { AlertBanner } from "@tibyan/ui";
 import { useSyncExternalStore } from "react";
 import { type Locale } from "@/i18n/config";
 import { shellTextFor } from "@/i18n/shell-text";

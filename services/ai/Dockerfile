@@ -1,4 +1,4 @@
-# AI service image for laptops (MOCK_MODE=true). Build from services/ai/: docker build -t noor-ai .
+# AI service image for laptops (MOCK_MODE=true). Build from services/ai/: docker build -t tibyan-ai .
 # It installs the model packages too, because every module imports them at the top; no model is loaded.
 FROM python:3.12-slim
 

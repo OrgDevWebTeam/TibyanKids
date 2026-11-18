@@ -6,7 +6,7 @@
 - Context: The project team decided to use MongoDB instead of PostgreSQL.
 - Decision: MongoDB (managed MongoDB Atlas for staging/production), accessed with **mongoose**.
   The models are in `apps/api/src/Models/`. Local development can use the single-node replica set
-  in Docker Compose (`pnpm --filter @noor/api db:up`); tests start their own throwaway database.
+  in Docker Compose (`pnpm --filter @tibyan/api db:up`); tests start their own throwaway database.
 - Consequences and required safeguards:
   - **Tenant isolation lives in application code.** There are no foreign keys and no row-level
     security. Every child-owned record carries `familyId`, and every lookup uses the family from
