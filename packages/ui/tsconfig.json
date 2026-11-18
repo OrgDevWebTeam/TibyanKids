@@ -1,4 +1,4 @@
 {
-  "extends": "@noor/config/react.json",
+  "extends": "@tibyan/config/react.json",
   "include": ["src"]
 }

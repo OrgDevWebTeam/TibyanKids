@@ -1,4 +1,4 @@
-// Bilingual, RTL-aware UI primitives. Tokens live in ./styles.css (import "@noor/ui/styles.css").
+// Bilingual, RTL-aware UI primitives. Tokens live in ./styles.css (import "@tibyan/ui/styles.css").
 // Rule: logical CSS only (ms-/ps-/text-start), so every primitive works in LTR and RTL.
 
 export { AlertBanner, type AlertBannerProps, type BannerTone } from "./alert-banner";

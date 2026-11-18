@@ -1,4 +1,4 @@
-import { type Role } from "@noor/contracts/roles";
+import { type Role } from "@tibyan/contracts/roles";
 import { useSyncExternalStore } from "react";
 
 /** The signed-in account, as GET /v1/me returns it. */

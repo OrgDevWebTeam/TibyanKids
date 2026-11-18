@@ -8,7 +8,7 @@ import {
   SkeletonText,
   StatusBadge,
   TextField,
-} from "@noor/ui";
+} from "@tibyan/ui";
 import { type ReactNode } from "react";
 import { AccessDenied } from "@/components/access-denied";
 import { PageTitle } from "@/components/page-title";
@@ -106,7 +106,7 @@ export function Component() {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-4 py-8 sm:px-6">
       <PageTitle title="UI kit" />
-      <h1 className="text-2xl font-semibold">UI kit · @noor/ui</h1>
+      <h1 className="text-2xl font-semibold">UI kit · @tibyan/ui</h1>
 
       <Section title="Button">
         <div className="flex flex-wrap items-center gap-3">

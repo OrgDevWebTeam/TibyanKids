@@ -51,4 +51,4 @@ jobs:
           key: mongodb-binaries-${{ runner.os }}-7.0.14
 
       # Includes the cross-family and unassigned-teacher isolation tests (release gate).
-      - run: pnpm --filter @noor/api test:integration
+      - run: pnpm --filter @tibyan/api test:integration

@@ -2,11 +2,12 @@
   "_meta": {
     "version": "1.1-proposal",
     "rules": [
-      "Gender-neutral address: agent sentences are pre-recorded human audio (CRS C-02), and Arabic second-person forms are gendered when spoken. Use we-forms / impersonal forms.",
+      "Gender-neutral address: Adeeb's sentences (the agent) are pre-recorded human audio (CRS C-02), and Arabic second-person forms are gendered when spoken. Use we-forms / impersonal forms.",
       "No claim of mastery or closeness ('متقنة', 'قريب جداً'): the model is preliminary evidence only (AP-04).",
       "Short, one idea per sentence, no grammar terms except the rule name taught in the lesson.",
       "No promise of a date or a class for teacher review (teacher may be unavailable, Arch 8.4).",
-      "The word 'الملوّنة' refers to the highlighted word in SCR-C05; adjust once Ola fixes the highlight style."
+      "The word 'الملوّنة' refers to the highlighted word in SCR-C05; adjust once Ola fixes the highlight style.",
+      "Spoken by Adeeb, the agent (proposal, docs/ai/genai_and_safety_boundaries.md §1.1), but the name is not used in these messages. A message that needs a person names the child's teacher, never Adeeb."
     ]
   },
   "FEEDBACK_CORRECT_EXCELLENT": {

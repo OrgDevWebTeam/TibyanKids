@@ -4,50 +4,53 @@ Every row must be **Done** before production holds real family data. Compare thi
 Section 13.3 of the architecture document and add any gate that is missing.
 
 Status: **Done** = enforced automatically. **Manual** = a person checks and signs below.
+**Partly** = some of it is enforced automatically, the rest is checked by hand.
 **Open** = blocked on a decision or a service that does not exist yet. **N/A** = nothing to protect yet.
 
-| #   | Gate                                                                                                                                                             | How it is verified                                                                                                  | Status                                    |
-| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
-| 1   | One family can never read, list or change another family's child                                                                                                 | `children.repository.int.test.ts`, `api.int.test.ts` (required check: API integration tests)                        | Done                                      |
-| 2   | An unassigned or revoked teacher sees nothing                                                                                                                    | Same integration tests                                                                                              | Done                                      |
-| 3   | Anonymous requests get 401, a wrong role gets 403                                                                                                                | `app.test.ts`, `middleware.test.ts`, `api.int.test.ts`                                                              | Done                                      |
-| 4   | Staff cannot use the API without MFA                                                                                                                             | Tests prove the check. The chosen identity provider must emit the MFA claim (`amr`), see `apps/api/src/auth/mfa.ts` | Open until an identity provider is chosen |
-| 5   | No known high or critical dependency vulnerabilities                                                                                                             | `Dependency audit` (required check)                                                                                 | Done                                      |
-| 6   | No secrets in the repository                                                                                                                                     | `Secret scan`, GitHub push protection                                                                               | Done                                      |
-| 7   | Code scanning shows no high-severity findings                                                                                                                    | `CodeQL analysis`                                                                                                   | Done                                      |
-| 8   | Production refuses an unsafe configuration (local database, no TLS, no identity provider, debug logs)                                                            | `env.test.ts`, `Container build` check                                                                              | Done                                      |
-| 9   | The container runs as non-root and contains no `.env` file                                                                                                       | `apps/api/Dockerfile`, `.dockerignore`                                                                              | Done                                      |
-| 10  | Sensitive actions create audit events                                                                                                                            | Child creation is tested. PIN events are checked in the manual drill                                                | Manual                                    |
-| 11  | No child personal data in logs or URLs                                                                                                                           | Manual check A below                                                                                                | Manual                                    |
-| 12  | A backup can be restored                                                                                                                                         | Manual drill B below, then repeat on the real production database                                                   | Manual                                    |
-| 13  | No publicly readable storage                                                                                                                                     | Nothing is stored yet. Becomes a gate when audio storage is added                                                   | N/A                                       |
-| 14  | Every user, children included, sees the QML AI notice before first use of recitation checking, and can reach it afterwards                                       | Manual check C below. Licence: `quran-muaalem` QML 1.0 §2.1 (`docs/ai/genai_and_safety_boundaries.md` §3)           | Open until the notice screen exists       |
-| 15  | No advertisements, ad code, ad attribution or ad tracking anywhere in the product                                                                                | Manual check D below. QML 1.0 §2.3(a)                                                                               | Manual                                    |
-| 16  | If any fee is charged: automatic free access in World Bank low and lower-middle income economies, and a self-declaration path for anyone, visible before payment | QML 1.0 §2.3(b). Becomes a gate when payments are added (out of the prototype, A-005)                               | N/A                                       |
-| 17  | Every copy of the AI service given to others (for example a container image) carries the QML `LICENSE` in full and its `NOTICE`                                  | QML 1.0 §2.4, Apache-2.0 §4. The pilot runs on our own machine, nothing is given out yet                            | N/A                                       |
-| 18  | Use of recitation checking follows the rulings of Islamic Sharia                                                                                                 | Sign-off by the qualified religious reviewer (O-04). QML 1.0 §2.2                                                   | Manual                                    |
-| 19  | A licence breach is fixed within 30 days of notice or of becoming aware of it                                                                                    | Owner named in the risk register. QML 1.0 §2.5: otherwise the licence ends automatically                            | Manual                                    |
+| #   | Gate                                                                                                                                                             | How it is verified                                                                                                                                                                                        | Status                              |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| 1   | One family can never read, list or change another family's child                                                                                                 | Model check: `tests/models/childLinked.test.js`. Route: `tests/quran/recitation.test.js` (another family's child). Children and consent routes: checked by hand (`apps/api/docs/authorization-review.md`) | Partly                              |
+| 2   | An unassigned or revoked teacher sees nothing                                                                                                                    | No teacher routes yet. Becomes a gate when they are added (`TeacherAssignment.isAssigned`)                                                                                                                | N/A                                 |
+| 3   | Anonymous requests get 401, a wrong role gets 403                                                                                                                | 401: `Container build` check and `tests/quran/recitation.test.js`. 403: `authorize` middleware, no automated test yet                                                                                     | Partly                              |
+| 4   | Staff cannot use the API without MFA                                                                                                                             | Staff sign in with email and password like parents. Needs a decision on MFA (ADR-0006)                                                                                                                    | Open until MFA is decided           |
+| 5   | No known high or critical dependency vulnerabilities                                                                                                             | `Dependency audit` (required check)                                                                                                                                                                       | Done                                |
+| 6   | No secrets in the repository                                                                                                                                     | `Secret scan`, GitHub push protection                                                                                                                                                                     | Done                                |
+| 7   | Code scanning shows no high-severity findings                                                                                                                    | `CodeQL analysis`                                                                                                                                                                                         | Done                                |
+| 8   | Production refuses an unsafe configuration (local database, no TLS, debug logs)                                                                                  | `apps/api/src/config/env.js` and the `Container build` check refuse a missing database or a short `JWT_SECRET`. Local database and TLS are not checked yet                                                | Partly                              |
+| 9   | The container runs as non-root and contains no `.env` file                                                                                                       | `apps/api/Dockerfile`, `.dockerignore`                                                                                                                                                                    | Done                                |
+| 10  | Sensitive actions create audit events                                                                                                                            | Consent changes, publishing and denied access write events (`apps/api/src/utils/audit.js`); the audit model is tested (`tests/models/audit.test.js`). Check the events by hand                            | Manual                              |
+| 11  | No child personal data in logs or URLs                                                                                                                           | Manual check A below                                                                                                                                                                                      | Manual                              |
+| 12  | A backup can be restored                                                                                                                                         | Manual drill B below, then repeat on the real production database                                                                                                                                         | Manual                              |
+| 13  | No publicly readable storage                                                                                                                                     | Nothing is stored yet. Becomes a gate when audio storage is added                                                                                                                                         | N/A                                 |
+| 14  | Every user, children included, sees the QML AI notice before first use of recitation checking, and can reach it afterwards                                       | Manual check C below. Licence: `quran-muaalem` QML 1.0 §2.1 (`docs/ai/genai_and_safety_boundaries.md` §3)                                                                                                 | Open until the notice screen exists |
+| 15  | No advertisements, ad code, ad attribution or ad tracking anywhere in the product                                                                                | Manual check D below. QML 1.0 §2.3(a)                                                                                                                                                                     | Manual                              |
+| 16  | If any fee is charged: automatic free access in World Bank low and lower-middle income economies, and a self-declaration path for anyone, visible before payment | QML 1.0 §2.3(b). Becomes a gate when payments are added (out of the prototype, A-005)                                                                                                                     | N/A                                 |
+| 17  | Every copy of the AI service given to others (for example a container image) carries the QML `LICENSE` in full and its `NOTICE`                                  | QML 1.0 §2.4, Apache-2.0 §4. The pilot runs on our own machine, nothing is given out yet                                                                                                                  | N/A                                 |
+| 18  | Use of recitation checking follows the rulings of Islamic Sharia                                                                                                 | Sign-off by the qualified religious reviewer (O-04). QML 1.0 §2.2                                                                                                                                         | Manual                              |
+| 19  | A licence breach is fixed within 30 days of notice or of becoming aware of it                                                                                    | Owner named in the risk register. QML 1.0 §2.5: otherwise the licence ends automatically                                                                                                                  | Manual                              |
 
 ## Manual check A: no child data in logs
 
-1. Start the API: `pnpm --filter @noor/api start:local *> api.log`
-2. In another window, create a child with the display name `Zzqx-Test`, then stop the API (Ctrl+C).
+1. Start the API: `pnpm --filter @tibyan/api start:local *> api.log`
+2. In another window, create a child with the name `Zzqx-Test` (`POST /api/v1/children`), then stop
+   the API (Ctrl+C).
 3. Run `Select-String -Path api.log -Pattern "Zzqx-Test"`. It must find nothing.
 4. Delete `api.log`. Do not commit it.
 
 ## Manual drill B: backup and restore
 
-With local test data present:
+On a test database with synthetic data only (never production). `$uri` is that database's
+connection string with the password filled in. Mongoose names the audit collection `auditevents`.
 
 ```powershell
-docker exec noor-mongo mongosh --quiet --eval "db.getSiblingDB('noor_local').audit_events.countDocuments()"
-docker exec noor-mongo mongodump --db noor_local --archive=/tmp/noor.archive
-docker exec noor-mongo mongosh --quiet --eval "db.getSiblingDB('noor_local').dropDatabase()"
-docker exec noor-mongo mongorestore --archive=/tmp/noor.archive --nsInclude="noor_local.*"
-docker exec noor-mongo mongosh --quiet --eval "db.getSiblingDB('noor_local').audit_events.countDocuments()"
+mongosh $uri --quiet --eval "db.auditevents.countDocuments()"
+mongodump --uri $uri --archive=tibyan.archive
+mongosh $uri --quiet --eval "db.dropDatabase()"
+mongorestore --uri $uri --archive=tibyan.archive
+mongosh $uri --quiet --eval "db.auditevents.countDocuments()"
 ```
 
-The first and last counts must match.
+The first and last counts must match. Delete `tibyan.archive` afterwards. Do not commit it.
 
 **Production note:** MongoDB Atlas free clusters have no automated backups and run on shared
 hardware. Real family data needs a paid tier with backups. Repeat this drill against a restored
@@ -85,8 +88,8 @@ Official text (QML 1.0 §2.1(b), also in the package's `NOTICE` file):
 QML 1.0 §2.3(a) applies whether or not the product is commercial. General analytics and crash
 reporting are allowed only if they are not used for advertising.
 
-1. List the web app's and the API's production dependencies (`pnpm --filter @noor/web list --prod`,
-   `pnpm --filter @noor/api list --prod`) and the scripts the built web app loads. None may serve
+1. List the web app's and the API's production dependencies (`pnpm --filter @tibyan/web list --prod`,
+   `pnpm --filter @tibyan/api list --prod`) and the scripts the built web app loads. None may serve
    ads, measure ad conversions, or track users across apps or sites.
 2. Open the built app with the browser's network panel: no request goes to an advertising or
    ad-attribution domain.
@@ -97,7 +100,10 @@ reporting are allowed only if they are not used for advertising.
 
 | Gate | Checked by | Date | Notes |
 | ---- | ---------- | ---- | ----- |
+| 1    |            |      |       |
+| 3    |            |      |       |
 | 4    |            |      |       |
+| 8    |            |      |       |
 | 10   |            |      |       |
 | 11   |            |      |       |
 | 12   |            |      |       |

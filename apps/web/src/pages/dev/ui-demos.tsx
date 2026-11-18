@@ -1,4 +1,4 @@
-import { Button, Dialog, PinPad } from "@noor/ui";
+import { Button, Dialog, PinPad } from "@tibyan/ui";
 import { useState } from "react";
 
 type DialogDemoLabels = {

@@ -138,7 +138,7 @@ def test_one_json_log_line_with_numbers_and_codes_only(monkeypatch, caplog):
     whisper = fake_model("whisper-quran", [make_finding(4, "ERR_MEM_OMISSION", 0.3, 0, 0)])
     use_models(monkeypatch, fake_model("quran-muaalem", [make_finding(4, "ERR_PRON_LETTER_SUB", 0.0, 0, 0)]), whisper)
 
-    with caplog.at_level(logging.INFO, logger="noor.ai"):
+    with caplog.at_level(logging.INFO, logger="tibyan.ai"):
         analyze()
 
     assert len(caplog.records) == 1
@@ -155,7 +155,7 @@ def test_one_json_log_line_with_numbers_and_codes_only(monkeypatch, caplog):
 def test_a_failed_request_is_logged_too(monkeypatch, caplog):
     use_models(monkeypatch, fake_model("quran-muaalem", error=RuntimeError("CUDA error")))
 
-    with caplog.at_level(logging.INFO, logger="noor.ai"), pytest.raises(pipeline.ModelFailed):
+    with caplog.at_level(logging.INFO, logger="tibyan.ai"), pytest.raises(pipeline.ModelFailed):
         analyze()
 
     entry = json.loads(caplog.records[0].getMessage())

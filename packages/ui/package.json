@@ -1,5 +1,5 @@
 {
-  "name": "@noor/ui",
+  "name": "@tibyan/ui",
   "version": "0.0.0",
   "private": true,
   "description": "Bilingual, RTL-aware UI primitives and design tokens",
@@ -21,7 +21,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.15.0",
-    "@noor/config": "workspace:*",
+    "@tibyan/config": "workspace:*",
     "@types/node": "catalog:",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",

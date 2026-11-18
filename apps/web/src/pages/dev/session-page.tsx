@@ -1,4 +1,4 @@
-import { AlertBanner, Button, TextField } from "@noor/ui";
+import { AlertBanner, Button, TextField } from "@tibyan/ui";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { PageTitle } from "@/components/page-title";
@@ -57,7 +57,7 @@ const TEXT: Record<
   },
 };
 
-const DEV_IDP_COMMAND = "pnpm --filter @noor/api dev:idp";
+const DEV_IDP_COMMAND = "pnpm --filter @tibyan/api dev:idp";
 
 async function requestTestToken(subject: string): Promise<string | undefined> {
   try {

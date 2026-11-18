@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Build from the repository root:
-#   docker build -f apps/api/Dockerfile -t noor-api .
+#   docker build -f apps/api/Dockerfile -t tibyan-api .
 
 FROM node:22-slim AS build
 ENV HUSKY=0
@@ -9,9 +9,9 @@ WORKDIR /repo
 COPY . .
 RUN pnpm install --frozen-lockfile
 # The shared contract (the AI result zod schema) is compiled TypeScript: build it first.
-RUN pnpm --filter @noor/contracts build
+RUN pnpm --filter @tibyan/contracts build
 # Standalone folder with production dependencies only.
-RUN pnpm --filter @noor/api deploy --prod /out
+RUN pnpm --filter @tibyan/api deploy --prod /out
 
 FROM node:22-slim AS runtime
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=5000

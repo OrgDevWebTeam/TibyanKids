@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build image
-        run: docker build -f apps/api/Dockerfile -t noor-api:ci .
+        run: docker build -f apps/api/Dockerfile -t tibyan-api:ci .
 
       - name: Runs and answers health checks
         run: |
@@ -30,7 +30,7 @@ jobs:
             -e DATABASE='mongodb://ci:<PASSWORD>@127.0.0.1:1/ci' \
             -e DATABASE_PASSWORD=ci-password \
             -e JWT_SECRET=ci-only-secret-at-least-32-characters-long \
-            noor-api:ci
+            tibyan-api:ci
           ok=0
           for i in $(seq 1 30); do
             if curl -fsS http://127.0.0.1:5000/api/v1/health; then ok=1; break; fi
@@ -50,7 +50,7 @@ jobs:
           # Production with a missing/short secret and no database: the app must refuse to start.
           if docker run --rm \
             -e NODE_ENV=production -e JWT_SECRET=short \
-            noor-api:ci; then
+            tibyan-api:ci; then
             echo "The container started with an invalid production configuration"
             exit 1
           fi

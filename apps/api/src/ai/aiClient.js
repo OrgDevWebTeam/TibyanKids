@@ -10,7 +10,7 @@
 //   { kind: "fallback", result, failure }   it was down, slow or wrong: an "uncertain" result to
 //                                           save, so the session goes on and the teacher sees it
 //   { kind: "record_again", code }          the audio cannot be read: not an attempt (VAL-014)
-import { aiFallbackResult, aiResultSchema } from "@noor/contracts";
+import { aiFallbackResult, aiResultSchema } from "@tibyan/contracts";
 
 // The AI service's codes for audio it cannot read (docs/contracts/ai-result.md, "Errors")
 export const AUDIO_ERROR_CODES = ["EMPTY_AUDIO", "DECODE_FAILED", "DECODE_TIMEOUT"];

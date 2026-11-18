@@ -1,4 +1,4 @@
-import { baseConfig } from "@noor/ui/eslint/base-config";
+import { baseConfig } from "@tibyan/ui/eslint/base-config";
 import { defineConfig, globalIgnores } from "eslint/config";
 import react from "eslint-plugin-react";
 

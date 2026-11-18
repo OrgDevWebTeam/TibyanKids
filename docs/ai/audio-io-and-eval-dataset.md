@@ -58,8 +58,9 @@
 ### A.1 Path of one recording
 
 1. The browser records one ayah with `MediaRecorder` (Osama).
-2. The API receives it on `POST /api/v1/attempts`, checks type and size, saves it in the private
-   folder with a random name, and sends it to the AI service (Ahmad).
+2. The API receives it on `POST /api/v1/children/:id/recitation-attempts`, checks the child's
+   consent, the type and the size, and sends it to the AI service (Ahmad). The audio is kept in
+   memory only and is not stored (retention: OD-04).
 3. The AI service converts it, runs the quality gate, runs the models, and returns one result in
    the contract format (Qussai).
 4. The API saves the result inside the attempt and returns it to the browser in the same request.
@@ -200,7 +201,7 @@ gate report holds numbers only.
 **Phoneme diagnostics are not logged.** The predicted phonemes of a recitation are a phonetic
 transcript of the child's speech, so they never go to request logs or app telemetry. For error
 analysis (week 6), an offline evaluation run may keep per-recording model output, including phoneme
-detail, only inside the restricted `noor-eval/` folder (B.4), only for recordings whose consent
+detail, only inside the restricted `tibyan-eval/` folder (B.4), only for recordings whose consent
 covers model use (SEC-017).
 
 ---
@@ -242,7 +243,7 @@ covers model use (SEC-017).
 ### B.4 Folder layout (on the GPU machine only)
 
 ```text
-noor-eval/                      restricted, access logged
+tibyan-eval/                      restricted, access logged
 ├── audio/<recordingId>.<ext>   original upload, never edited
 ├── recordings.jsonl            one line per recording (B.5)
 ├── labels.jsonl                one line per word per teacher (B.6)
@@ -326,7 +327,7 @@ because the teacher still checks a sample of accepted ayahs (FR-LIVE-005).
 
 ### B.9 One evaluation run (`runs/*.json`)
 
-Made by `services/ai/scripts/evaluate.py <noor-eval folder> --split dev|test` (the numbers:
+Made by `services/ai/scripts/evaluate.py <tibyan-eval folder> --split dev|test` (the numbers:
 `services/ai/app/evaluation.py`). A test run is refused when `recordings.jsonl` or `labels.jsonl` no
 longer match the SHA-256 values frozen in `splits.json`.
 

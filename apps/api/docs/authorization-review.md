@@ -1,7 +1,7 @@
 # Authorization Review
 
-Date: 2026-11-09 (updated 2026-11-17)
-Scope: models in `apps/api/src/Models` and routes in `apps/api/src/routes`, reviewed against `docs/authorization-matrix.md`.
+Date: 2026-11-09 (updated 2026-11-18)
+Scope: models in `apps/api/src/Models` and routes in `apps/api/src/routes`, reviewed against `authorization-matrix.md`.
 Not yet reviewed or built: teacher routes and creating staff accounts through the API. A second pass is needed when they exist.
 
 ## Findings
@@ -33,9 +33,8 @@ Not yet reviewed or built: teacher routes and creating staff accounts through th
 - `meta` may only use keys from `ALLOWED_META_KEYS` (`fromRole`, `toRole`, `reason`, `requestId`, `field`). Every value must be text of at most 200 characters. This stops secrets from being stored in a log that cannot be edited.
 - Consent changes and publishing write the audit event in the same transaction as the change. If the audit event fails, the change is not saved.
 - Denied role checks (`authorize` middleware) and self-approval of content are written as `access.denied` with result `denied`. If writing that event fails, the request is still denied.
-- When a parent asks for another family's child, the answer is still 404, and an `access.denied` event is written (children and consent routes). Asking for a child that does not exist is not logged.
-- Deleting audit entries is blocked in the application. Only a retention job may delete them, and that job is not built yet. Deployed environments also need a database user with insert-only rights on the audit collection (ADR-0003).
-- Tests: `tests/models/audit.test.js`, `tests/models/childLinked.test.js` and the API tests in `tests/api/` (audit coverage, and object-level tests for children and consents). Run them with `pnpm --filter @noor/api test`.
+- Deleting audit entries is not blocked in the model. Only a retention job may delete them, and that job is not built yet.
+- Tests: `tests/models/audit.test.js` and `tests/models/childLinked.test.js` (run with `pnpm --filter @tibyan/api test`).
 
 ## Route-level review
 
@@ -53,7 +52,10 @@ Not yet reviewed or built: teacher routes and creating staff accounts through th
 | `/content/:id/new-version`, `/content/:id/versions`         | `authorize("content_admin", "platform_admin")` to make a version. Reading the history also allows `reviewer`      | Only published content can get a new version, and only one version can be in progress. The new draft copies the content but not the approval, so review-required content is approved again. Publishing it archives the old version.                                                                                                                                                                             |
 | `/content/:id/approve`                                      | `authorize("reviewer", "platform_admin")`                                                                         | The creator cannot approve their own content. The attempt is denied and logged.                                                                                                                                                                                                                                                                                                                                 |
 | `GET /admin/audit-events`                                   | `authenticate`, `authorize("platform_admin")`, general rate limit                                                 | Read-only (no route changes or deletes an event), newest first, paginated (at most 100 per page), filters by action, result, actor, target and dates. Unknown or invalid filters give 400. A refused request is logged. `GET /admin/audit-events/export` gives the same filters as a CSV file (at most 5000 rows, cells that start like a formula are kept as text) and writes an `audit.exported` event first. |
+| `POST /children/:id/recitation-attempts`                    | `authenticate`, `authorize("parent")`, `loadFamily`                                                               | The child must be in the family, active and with active consent. The audio is sent to the AI service and never stored. The same `clientAttemptId` returns the saved attempt.                                                                                                                                                                                                                                    |
 
-Automated API tests: object-level tests for children and consents (`tests/api/children-objectlevel.test.js`, `tests/api/consents-objectlevel.test.js`) and audit coverage (`tests/api/audit-coverage.test.js`). Tested by hand in Postman: auth and curriculum. Content workflow: smoke tested. Automated tests for auth, curriculum and content are not written yet.
+Tested by hand in Postman: auth, children (including cross-family access), consent, curriculum. Content workflow: smoke tested.
+
+Automated tests (`apps/api/tests/`): the recitation-attempts route, including another family's child, a child without consent and an anonymous request (`tests/quran/recitation.test.js`); the content review rules for missions (`tests/models/missionContent.test.js`); the audit and child-link model checks. The children, consent, curriculum and content routes have no automated route tests yet.
 
 Not built yet: teacher routes (VAL-007), creating staff accounts through the API (FR-ADM-001), and a limited teacher view of a child (F2).

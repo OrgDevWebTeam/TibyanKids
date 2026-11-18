@@ -1,13 +1,16 @@
-# Noor Academy
+# Tibyan Kids
 
-MERN monorepo for the Noor Academy prototype: MongoDB, Express, React, Node.js (TypeScript).
+MERN monorepo for the Tibyan Kids (تبيان كيدز) prototype: MongoDB, Express, React, Node.js.
+The web app and the shared packages are TypeScript; the API is JavaScript.
 
 ## Layout
 
 | Path                 | Purpose                                                  |
 | -------------------- | -------------------------------------------------------- |
 | `apps/web`           | React (Vite) PWA, bilingual, RTL/LTR                     |
-| `apps/api`           | Express API                                              |
+| `apps/api`           | Express API (JavaScript, mongoose)                       |
+| `apps/worker`        | Background jobs (placeholder, nothing runs yet)          |
+| `services/ai`        | Python AI service that checks Quran recitation           |
 | `packages/contracts` | Shared types and schemas (locales, AI result, telemetry) |
 | `packages/ui`        | Bilingual/RTL UI primitives and design tokens            |
 | `packages/config`    | Shared TypeScript presets                                |
@@ -32,8 +35,8 @@ pnpm check                                 # format, lint, typecheck, test, buil
 ## Run locally
 
 ```bash
-pnpm --filter @noor/api dev    # API on http://localhost:5000 (routes under /api/v1)
-pnpm --filter @noor/web dev    # web on http://localhost:3000
+pnpm --filter @tibyan/api dev    # API on http://localhost:5000 (routes under /api/v1)
+pnpm --filter @tibyan/web dev    # web on http://localhost:3000
 ```
 
 ## Commands
