@@ -1,51 +1,63 @@
 /*
- * Noor design tokens, from the design system (Figma "Noor Academy Design System", KAN-7):
- * change a value here and every screen follows.
+ * Tibyan Kids design tokens, from the design system (Figma "Tibyan kids": Foundations, the
+ * Light theme semantic tokens): change a value here and every screen follows.
  *
  * Components never use raw colours. They use the Tailwind utilities generated from these
  * names (bg-surface, text-ink, border-control, rounded-control, min-h-control...).
  * A unit test checks the text and control colours against WCAG 2.2 AA contrast.
  *
- * The values follow the design system as it is. Two of them are under WCAG AA for now: control
- * borders (Border, #d2d2d2, is 1.5:1 and a control needs 3:1) and warning text (Warning,
- * #e2a23e, is 2.2:1 and text needs 4.5:1). The test lists them as known gaps until the design
- * system changes them. Info has no colour in the design system yet and keeps its earlier value.
+ * The values follow the design system as it is. One of them is under WCAG AA for now: input
+ * borders (border/default, #d9d5ea, is 1.4:1 and a control needs 3:1). The test lists it as a
+ * known gap until the design system changes it.
  */
 
 :root {
-  /* Core / Surface: cards, inputs and dialogs. */
-  --noor-surface: #fdfdfd;
-  /* Core / Background: the page behind them. */
-  --noor-background: #fbf8f3;
-  /* Primary / Light: hover states and tinted areas. */
-  --noor-surface-muted: #e6f6f4;
-  /* Text primary and Text secondary. */
-  --noor-ink: #2a2420;
-  --noor-ink-muted: #6b6056;
-  /* Text & Border / Border: decorative lines (cards, dividers) and disabled buttons. */
-  --noor-line: #d2d2d2;
-  /* Text & Border / Border too: input boxes, and a field's label and placeholder before it is used. */
-  --noor-control: #d2d2d2;
-  /*
-   * Primary / Dark and its hover and active shades, as on the design's buttons. White text on
-   * Primary / Normal (#00a991) is under 3:1, so that shade is not used behind text.
-   */
-  --noor-primary: #007f6d;
-  --noor-primary-hover: #006557;
-  --noor-primary-active: #004c41;
+  /* bg/surface: cards, inputs and dialogs. */
+  --noor-surface: #ffffff;
+  /* bg/canvas: the page behind them. */
+  --noor-background: #f5f2ff;
+  /* bg/sunken: tinted areas and loading placeholders. */
+  --noor-surface-muted: #eeebf7;
+  /* text/primary, text/secondary and text/disabled. */
+  --noor-ink: #1a1238;
+  --noor-ink-muted: #5e5880;
+  --noor-ink-disabled: #9c97b8;
+  /* border/subtle: decorative lines (cards, dividers), and action/disabled behind disabled buttons. */
+  --noor-line: #eeebf7;
+  /* border/default and border/strong: an input box, and the same box on hover. */
+  --noor-control: #d9d5ea;
+  --noor-control-hover: #7c779c;
+  /* action/primary with its hover, pressed and edge shades, and text/onPrimary. */
+  --noor-primary: #5b2eff;
+  --noor-primary-hover: #5027ea;
+  --noor-primary-active: #4520d6;
+  --noor-primary-edge: #4520d6;
   --noor-on-primary: #ffffff;
-  /* Status / Error, Status / Success and Status / Warning. */
-  --noor-danger: #be3a30;
-  --noor-success: #1f7a3d;
-  --noor-warning: #e2a23e;
-  --noor-info: #0b63c9;
-  --noor-focus: #007f6d;
+  /* action/secondary with its hover and edge, and action/secondaryText. */
+  --noor-secondary: #e9e4ff;
+  --noor-secondary-hover: #c1baff;
+  --noor-secondary-edge: #c1baff;
+  --noor-on-secondary: #4520d6;
+  /* The text shade of each feedback colour: error, success, warning and info. */
+  --noor-danger: #b4232b;
+  --noor-success: #0f7a52;
+  --noor-warning: #8a5a00;
+  --noor-info: #1f5fd1;
+  /* focus/ring. */
+  --noor-focus: #5b2eff;
 
+  /* radius/md for inputs and cards, radius/xl for buttons. */
   --noor-radius: 0.75rem;
-  /* Body: 18px. */
-  --noor-text-body: 1.125rem;
-  /* At least 44px, the minimum touch target. */
-  --noor-control-height: 2.75rem;
+  --noor-radius-button: 1.25rem;
+  /* Body: 16px in English. Arabic styles are about 1.3x the Latin size (see below). */
+  --noor-text-body: 1rem;
+  /* Inputs and buttons are 64px tall in the design, above the 44px minimum touch target. */
+  --noor-control-height: 4rem;
+}
+
+/* Body in Arabic: 21px. */
+:root[lang="ar"] {
+  --noor-text-body: 1.3125rem;
 }
 
 @theme inline {
@@ -54,12 +66,19 @@
   --color-surface-muted: var(--noor-surface-muted);
   --color-ink: var(--noor-ink);
   --color-ink-muted: var(--noor-ink-muted);
+  --color-ink-disabled: var(--noor-ink-disabled);
   --color-line: var(--noor-line);
   --color-control: var(--noor-control);
+  --color-control-hover: var(--noor-control-hover);
   --color-primary: var(--noor-primary);
   --color-primary-hover: var(--noor-primary-hover);
   --color-primary-active: var(--noor-primary-active);
+  --color-primary-edge: var(--noor-primary-edge);
   --color-on-primary: var(--noor-on-primary);
+  --color-secondary: var(--noor-secondary);
+  --color-secondary-hover: var(--noor-secondary-hover);
+  --color-secondary-edge: var(--noor-secondary-edge);
+  --color-on-secondary: var(--noor-on-secondary);
   --color-danger: var(--noor-danger);
   --color-success: var(--noor-success);
   --color-warning: var(--noor-warning);
@@ -67,6 +86,7 @@
   --color-focus: var(--noor-focus);
 
   --radius-control: var(--noor-radius);
+  --radius-button: var(--noor-radius-button);
   --text-body: var(--noor-text-body);
   --spacing-control: var(--noor-control-height);
 }
