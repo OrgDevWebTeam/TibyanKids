@@ -13,80 +13,80 @@
 
 :root {
   /* bg/surface: cards, inputs and dialogs. */
-  --noor-surface: #ffffff;
+  --tibyan-surface: #ffffff;
   /* bg/canvas: the page behind them. */
-  --noor-background: #f5f2ff;
+  --tibyan-background: #f5f2ff;
   /* bg/sunken: tinted areas and loading placeholders. */
-  --noor-surface-muted: #eeebf7;
+  --tibyan-surface-muted: #eeebf7;
   /* text/primary, text/secondary and text/disabled. */
-  --noor-ink: #1a1238;
-  --noor-ink-muted: #5e5880;
-  --noor-ink-disabled: #9c97b8;
+  --tibyan-ink: #1a1238;
+  --tibyan-ink-muted: #5e5880;
+  --tibyan-ink-disabled: #9c97b8;
   /* border/subtle: decorative lines (cards, dividers), and action/disabled behind disabled buttons. */
-  --noor-line: #eeebf7;
+  --tibyan-line: #eeebf7;
   /* border/default and border/strong: an input box, and the same box on hover. */
-  --noor-control: #d9d5ea;
-  --noor-control-hover: #7c779c;
+  --tibyan-control: #d9d5ea;
+  --tibyan-control-hover: #7c779c;
   /* action/primary with its hover, pressed and edge shades, and text/onPrimary. */
-  --noor-primary: #5b2eff;
-  --noor-primary-hover: #5027ea;
-  --noor-primary-active: #4520d6;
-  --noor-primary-edge: #4520d6;
-  --noor-on-primary: #ffffff;
+  --tibyan-primary: #5b2eff;
+  --tibyan-primary-hover: #5027ea;
+  --tibyan-primary-active: #4520d6;
+  --tibyan-primary-edge: #4520d6;
+  --tibyan-on-primary: #ffffff;
   /* action/secondary with its hover and edge, and action/secondaryText. */
-  --noor-secondary: #e9e4ff;
-  --noor-secondary-hover: #c1baff;
-  --noor-secondary-edge: #c1baff;
-  --noor-on-secondary: #4520d6;
+  --tibyan-secondary: #e9e4ff;
+  --tibyan-secondary-hover: #c1baff;
+  --tibyan-secondary-edge: #c1baff;
+  --tibyan-on-secondary: #4520d6;
   /* The text shade of each feedback colour: error, success, warning and info. */
-  --noor-danger: #b4232b;
-  --noor-success: #0f7a52;
-  --noor-warning: #8a5a00;
-  --noor-info: #1f5fd1;
+  --tibyan-danger: #b4232b;
+  --tibyan-success: #0f7a52;
+  --tibyan-warning: #8a5a00;
+  --tibyan-info: #1f5fd1;
   /* focus/ring. */
-  --noor-focus: #5b2eff;
+  --tibyan-focus: #5b2eff;
 
   /* radius/md for inputs and cards, radius/xl for buttons. */
-  --noor-radius: 0.75rem;
-  --noor-radius-button: 1.25rem;
+  --tibyan-radius: 0.75rem;
+  --tibyan-radius-button: 1.25rem;
   /* Body: 16px in English. Arabic styles are about 1.3x the Latin size (see below). */
-  --noor-text-body: 1rem;
+  --tibyan-text-body: 1rem;
   /* Inputs and buttons are 64px tall in the design, above the 44px minimum touch target. */
-  --noor-control-height: 4rem;
+  --tibyan-control-height: 4rem;
 }
 
 /* Body in Arabic: 21px. */
 :root[lang="ar"] {
-  --noor-text-body: 1.3125rem;
+  --tibyan-text-body: 1.3125rem;
 }
 
 @theme inline {
-  --color-surface: var(--noor-surface);
-  --color-background: var(--noor-background);
-  --color-surface-muted: var(--noor-surface-muted);
-  --color-ink: var(--noor-ink);
-  --color-ink-muted: var(--noor-ink-muted);
-  --color-ink-disabled: var(--noor-ink-disabled);
-  --color-line: var(--noor-line);
-  --color-control: var(--noor-control);
-  --color-control-hover: var(--noor-control-hover);
-  --color-primary: var(--noor-primary);
-  --color-primary-hover: var(--noor-primary-hover);
-  --color-primary-active: var(--noor-primary-active);
-  --color-primary-edge: var(--noor-primary-edge);
-  --color-on-primary: var(--noor-on-primary);
-  --color-secondary: var(--noor-secondary);
-  --color-secondary-hover: var(--noor-secondary-hover);
-  --color-secondary-edge: var(--noor-secondary-edge);
-  --color-on-secondary: var(--noor-on-secondary);
-  --color-danger: var(--noor-danger);
-  --color-success: var(--noor-success);
-  --color-warning: var(--noor-warning);
-  --color-info: var(--noor-info);
-  --color-focus: var(--noor-focus);
+  --color-surface: var(--tibyan-surface);
+  --color-background: var(--tibyan-background);
+  --color-surface-muted: var(--tibyan-surface-muted);
+  --color-ink: var(--tibyan-ink);
+  --color-ink-muted: var(--tibyan-ink-muted);
+  --color-ink-disabled: var(--tibyan-ink-disabled);
+  --color-line: var(--tibyan-line);
+  --color-control: var(--tibyan-control);
+  --color-control-hover: var(--tibyan-control-hover);
+  --color-primary: var(--tibyan-primary);
+  --color-primary-hover: var(--tibyan-primary-hover);
+  --color-primary-active: var(--tibyan-primary-active);
+  --color-primary-edge: var(--tibyan-primary-edge);
+  --color-on-primary: var(--tibyan-on-primary);
+  --color-secondary: var(--tibyan-secondary);
+  --color-secondary-hover: var(--tibyan-secondary-hover);
+  --color-secondary-edge: var(--tibyan-secondary-edge);
+  --color-on-secondary: var(--tibyan-on-secondary);
+  --color-danger: var(--tibyan-danger);
+  --color-success: var(--tibyan-success);
+  --color-warning: var(--tibyan-warning);
+  --color-info: var(--tibyan-info);
+  --color-focus: var(--tibyan-focus);
 
-  --radius-control: var(--noor-radius);
-  --radius-button: var(--noor-radius-button);
-  --text-body: var(--noor-text-body);
-  --spacing-control: var(--noor-control-height);
+  --radius-control: var(--tibyan-radius);
+  --radius-button: var(--tibyan-radius-button);
+  --text-body: var(--tibyan-text-body);
+  --spacing-control: var(--tibyan-control-height);
 }

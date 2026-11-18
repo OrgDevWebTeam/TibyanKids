@@ -10,7 +10,7 @@ services:
     build:
       context: ./services/ai
       dockerfile: Dockerfile.gpu
-    image: noor-ai-gpu
+    image: tibyan-ai-gpu
     environment:
       MOCK_MODE: "false"
       MODELS_DIR: /models

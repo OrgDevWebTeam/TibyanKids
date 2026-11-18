@@ -1,1 +1,1 @@
-# Noor AI service package. Owner: Qussai.
+# Tibyan AI service package. Owner: Qussai.

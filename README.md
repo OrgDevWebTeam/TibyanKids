@@ -1,6 +1,6 @@
-# Noor Academy
+# Tibyan Kids
 
-MERN monorepo for the Noor Academy prototype: MongoDB, Express, React, Node.js (TypeScript).
+MERN monorepo for the Tibyan Kids prototype: MongoDB, Express, React, Node.js (TypeScript).
 
 ## Layout
 
@@ -34,8 +34,8 @@ pnpm check                                 # format, lint, typecheck, test, buil
 ## Run locally
 
 ```bash
-pnpm --filter @noor/api dev    # API on http://localhost:5000 (routes under /api/v1)
-pnpm --filter @noor/web dev    # web on http://localhost:3000
+pnpm --filter @tibyan/api dev    # API on http://localhost:5000 (routes under /api/v1)
+pnpm --filter @tibyan/web dev    # web on http://localhost:3000
 ```
 
 ## Commands

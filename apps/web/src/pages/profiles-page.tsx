@@ -1,4 +1,4 @@
-import { AlertBanner, Button, PinPad, buttonClasses } from "@noor/ui";
+import { AlertBanner, Button, PinPad, buttonClasses } from "@tibyan/ui";
 import { useState } from "react";
 import { Link, redirect, useLoaderData, useNavigate, type LoaderFunctionArgs } from "react-router";
 import { LoadFailed } from "@/components/load-failed";

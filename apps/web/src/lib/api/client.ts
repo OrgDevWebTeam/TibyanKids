@@ -61,7 +61,7 @@ async function errorCode(response: Response): Promise<string | undefined> {
 }
 
 /**
- * Calls the Noor API and returns a result instead of throwing, so every screen handles failure
+ * Calls the Tibyan API and returns a result instead of throwing, so every screen handles failure
  * on purpose. Response bodies are trusted to match `T`: the API validates what it sends, and the
  * schema library stays out of the browser bundle.
  */

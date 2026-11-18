@@ -1,6 +1,6 @@
 # Recitation annotation guide for teachers
 
-- **Project:** Noor Academy
+- **Project:** Tibyan Kids
 - **Author:** Ismail (AI 2: data quality and evaluation)
 - **Version:** v1.2, 2026-11-15 (English version of v1.1: week 1, after review)
 - **Audience of the product:** children aged 6 to 14 who are not native Arabic speakers

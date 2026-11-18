@@ -8,7 +8,7 @@ const css = readFileSync(fileURLToPath(new URL("./styles.css", import.meta.url))
 
 function colourTokens(source: string): Record<string, string> {
   const tokens: Record<string, string> = {};
-  for (const [, name, value] of source.matchAll(/--noor-([a-z-]+):\s*(#[0-9a-f]{6})/gi)) {
+  for (const [, name, value] of source.matchAll(/--tibyan-([a-z-]+):\s*(#[0-9a-f]{6})/gi)) {
     if (name && value) tokens[name] = value;
   }
   return tokens;
@@ -78,7 +78,7 @@ describe("token colours", () => {
   it("define every colour the checks need", () => {
     const names = [...TEXT_PAIRS, ...NON_TEXT_PAIRS, ...DESIGN_GAPS.map(([a, b]) => [a, b])].flat();
     for (const name of names) {
-      expect(colours[name], `--noor-${name}`).toMatch(/^#[0-9a-f]{6}$/i);
+      expect(colours[name], `--tibyan-${name}`).toMatch(/^#[0-9a-f]{6}$/i);
     }
   });
 

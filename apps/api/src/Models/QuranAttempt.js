@@ -9,7 +9,7 @@ import {
   AI_ERROR_CODES,
   AI_QUALITIES,
   RECITATION_LEVELS,
-} from "@noor/contracts";
+} from "@tibyan/contracts";
 import { assertChildInFamily } from "../utils/assertChildInFamily.js";
 
 // Why the API saved a fallback result instead of the AI's (see src/ai/aiClient.js)

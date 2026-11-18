@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import "@noor/ui/styles.css";
+@import "@tibyan/ui/styles.css";
 
 /*
  * Baloo Bhaijaan 2, the design system's font for Arabic and English (OFL). One variable file per
@@ -29,9 +29,9 @@
 }
 
 body {
-  background: var(--noor-background);
-  color: var(--noor-ink);
-  font-size: var(--noor-text-body);
+  background: var(--tibyan-background);
+  color: var(--tibyan-ink);
+  font-size: var(--tibyan-text-body);
   font-weight: 500;
   line-height: var(--leading-ui);
 }

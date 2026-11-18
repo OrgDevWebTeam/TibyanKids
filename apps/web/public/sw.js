@@ -1,10 +1,10 @@
 /* global self, caches, fetch, URL */
 
-// Noor service worker.
+// Tibyan service worker.
 // Privacy rule (UI spec): devices are often shared by a family, so pages and child data are
 // never stored for offline use. Only public build files are cached, plus one offline notice.
 
-const CACHE = "noor-static-v1";
+const CACHE = "tibyan-static-v1";
 const OFFLINE_URL = "/offline.html";
 
 self.addEventListener("install", (event) => {

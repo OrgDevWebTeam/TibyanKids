@@ -5,7 +5,7 @@
 | Event                    | What happens                                                                                                                                                                              |
 | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Pull request             | `Container build` builds the image, starts it, checks `/api/v1/health`, checks protected routes return 401, and checks production refuses an invalid configuration. Nothing is published. |
-| Merge to `main`          | The image is built and pushed to GitHub Container Registry as `ghcr.io/<owner>/noor-api:<commit sha>`, then the staging job runs.                                                         |
+| Merge to `main`          | The image is built and pushed to GitHub Container Registry as `ghcr.io/<owner>/tibyan-api:<commit sha>`, then the staging job runs.                                                       |
 | Manual run, `production` | Run **Deploy** from the Actions tab, choose `production` and a commit SHA. A required reviewer must approve before the job runs.                                                          |
 | Rollback                 | Run **Deploy** again with an older commit SHA. The image already exists, so nothing is rebuilt.                                                                                           |
 

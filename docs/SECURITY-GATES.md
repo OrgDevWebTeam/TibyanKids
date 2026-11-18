@@ -31,7 +31,7 @@ Status: **Done** = enforced automatically. **Manual** = a person checks and sign
 
 ## Manual check A: no child data in logs
 
-1. Start the API: `pnpm --filter @noor/api start:local *> api.log`
+1. Start the API: `pnpm --filter @tibyan/api start:local *> api.log`
 2. In another window, create a child with the name `Zzqx-Test` (`POST /api/v1/children`), then stop
    the API (Ctrl+C).
 3. Run `Select-String -Path api.log -Pattern "Zzqx-Test"`. It must find nothing.
@@ -44,13 +44,13 @@ connection string with the password filled in. Mongoose names the audit collecti
 
 ```powershell
 mongosh $uri --quiet --eval "db.auditevents.countDocuments()"
-mongodump --uri $uri --archive=noor.archive
+mongodump --uri $uri --archive=tibyan.archive
 mongosh $uri --quiet --eval "db.dropDatabase()"
-mongorestore --uri $uri --archive=noor.archive
+mongorestore --uri $uri --archive=tibyan.archive
 mongosh $uri --quiet --eval "db.auditevents.countDocuments()"
 ```
 
-The first and last counts must match. Delete `noor.archive` afterwards. Do not commit it.
+The first and last counts must match. Delete `tibyan.archive` afterwards. Do not commit it.
 
 **Production note:** MongoDB Atlas free clusters have no automated backups and run on shared
 hardware. Real family data needs a paid tier with backups. Repeat this drill against a restored
@@ -88,8 +88,8 @@ Official text (QML 1.0 §2.1(b), also in the package's `NOTICE` file):
 QML 1.0 §2.3(a) applies whether or not the product is commercial. General analytics and crash
 reporting are allowed only if they are not used for advertising.
 
-1. List the web app's and the API's production dependencies (`pnpm --filter @noor/web list --prod`,
-   `pnpm --filter @noor/api list --prod`) and the scripts the built web app loads. None may serve
+1. List the web app's and the API's production dependencies (`pnpm --filter @tibyan/web list --prod`,
+   `pnpm --filter @tibyan/api list --prod`) and the scripts the built web app loads. None may serve
    ads, measure ad conversions, or track users across apps or sites.
 2. Open the built app with the browser's network panel: no request goes to an advertising or
    ad-attribution domain.

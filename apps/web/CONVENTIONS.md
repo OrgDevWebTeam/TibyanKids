@@ -1,6 +1,6 @@
 # Code Conventions
 
-How we write code in `@noor/web`. Most rules are enforced by tooling, so a reviewer only needs to check what tools cannot.
+How we write code in `@tibyan/web`. Most rules are enforced by tooling, so a reviewer only needs to check what tools cannot.
 
 **Scope:** these conventions and their tooling (`prettier.config.mjs`, `eslint.config.mjs`, `tsconfig.json`) apply to `apps/web`. The UI primitives in `packages/ui` follow the same code rules, and the shared lint rules live in `packages/ui/eslint/base-config.mjs`. Other apps and packages are not affected.
 
@@ -33,7 +33,7 @@ CI runs all of them through `pnpm check`. ESLint applies the config closest to e
 | Booleans                      | `is` / `has` / `can` / `should`          | `isLocked`, `hasConsent`               |
 | Constants shared across files | `UPPER_SNAKE_CASE`, from a config module | `DEFAULT_LOCALE`, `LOCALE_STORAGE_KEY` |
 
-- Constant names match `@noor/contracts` (`LOCALES`, `DEFAULT_LOCALE`), so shared and app constants read the same.
+- Constant names match `@tibyan/contracts` (`LOCALES`, `DEFAULT_LOCALE`), so shared and app constants read the same.
 - Use full words: `observation`, not `obs`; `teacherAssignment`, not `ta`.
 - Use the domain's words from the CRS: _evidence_, _mission_, _observation_, _reflection_, _growth domain_. Do not invent synonyms.
 - Name event handlers `handleX` inside a component and props `onX`.
@@ -43,7 +43,7 @@ CI runs all of them through `pnpm check`. ESLint applies the config closest to e
 - Keep functions short enough to read without scrolling. If a block needs a heading comment, it is probably its own function.
 - Return early instead of nesting `if` blocks.
 - Prefer pure functions: same input, same output, no hidden state.
-- No magic values. Put strings and numbers that carry meaning in a named constant (`LOCALE_STORAGE_KEY`, not `"noor.locale"` inline).
+- No magic values. Put strings and numbers that carry meaning in a named constant (`LOCALE_STORAGE_KEY`, not `"tibyan.locale"` inline).
 - Components:
   - Screens in `src/pages` export `Component`, the name React Router's `lazy` expects, so each screen downloads only when it is opened.
   - Props are a named `type` (`type MissionCardProps = { ... }`), not inline object types.
@@ -59,9 +59,9 @@ CI runs all of them through `pnpm check`. ESLint applies the config closest to e
 ## 5. Styling and direction
 
 - Tailwind utilities only, in the component's `className`.
-- Colours, radius and sizes come from the `@noor/ui` tokens (`bg-surface`, `text-ink`, `bg-primary`, `rounded-control`, `min-h-control`…), never raw hex values. The tokens are tested for contrast.
-- Use the `@noor/ui` primitives (`Button`, `TextField`, `Dialog`…) before writing a new control.
-- Logical direction only: `ms-*`, `me-*`, `ps-*`, `pe-*`, `start-*`, `end-*`, `text-start`, `text-end`, `rounded-s-*`, `border-s-*`. Lint rejects `ml-*`, `mr-*`, `pl-*`, `pr-*`, `left-*`, `right-*`, `text-left` and similar (rule `noor/no-physical-classes`, shared from `@noor/ui`).
+- Colours, radius and sizes come from the `@tibyan/ui` tokens (`bg-surface`, `text-ink`, `bg-primary`, `rounded-control`, `min-h-control`…), never raw hex values. The tokens are tested for contrast.
+- Use the `@tibyan/ui` primitives (`Button`, `TextField`, `Dialog`…) before writing a new control.
+- Logical direction only: `ms-*`, `me-*`, `ps-*`, `pe-*`, `start-*`, `end-*`, `text-start`, `text-end`, `rounded-s-*`, `border-s-*`. Lint rejects `ml-*`, `mr-*`, `pl-*`, `pr-*`, `left-*`, `right-*`, `text-left` and similar (rule `tibyan/no-physical-classes`, shared from `@tibyan/ui`).
 - Icons that point a direction (arrows, "next") flip with `rtl:-scale-x-100`. Never mirror media controls, logos, number pads or Quran text.
 - Meaning is never carried by colour alone (NFR-A11Y-001).
 
@@ -99,7 +99,7 @@ Write comments for the reader who has the code but not the context.
 
 ```ts
 /** Remembers the language the user picked last (X01). */
-export const LOCALE_STORAGE_KEY = "noor.locale";
+export const LOCALE_STORAGE_KEY = "tibyan.locale";
 ```
 
 **Do not write:**

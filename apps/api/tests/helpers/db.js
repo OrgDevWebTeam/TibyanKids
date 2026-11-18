@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
 import { MongoMemoryServer } from "mongodb-memory-server";
+import { randomBytes } from "node:crypto";
+process.env.JWT_SECRET = randomBytes(32).toString("hex");
 
 let mongod;
 

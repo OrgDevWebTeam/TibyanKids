@@ -1,11 +1,11 @@
-import { LOCALES, textDirection, type Locale } from "@noor/contracts/locale";
+import { LOCALES, textDirection, type Locale } from "@tibyan/contracts/locale";
 
 // Locales, the default and text direction are shared with the API (FR-I18N-001). This entry point
 // keeps the browser bundle free of the API's schema library.
-export { DEFAULT_LOCALE, LOCALES, textDirection, type Locale } from "@noor/contracts/locale";
+export { DEFAULT_LOCALE, LOCALES, textDirection, type Locale } from "@tibyan/contracts/locale";
 
 /** Remembers the language the user picked last (X01). */
-export const LOCALE_STORAGE_KEY = "noor.locale";
+export const LOCALE_STORAGE_KEY = "tibyan.locale";
 
 /** Each language's own name, shown in the language switcher whatever the page language. */
 export const LOCALE_NAMES: Record<Locale, string> = {

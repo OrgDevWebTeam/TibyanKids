@@ -1,12 +1,12 @@
 {
-  "extends": "@noor/config/react.json",
+  "extends": "@tibyan/config/react.json",
   "compilerOptions": {
     "types": ["vite/client"],
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@noor/contracts": ["../../packages/contracts/src/index.ts"],
-      "@noor/contracts/*": ["../../packages/contracts/src/*"]
+      "@tibyan/contracts": ["../../packages/contracts/src/index.ts"],
+      "@tibyan/contracts/*": ["../../packages/contracts/src/*"]
     }
   },
   "include": ["src"]

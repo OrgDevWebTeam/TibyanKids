@@ -1,4 +1,4 @@
-import { AlertBanner, Button } from "@noor/ui";
+import { AlertBanner, Button } from "@tibyan/ui";
 import { useRevalidator } from "react-router";
 import { useI18n } from "@/i18n/locale-data";
 

@@ -1,5 +1,5 @@
 {
-  "extends": "@noor/config/node.json",
+  "extends": "@tibyan/config/node.json",
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",

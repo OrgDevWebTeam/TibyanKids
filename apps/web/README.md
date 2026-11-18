@@ -1,4 +1,4 @@
-# @noor/web
+# @tibyan/web
 
 The Tibyan Kids web app: a React single-page PWA built with Vite, in Arabic (RTL) and English (LTR).
 
@@ -10,7 +10,7 @@ From the repository root (Node 22 and pnpm 9.15, see the [root README](../../REA
 
 ```bash
 pnpm install
-pnpm --filter @noor/web dev    # http://localhost:3000, redirects to /ar or /en
+pnpm --filter @tibyan/web dev    # http://localhost:3000, redirects to /ar or /en
 pnpm check                     # format, lint, typecheck, test, build: what CI runs
 ```
 
@@ -25,9 +25,9 @@ pnpm check                     # format, lint, typecheck, test, build: what CI r
 To run the API next to the web app:
 
 ```bash
-pnpm --filter @noor/api services:up   # MongoDB and the AI service (mock mode) in Docker
-pnpm --filter @noor/api dev           # API on http://localhost:5000, settings in apps/api/.env
-pnpm --filter @noor/web dev
+pnpm --filter @tibyan/api services:up   # MongoDB and the AI service (mock mode) in Docker
+pnpm --filter @tibyan/api dev           # API on http://localhost:5000, settings in apps/api/.env
+pnpm --filter @tibyan/web dev
 ```
 
 Without a session, private pages send the visitor to the landing page.
@@ -75,9 +75,9 @@ features live in `src/features/<name>/` folders.
 
 Shared code lives in packages:
 
-- `@noor/contracts`: the locale list, default locale and text direction. Import them from
-  `@noor/contracts/locale`, which keeps the API's schema library out of the browser bundle.
-- `@noor/ui`: design tokens, UI primitives and shared lint rules. Vite compiles its TypeScript source
+- `@tibyan/contracts`: the locale list, default locale and text direction. Import them from
+  `@tibyan/contracts/locale`, which keeps the API's schema library out of the browser bundle.
+- `@tibyan/ui`: design tokens, UI primitives and shared lint rules. Vite compiles its TypeScript source
   with the app.
 
 ## Data
@@ -103,7 +103,7 @@ KAN-40.
    language from the start. Components use logical classes (`ms-*`, `ps-*`, `text-start`), so they
    need no RTL code.
 2. A path without a language (`/`, `/today`) gets one: the saved choice, then the browser's languages,
-   then the default from `@noor/contracts`.
+   then the default from `@tibyan/contracts`.
 3. The loader of the `/:locale` route downloads that language's dictionary before the page renders.
    Components read the language and its text with `useI18n()`.
 4. The few strings that must work when a dictionary cannot download (error pages, offline notice) are
@@ -113,7 +113,7 @@ KAN-40.
 
 ## Development pages
 
-`/ar/dev/ui` shows every `@noor/ui` primitive. `/ar/dev/rtl` checks mixed text, numbers, dates,
+`/ar/dev/ui` shows every `@tibyan/ui` primitive. `/ar/dev/rtl` checks mixed text, numbers, dates,
 plurals and mirroring. `/ar/dev/session` was made to start a test parent session with a token
 from the old local dev-idp; it does not work until it is moved to the API's login (see the known gap). Open them with `/en/...` for the LTR version. They exist in
 development only: production bundles do not contain them, and those paths show the 404 page.

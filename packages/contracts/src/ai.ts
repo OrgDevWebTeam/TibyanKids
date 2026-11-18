@@ -15,7 +15,7 @@ export type AiQuality = (typeof AI_QUALITIES)[number];
 export const AI_CATEGORIES = ["memorization", "pronunciation", "tajweed", "technical"] as const;
 export type AiCategory = (typeof AI_CATEGORIES)[number];
 
-/** Noor error codes (Ismail's taxonomy). The prefix matches the category. */
+/** Tibyan error codes (Ismail's taxonomy). The prefix matches the category. */
 export const AI_ERROR_CODES = [
   "ERR_MEM_OMISSION",
   "ERR_MEM_SUBSTITUTION",

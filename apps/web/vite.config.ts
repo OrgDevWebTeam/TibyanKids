@@ -10,11 +10,11 @@ export default defineConfig({
   resolve: {
     alias: [
       {
-        find: /^@noor\/contracts\/(.*)$/,
+        find: /^@tibyan\/contracts\/(.*)$/,
         replacement: fromHere("../../packages/contracts/src/") + "$1",
       },
       {
-        find: /^@noor\/contracts$/,
+        find: /^@tibyan\/contracts$/,
         replacement: fromHere("../../packages/contracts/src/index.ts"),
       },
       { find: /^@\/(.*)$/, replacement: fromHere("./src/") + "$1" },

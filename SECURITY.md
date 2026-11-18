@@ -1,6 +1,6 @@
 # Security Policy
 
-Noor Academy handles data about children. We take security reports seriously.
+Tibyan Kids handles data about children. We take security reports seriously.
 
 ## Reporting a vulnerability
 

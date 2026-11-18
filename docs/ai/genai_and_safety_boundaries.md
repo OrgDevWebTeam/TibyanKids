@@ -1,6 +1,6 @@
 # GenAI and Safety Boundaries
 
-- **Project:** Noor Academy
+- **Project:** Tibyan Kids
 - **Authors:** Ismail (AI 2) & Qussai (AI 1)
 - **Version:** v1.3 (aligned with CRS v3.0 and Architecture v3.0; adds personalization and
   recommendation boundaries). Jira: KAN-11
@@ -53,7 +53,7 @@
 
 ## 2. Personalization and recommendation boundaries
 
-Personalization in Noor is **fixed rules that can be explained**: no black box and no generative
+Personalization in Tibyan is **fixed rules that can be explained**: no black box and no generative
 model (AP-11, Architecture §5 and §8.2).
 
 ### 2.1 Who decides the child's plan?
@@ -67,7 +67,7 @@ model (AP-11, Architecture §5 and §8.2).
 
 ### 2.2 Data allowed for personalization
 
-| Allowed (from inside Noor only)                    | Not allowed                                                                  |
+| Allowed (from inside Tibyan only)                  | Not allowed                                                                  |
 | :------------------------------------------------- | :--------------------------------------------------------------------------- |
 | Placement test result                              | Inferring fixed traits or personality (AP-05)                                |
 | Learner profile: level, last ayah, repeated errors | Profiles for advertising or ad tracking (SEC-009)                            |
@@ -134,7 +134,7 @@ QML 1.0 is the Apache License 2.0 plus additional conditions (§2 of the licence
 product that shows the checker to users, not only the AI service. Each one is a release gate in
 `docs/SECURITY-GATES.md` (gates 14–19).
 
-| Condition (QML 1.0 section)                                                                                                                                                                 | Effect on Noor                                                                                                          |
+| Condition (QML 1.0 section)                                                                                                                                                                 | Effect on Tibyan                                                                                                        |
 | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :---------------------------------------------------------------------------------------------------------------------- |
 | §2.1 AI notice: shown to **every** end user before first use and always reachable afterwards (main menu, About or Help), in Arabic and each interface language, no smaller than body text   | Needed in the app, **including the child area**: the children are the users who record (section 3.3). Gate 14           |
 | §2.1(f) Never present the checker or its results as a substitute for a proficient, authorized teacher                                                                                       | Applies to all product and marketing text                                                                               |
@@ -158,7 +158,7 @@ upon" and, in Arabic, "only" (لا يُؤخذ **إلا** بالمشافهة).
   (mushafahah).
 
 The licence also allows "This tool" instead of "This Quranic Teacher" only where the product is not
-a teacher (for example a search-only tool). Noor's checker corrects recitation, so keep "This
+a teacher (for example a search-only tool). Tibyan's checker corrects recitation, so keep "This
 Quranic Teacher".
 
 **Who sees it.** Every user who records, the child included, before the first recitation check;

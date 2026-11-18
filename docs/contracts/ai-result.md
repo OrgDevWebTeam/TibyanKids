@@ -45,7 +45,7 @@ Checks one recorded ayah.
 | Form field  | Type    | Meaning                                                                                            |
 | ----------- | ------- | -------------------------------------------------------------------------------------------------- |
 | `audio`     | file    | The child's recording. Audio only, max 5 MB. Input rules in `docs/ai/audio-io-and-eval-dataset.md` |
-| `attemptId` | text    | Noor attempt id made by the API (its MongoDB id). No child or family id is ever sent               |
+| `attemptId` | text    | Tibyan attempt id made by the API (its MongoDB id). No child or family id is ever sent             |
 | `surah`     | integer | Surah number (1–114)                                                                               |
 | `ayah`      | integer | Ayah number (from 1)                                                                               |
 | `level`     | text    | `beginner`, `intermediate` or `advanced`. Decides what stops the child (CRS §5.4)                  |
@@ -92,7 +92,7 @@ is a `200` result with that `quality`, `decision: "uncertain"` and no findings.
 | ------------- | ------- | -------------------------------------------------------------------------------- |
 | `wordIndex`   | integer | Which word of the ayah. **1 = first word**                                       |
 | `category`    | text    | `memorization`, `pronunciation`, `tajweed` or `technical`                        |
-| `code`        | text    | Noor error code from the table below. Raw model codes go to the logs only        |
+| `code`        | text    | Tibyan error code from the table below. Raw model codes go to the logs only      |
 | `confidence`  | number  | 0 to 1                                                                           |
 | `wordStartMs` | integer | Start of this word in the **reference** recitation (to replay it)                |
 | `wordEndMs`   | integer | End of this word in the reference recitation (not before `wordStartMs`)          |

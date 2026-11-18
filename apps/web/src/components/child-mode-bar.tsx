@@ -1,4 +1,4 @@
-import { Button } from "@noor/ui";
+import { Button } from "@tibyan/ui";
 import { useNavigate } from "react-router";
 import { useI18n } from "@/i18n/locale-data";
 import { clearActiveChild, useSession } from "@/lib/session/session-store";

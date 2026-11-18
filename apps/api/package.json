@@ -1,10 +1,10 @@
 {
-  "name": "@noor/api",
+  "name": "@tibyan/api",
   "version": "1.0.0",
   "private": true,
   "type": "module",
   "main": "src/server.js",
-  "description": "Noor Academy backend (Express, MongoDB)",
+  "description": "Tibyan Kids backend (Express, MongoDB)",
   "scripts": {
     "dev": "node --watch --env-file=.env src/server.js",
     "start": "node src/server.js",
@@ -17,7 +17,7 @@
     "db:reset": "docker compose -f ../../docker-compose.yml down -v"
   },
   "dependencies": {
-    "@noor/contracts": "workspace:*",
+    "@tibyan/contracts": "workspace:*",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
     "express": "^5.3.0",

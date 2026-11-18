@@ -31,7 +31,7 @@ Not yet reviewed or built: teacher routes, the admin audit view, and creating st
 - Consent changes and publishing write the audit event in the same transaction as the change. If the audit event fails, the change is not saved.
 - Denied role checks (`authorize` middleware) and self-approval of content are written as `access.denied` with result `denied`. If writing that event fails, the request is still denied.
 - Deleting audit entries is not blocked in the model. Only a retention job may delete them, and that job is not built yet.
-- Tests: `tests/models/audit.test.js` and `tests/models/childLinked.test.js` (run with `pnpm --filter @noor/api test`).
+- Tests: `tests/models/audit.test.js` and `tests/models/childLinked.test.js` (run with `pnpm --filter @tibyan/api test`).
 
 ## Route-level review
 

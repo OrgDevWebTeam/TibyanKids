@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "noor/ai_result/3.0",
-  "title": "Noor AI result (contract v3.0, see docs/contracts/ai-result.md)",
+  "$id": "tibyan/ai_result/3.0",
+  "title": "Tibyan AI result (contract v3.0, see docs/contracts/ai-result.md)",
   "description": "Source of truth for the AI result. Change this first, then services/ai/app/schemas.py and packages/contracts/src/ai.ts in the same pull request.",
   "type": "object",
   "additionalProperties": false,
