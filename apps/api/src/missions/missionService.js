@@ -25,7 +25,8 @@ const inSession = (query, session) => (session ? query.session(session) : query)
 // The assignment, but only if it belongs to this child in this family
 async function findAssignment(child, assignmentId) {
   const assignment = await MissionAssignment.findOne({
-    _id: { $eq: assignmentId },
+    // A request value is turned into text, and compared as a value only (never as an operator)
+    _id: { $eq: String(assignmentId) },
     childId: child._id,
     familyId: child.familyId,
   });
@@ -208,7 +209,7 @@ export async function observeMission({
     if (!clientObservationId) return null;
     const found = await ParentObservation.findOne({
       familyId: child.familyId,
-      clientObservationId: { $eq: clientObservationId },
+      clientObservationId: { $eq: String(clientObservationId) },
     });
     if (!found) return null;
     if (!found.assignmentId.equals(assignment._id)) {

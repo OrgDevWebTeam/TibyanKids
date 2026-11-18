@@ -22,7 +22,12 @@ async function childOfUrl(req) {
 
 // A child by id (the ?childId= of GET /missions), if it belongs to the parent's family
 async function childById(req, childId) {
-  const child = await Child.findOwned(childId, req.family._id).where("status").ne("archived");
+  // $eq makes sure the id is only ever compared as a value, never read as a query operator.
+  const child = await Child.findOne({
+    _id: { $eq: childId },
+    familyId: req.family._id,
+    status: { $ne: "archived" },
+  });
   if (!child) {
     await auditIfOtherFamily(req, childId);
     throw new AppError(404, "Child not found");
@@ -87,7 +92,10 @@ const observationInput = (req, child) => ({
   child,
   assignmentId: req.params.assignmentId,
   userId: req.user._id,
-  ...req.body,
+  // Only the three validated fields are picked: the body is never passed on as a whole
+  status: req.body.status,
+  note: req.body.note,
+  clientObservationId: req.body.clientObservationId,
 });
 
 const reflectionInput = (req, child) => ({
