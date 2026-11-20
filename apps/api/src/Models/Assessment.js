@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { DOMAINS } from "../constants/index.js";
 import { assertChildInFamily } from "../utils/assertChildInFamily.js";
+import { recordAssessmentEvidence } from "../growth/growthService.js";
 
 const itemSchema = new mongoose.Schema(
   {
@@ -78,6 +79,23 @@ assessmentSchema.pre("validate", function () {
 
 assessmentSchema.pre("validate", async function () {
   await assertChildInFamily(this, { requireActive: true });
+});
+
+// A completed assessment is evidence for the Growth Map (FR-GRW-001). Saving the assessment must
+// never fail because of the Growth Map, so a failure is logged (ids only) and it stays saved.
+assessmentSchema.pre("save", function () {
+  this.$locals.becameCompleted =
+    this.status === "completed" && (this.isNew || this.isModified("status"));
+});
+
+assessmentSchema.post("save", async function (doc) {
+  if (!doc.$locals.becameCompleted) return;
+  doc.$locals.becameCompleted = false;
+  try {
+    await recordAssessmentEvidence(doc, { session: doc.$session() });
+  } catch (error) {
+    console.error(`Growth evidence failed for assessment ${doc._id}: ${error.message}`);
+  }
 });
 
 assessmentSchema.index(

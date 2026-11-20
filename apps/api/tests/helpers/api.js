@@ -8,6 +8,8 @@ process.env.NODE_ENV = "development";
 process.env.DATABASE = "mongodb://x:<PASSWORD>@localhost/x";
 process.env.DATABASE_PASSWORD = "x";
 process.env.JWT_SECRET = randomBytes(32).toString("hex");
+process.env.MAIL_LOG = "off";
+process.env.AUTH_RATE_LIMIT = "1000";
 
 let replset;
 let server;
@@ -41,18 +43,58 @@ export async function api(path, { method = "GET", token, body } = {}) {
   return { status: res.status, json: await res.json().catch(() => ({})) };
 }
 
-/** Registers a new parent (and their family) and returns the token. */
-export async function registerParent() {
+/** Like api(), but returns the raw text and the headers, for answers that are not JSON (a CSV). */
+export async function apiRaw(path, { method = "GET", token } = {}) {
+  const res = await fetch(`${base}/api/v1${path}`, {
+    method,
+    headers: token ? { authorization: `Bearer ${token}` } : {},
+  });
+  return { status: res.status, text: await res.text(), headers: res.headers };
+}
+
+/** Verifies a parent's email using the token the placeholder mailer recorded. */
+export async function verifyEmailFor(email) {
+  const { outbox } = await import("../../src/utils/mailer.js");
+  const mail = outbox.findLast((m) => m.to === email);
+  const res = await api("/auth/verify-email", { method: "POST", body: { token: mail.token } });
+  if (res.status !== 200) throw new Error(`could not verify ${email}: ${res.status}`);
+}
+
+/** Registers a new parent (and their family). Verified by default; pass { verified: false } to skip. */
+export async function registerParent({ verified = true } = {}) {
   counter += 1;
+  const email = `parent${counter}@test.com`;
   const res = await api("/auth/register", {
     method: "POST",
     body: {
       name: `Parent ${counter}`,
-      email: `parent${counter}@test.com`,
+      email,
       password: "password123",
+      policyVersion: "v1",
     },
   });
-  return { token: res.json.token, userId: res.json.user.id, familyId: res.json.family.id };
+  if (verified) await verifyEmailFor(email);
+  return {
+    token: res.json.token,
+    userId: res.json.user.id,
+    familyId: res.json.family.id,
+    email,
+  };
+}
+
+/** Staff accounts cannot be created through the API yet, so tests create them directly. */
+export async function makeStaff(role) {
+  const { default: User } = await import("../../src/Models/User.js");
+  const { signToken } = await import("../../src/utils/token.js");
+  counter += 1;
+  const user = await User.create({
+    name: role,
+    email: `${role}${counter}@test.com`,
+    passwordHash: "not-a-real-hash",
+    role,
+    emailVerifiedAt: new Date(),
+  });
+  return { id: String(user._id), token: signToken(user) };
 }
 
 /** Creates a child for the given parent and returns the child. */

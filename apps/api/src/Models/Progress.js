@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
 import { assertChildInFamily } from "../utils/assertChildInFamily.js";
+import { recordProgressEvidence } from "../growth/growthService.js";
+import { assignMissionForProgress } from "../missions/missionService.js";
 
 const progressSchema = new mongoose.Schema(
   {
@@ -55,6 +57,30 @@ progressSchema.pre("validate", function () {
 
 progressSchema.pre("validate", async function () {
   await assertChildInFamily(this, { requireActive: true });
+});
+
+// A completed activity is evidence for the Growth Map (FR-GRW-002). Saving the progress must never
+// fail because of the Growth Map, so a failure is logged (ids only) and the progress stays saved.
+progressSchema.pre("save", function () {
+  this.$locals.becameCompleted =
+    this.status === "completed" && (this.isNew || this.isModified("status"));
+});
+
+progressSchema.post("save", async function (doc) {
+  if (!doc.$locals.becameCompleted) return;
+  doc.$locals.becameCompleted = false;
+  try {
+    await recordProgressEvidence(doc, { session: doc.$session() });
+  } catch (error) {
+    console.error(`Growth evidence failed for progress ${doc._id}: ${error.message}`);
+  }
+  // Then a home mission, chosen with the growth state this completion just changed (FR-FAM-001).
+  // It has its own try/catch: a failed mission must not hide the evidence or fail the save.
+  try {
+    await assignMissionForProgress(doc, { session: doc.$session() });
+  } catch (error) {
+    console.error(`Mission assignment failed for progress ${doc._id}: ${error.message}`);
+  }
 });
 
 progressSchema.index({ childId: 1, contentId: 1 }, { unique: true });

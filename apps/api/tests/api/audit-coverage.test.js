@@ -100,5 +100,6 @@ describe("audit coverage (SEC-007)", () => {
   it.todo("role changes write a role.changed event (no route changes roles yet)");
   it.todo("sensitive child-data access writes a child.data_accessed event");
   it.todo("administrative actions such as suspending a user write an event");
-  it.todo("publishing content writes a content.published event (needs a content-admin user)");
+  // Content events (created, updated, version created, published, archived) are covered in
+  // content-versioning.test.js, which creates staff users directly.
 });

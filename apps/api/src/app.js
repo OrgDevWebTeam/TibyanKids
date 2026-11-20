@@ -5,10 +5,12 @@ import rateLimit from "express-rate-limit";
 import config from "./config/env.js";
 import authRoutes from "./routes/authRoutes.js";
 import childrenRoutes from "./routes/childrenRoutes.js";
+import missionRoutes from "./routes/missionRoutes.js";
 import AppError from "./utils/AppError.js";
 import consentRoutes from "./routes/consentRoutes.js";
 import curriculumRoutes from "./routes/curriculumRoutes.js";
 import contentRoutes from "./routes/contentRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 import { createAiClient } from "./ai/aiClient.js";
 
 const app = express();
@@ -30,7 +32,7 @@ app.get("/api/v1/health", (req, res) => {
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 20,
+  limit: config.authRateLimit,
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -38,9 +40,11 @@ const authLimiter = rateLimit({
 // Routes
 app.use("/api/v1/auth", authLimiter, authRoutes);
 app.use("/api/v1/children", childrenRoutes);
+app.use("/api/v1/missions", missionRoutes);
 app.use("/api/v1/consents", consentRoutes);
 app.use("/api/v1/curriculum", curriculumRoutes);
 app.use("/api/v1/content", contentRoutes);
+app.use("/api/v1/admin", adminRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });

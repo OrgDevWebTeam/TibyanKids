@@ -19,7 +19,7 @@ This file explains where secrets live, how they are kept out of source control, 
 | `DATABASE_PASSWORD` | Password of the MongoDB Atlas database user                                            | `src/config/env.js` |
 | `JWT_SECRET`        | Key used to sign login tokens. Anyone who has it can create a valid token for any user | `src/config/env.js` |
 
-Non-secret settings are kept in the same file for convenience: `NODE_ENV`, `PORT`, `CLIENT_ORIGIN`, `JWT_EXPIRES_IN`, `AI_SERVICE_URL`, `AI_TIMEOUT_MS`, and the `DATABASE` connection string with the `<PASSWORD>` placeholder.
+Non-secret settings are kept in the same file for convenience: `NODE_ENV`, `PORT`, `CLIENT_ORIGIN`, `JWT_EXPIRES_IN`, `AI_SERVICE_URL`, `AI_TIMEOUT_MS`, `AUTH_RATE_LIMIT` (register and login requests per IP per 15 minutes, default 20), and the `DATABASE` connection string with the `<PASSWORD>` placeholder.
 
 The AI service (`services/ai`) has no secret: it runs on our own machine and only the API can reach it.
 
@@ -38,6 +38,28 @@ Future secrets (for example the key of an email service) must be added to `.env.
 - `NODE_ENV` selects the environment. It must be `development`, `staging` or `production`.
 - `src/config/env.js` checks the configuration when the server starts. If a variable is missing or invalid, the server prints what is wrong and exits. It never starts with a bad configuration.
 - The password is URL-encoded before it is placed in the connection string, so special characters do not break the connection.
+- Outside development, `src/config/envRules.js` also refuses a database connection that is not encrypted or is local (see the next section).
+
+## Encryption of sensitive data (SEC-003)
+
+### In transit
+
+- **Database.** The server connects to MongoDB Atlas over TLS. In staging and production the server refuses to start unless `DATABASE` uses `mongodb+srv://` (TLS is on by default) or `tls=true`, TLS is not turned off (`tls=false`, `ssl=false`), and the host is not local. The rule is in `src/config/envRules.js` and tested in `tests/config/envRules.test.js`. Development is not restricted, so a local database still works on a laptop.
+- **API.** HTTPS is provided by the hosting platform in front of the container. No host is chosen yet (see `docs/DEPLOYMENT.md`), so this is not verified. The hosting decision must allow HTTPS only. The server already sends the HSTS header (through `helmet`).
+- **AI service.** It is internal and never exposed to browsers. On a laptop it is reached over plain HTTP on localhost. For staging and production the connection must stay on a private network or use TLS. This is not decided yet (open question below).
+
+### At rest
+
+- **Passwords** are stored only as bcrypt hashes and are never returned by a query (`select: false`).
+- **Email verification tokens** are stored only as SHA-256 hashes, with an expiry.
+- **Audio** is not stored by the API. It is sent to the AI service and dropped.
+- **Database storage.** Encryption at rest is a property of the MongoDB Atlas cluster (ADR-0003). It cannot be checked from the code, so it must be confirmed for the chosen Atlas tier and recorded here.
+
+### Open questions
+
+1. Which Atlas tier is used for staging and production, and is encryption at rest confirmed for it?
+2. Which host serves the API, and does it enforce HTTPS only?
+3. How is the connection to the AI service protected in staging and production (private network or TLS)?
 
 ## Rotation
 
@@ -57,6 +79,7 @@ Secrets should also be rotated when a team member who knew them leaves the proje
 ## Logs
 
 - Never log secrets, tokens, passwords or full request bodies.
+- One development-only exception: with no email provider yet, the placeholder mailer (`src/utils/mailer.js`) prints the email verification link to the console when `NODE_ENV` is `development`. Tests turn it off with `MAIL_LOG=off`. In staging and production the mailer refuses to run and never logs the token. The token is also single-use and expires after 24 hours.
 - Audit entries only accept `meta` keys from `ALLOWED_META_KEYS`, and only short text values, for this reason (see `authorization-review.md`).
 
 ## Checks before every commit

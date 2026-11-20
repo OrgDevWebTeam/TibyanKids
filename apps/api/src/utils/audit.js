@@ -5,9 +5,14 @@ export const AUDIT_ACTIONS = Object.freeze([
   "consent.withdrawn",
   "role.changed",
   "user.suspended",
+  "content.created",
+  "content.updated",
+  "content.version_created",
   "content.published",
+  "content.archived",
   "child.data_accessed",
   "access.denied",
+  "audit.exported",
 ]);
 
 export async function recordAudit({ actor, action, target, result = "success", meta, session }) {
