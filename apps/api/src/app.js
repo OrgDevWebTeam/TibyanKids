@@ -15,6 +15,11 @@ import { createAiClient } from "./ai/aiClient.js";
 
 const app = express();
 
+// How many proxies are in front of the API (TRUST_PROXY, 0 = none). It decides which address
+// the rate limits see: with a load balancer in front and this left at 0, every client would
+// share the balancer's address.
+app.set("trust proxy", config.trustProxy);
+
 // The internal AI service. Tests replace it with a fake (app.locals.aiClient = ...)
 app.locals.aiClient = createAiClient({
   baseUrl: config.aiServiceUrl,
@@ -88,7 +93,9 @@ app.use((err, req, res, next) => {
     return res.status(409).json({ status: "fail", message: `${field} already exists` });
   }
 
-  console.error(err);
+  // Only the stack (name, message, code locations): the whole error object can carry values from
+  // the request or the database, such as a child's data (SEC-003, gate 11)
+  console.error("Unhandled error:", err?.stack ?? String(err));
   res.status(500).json({ status: "error", message: "Server error" });
 });
 

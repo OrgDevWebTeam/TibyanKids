@@ -20,6 +20,11 @@ const schema = z
     // After this the ayah is marked uncertain and the session goes on (NFR-PERF: 20 s at most)
     AI_TIMEOUT_MS: z.coerce.number().int().positive().max(20000).default(20000),
     AUTH_RATE_LIMIT: z.coerce.number().int().positive().default(20),
+    // Recitation uploads per signed-in account per 15 minutes (SEC-008)
+    UPLOAD_RATE_LIMIT: z.coerce.number().int().positive().default(60),
+    // How many proxies sit in front of the API (0 = none). Needed behind a load balancer, so that
+    // each client has its own rate limit instead of all sharing the proxy's address.
+    TRUST_PROXY: z.coerce.number().int().min(0).max(5).default(0),
   })
   // SEC-003: outside development the database must be reached over TLS and must not be local
   .superRefine((env, ctx) => {
@@ -49,6 +54,8 @@ const config = Object.freeze({
   aiServiceUrl: env.AI_SERVICE_URL,
   aiTimeoutMs: env.AI_TIMEOUT_MS,
   authRateLimit: env.AUTH_RATE_LIMIT,
+  uploadRateLimit: env.UPLOAD_RATE_LIMIT,
+  trustProxy: env.TRUST_PROXY,
 });
 
 export default config;

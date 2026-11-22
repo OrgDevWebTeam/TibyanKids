@@ -12,7 +12,7 @@ import {
   updateChild,
   archiveChild,
 } from "../controllers/childrenController.js";
-import { apiLimiter } from "../middlewares/rateLimiter.js";
+import { apiLimiter, uploadLimiter } from "../middlewares/rateLimiter.js";
 import audioUpload from "../middlewares/audioUpload.js";
 import { createRecitationAttempt } from "../controllers/recitationController.js";
 import { getGrowth } from "../controllers/growthController.js";
@@ -51,6 +51,7 @@ router.post(
 // One recorded ayah (multipart: audio, clientAttemptId, surah, ayah, level)
 router.post(
   "/:id/recitation-attempts",
+  uploadLimiter,
   audioUpload,
   validate(recitationAttemptSchema),
   createRecitationAttempt,
