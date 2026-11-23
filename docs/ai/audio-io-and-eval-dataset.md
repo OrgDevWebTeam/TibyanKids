@@ -43,13 +43,13 @@
 
 ## Status at the end of week 3
 
-| Piece                          | State                                                                                                                   |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| Decode (ffmpeg) and gate       | `app/audio.py`, run by the endpoint (`app/pipeline.py`) with `MOCK_MODE=false`                                          |
-| Endpoints                      | Real models with `MOCK_MODE=false` (#80), also in Docker (`Dockerfile.gpu`, #83). Mock mode stays the laptop default    |
-| Quality values in the contract | `ok`, `silent`, `too_short`, `too_noisy`, `too_long`                                                                    |
-| Word timings                   | Set by hand for the 25 ayat (`reference_word_timings.json`), validator passes. Every finding gets its word's segment    |
-| Evaluation                     | `scripts/evaluate.py` (#86), tried on a smoke dataset made from the reference recitation. Children's recordings: week 4 |
+| Piece                          | State                                                                                                                         |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| Decode (ffmpeg) and gate       | `app/audio.py`, run by the endpoint (`app/pipeline.py`) with `MOCK_MODE=false`                                                |
+| Endpoints                      | Real models with `MOCK_MODE=false` (#80), also in Docker (`Dockerfile.gpu`, #83). Mock mode stays the laptop default          |
+| Quality values in the contract | `ok`, `silent`, `too_short`, `too_noisy`, `too_long`                                                                          |
+| Word timings                   | Set by hand for the 25 ayat (`reference_word_timings.json`), validator passes. Every finding gets its word's segment          |
+| Evaluation                     | `scripts/run_models.py` then `scripts/evaluate.py` and `scripts/sweep_threshold.py`, on the 17 children's recordings (week 4) |
 
 ---
 

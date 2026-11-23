@@ -107,7 +107,6 @@ silero-vad) are installed everywhere, including CI and the laptop image; no mode
 | `scripts/download_models.py`                           | Puts the pinned model files into `services/ai/models/` (GPU machine)                             |
 | `app/evaluation.py`                                    | Evaluation numbers: gold labels, false reject / accept, word location, gate, latency (no models) |
 | `scripts/evaluate.py`                                  | One evaluation run on a labelled dataset (GPU machine). Writes `runs/*.json`                     |
-| `scripts/make_reference_dataset.py`                    | A smoke-test dataset from the 25 reference recordings, written outside the repository            |
 | `scripts/align_word_timings.py`                        | Proposes word timings for the reference recitation (GPU machine)                                 |
 | `tests/test_contract.py`                               | The service and the mock follow the contract's JSON Schema and message list                      |
 | `tests/test_policy.py`                                 | The decision rules                                                                               |
