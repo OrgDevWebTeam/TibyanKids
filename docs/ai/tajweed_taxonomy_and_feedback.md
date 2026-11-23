@@ -2,8 +2,7 @@
 
 - **Project:** Tibyan Kids
 - **Owner:** Ismail (AI 2: data, tajweed and evaluation)
-- **Version:** v1.3, 2026-11-15 (English version of v1.2: week 1, after the review of PR #12 and the
-  quran-muaalem mapping)
+- **Version:** v1.4, 2026-11-23 (§4.2: the teacher's review labels, from the practice-flow doc)
 - **Scope:** the five prototype surahs (Al-Fatiha, Al-Ikhlas, Al-Falaq, An-Nas, Al-Kawthar)
 - **Based on:** CRS v3.0 (§5.3 and §5.4, FR-QUR-003..008, VAL-006, VAL-013, VAL-014) and
   Architecture v3.0 (§8.3 and §8.4)
@@ -201,6 +200,20 @@ success, the ayah is marked `uncertain` for the teacher and the child moves on w
 `FEEDBACK_RETRY_LIMIT_MOVE_ON`, so the child is never stuck. The value of `N` (proposed: 2) is set
 on approval. The session engine in the API (Ahmad) counts the attempts, not the result contract.
 Not switched on before the CRS and Ahmad's state machine change.
+
+### 4.2 The teacher's review labels
+
+An `uncertain` ayah, or a tajweed case the teacher should see, goes to the teacher review screen
+(SCR-T02, weeks 5–6). The teacher gives it one of the labels of the annotation guide
+(`docs/ai/teacher_annotation_guide.md` §2):
+
+| Label            | When                                                              | What it means for the child                             |
+| ---------------- | ----------------------------------------------------------------- | ------------------------------------------------------- |
+| `correct`        | The reading was right (the model was unsure or wrong)             | The ayah counts as done                                 |
+| `needs_practice` | A real skipped word, pronunciation slip or targeted tajweed error | The word is practised again in the next session         |
+| `poor_audio`     | Noise, clipping or a distant voice got past the quality gate      | The child records again; it does not count against them |
+
+(Moved here from `practice-flow-rules-and-review-labels.md` v1.0, KAN-28, which repeated §2 and §4.)
 
 ---
 
