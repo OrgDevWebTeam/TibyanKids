@@ -32,7 +32,7 @@ async def lifespan(app):
     yield
 
 
-app = FastAPI(title="Tibyan Kids AI service", lifespan=lifespan)
+app = FastAPI(title="Tibyan Kids AI service (Adeeb)", lifespan=lifespan)
 
 
 def error_response(status, code, message):
