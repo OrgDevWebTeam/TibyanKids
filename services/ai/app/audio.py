@@ -96,6 +96,33 @@ def snr_db(samples):
     return float(np.percentile(levels, 95) - np.percentile(levels, 10))
 
 
+def measure_recording(samples, find_speech=None):
+    """Every number the gate looks at, even those after a failed rule, so the gate can be tuned on data.
+    Not used by the service: check_quality stops at the first failed rule. Speech numbers are None
+    when the VAD hears no speech."""
+    find_speech = find_speech or speech_parts
+    numbers = {
+        "durationSeconds": round(len(samples) / SAMPLE_RATE, 2),
+        "clippedRatio": round(float(np.mean(np.abs(samples) >= CLIPPED_LEVEL)), 4) if len(samples) else 0.0,
+        "snrDb": round(snr_db(samples), 1),
+        "speechSeconds": 0.0,
+        "speechDbfs": None,
+        "readingSeconds": None,
+        "speechRatio": None,
+    }
+    parts = find_speech(samples) if len(samples) else []
+    if not parts:
+        return numbers
+
+    speech = sum(end - start for start, end in parts) / SAMPLE_RATE
+    reading = (parts[-1][1] - parts[0][0]) / SAMPLE_RATE
+    numbers["speechSeconds"] = round(speech, 2)
+    numbers["speechDbfs"] = round(dbfs(np.concatenate([samples[start:end] for start, end in parts])), 1)
+    numbers["readingSeconds"] = round(reading, 2)
+    numbers["speechRatio"] = round(speech / reading, 2) if reading > 0 else None
+    return numbers
+
+
 def check_quality(samples, find_speech=None):
     """(quality, report, clip): the first failed rule wins; clip is the reading the models get, or None."""
     find_speech = find_speech or speech_parts

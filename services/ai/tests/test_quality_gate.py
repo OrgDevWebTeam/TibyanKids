@@ -117,3 +117,39 @@ def test_the_report_holds_numbers_only():
 @pytest.mark.parametrize("seconds", [0, 0.01])
 def test_snr_of_very_short_audio_is_zero(seconds):
     assert audio.snr_db(background(seconds)) == 0.0
+
+
+# measure_recording: every number, even after a failed rule (used to tune the gate on data)
+
+
+def test_measure_gives_every_number_for_a_clean_reading():
+    samples, vad = recording(("silence", 1), ("speech", 3), ("silence", 1))
+    numbers = audio.measure_recording(samples, vad)
+    assert numbers["durationSeconds"] == 5.0
+    assert numbers["speechSeconds"] == 3.0
+    assert numbers["readingSeconds"] == 3.0
+    assert numbers["speechRatio"] == 1.0
+    assert numbers["snrDb"] > audio.MIN_SNR_DB
+    assert numbers["speechDbfs"] > audio.MIN_SPEECH_DBFS
+
+
+def test_measure_matches_the_numbers_the_gate_reached():
+    samples, vad = recording(("silence", 1), ("speech", 2), ("silence", 1))
+    _, report, _ = check_quality(samples, vad)
+    numbers = audio.measure_recording(samples, vad)
+    assert {key: numbers[key] for key in report} == report
+
+
+def test_measure_goes_on_after_a_rule_the_gate_stops_at():
+    """A clipped recording stops the gate at the clipping rule; the speech numbers are still measured."""
+    samples, vad = recording(("silence", 1), ("speech", 2, 1.2), ("silence", 1))
+    quality, report, _ = check_quality(samples, vad)
+    assert quality == "too_noisy" and "speechSeconds" not in report
+    assert audio.measure_recording(samples, vad)["speechSeconds"] == 2.0
+
+
+def test_measure_with_no_speech_leaves_the_speech_numbers_empty():
+    samples = background(2)
+    numbers = audio.measure_recording(samples, lambda _samples: [])
+    assert numbers["speechSeconds"] == 0.0
+    assert numbers["speechDbfs"] is None and numbers["readingSeconds"] is None and numbers["speechRatio"] is None

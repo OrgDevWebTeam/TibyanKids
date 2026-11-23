@@ -254,8 +254,9 @@ tibyan-eval/                      restricted, access logged
 ├── recordings.jsonl            one line per recording (B.5)
 ├── labels.jsonl                one line per word per teacher (B.6)
 ├── splits.json                 frozen speaker lists for train / dev / test (B.7)
-├── outputs/<date>-<model>/     🔶 per-recording model output for error analysis (may hold phoneme
-│                               text, so it stays here and never goes to logs, git or telemetry)
+├── outputs/<run name>/         what the gate and each model found, per recording, before any
+│                               decision (scripts/run_models.py). Numbers and codes only, but it
+│                               stays here and never goes to logs, git or telemetry
 └── runs/<date>-<model>.json    one file per evaluation run (B.9)
 ```
 
@@ -342,9 +343,14 @@ because the teacher still checks a sample of accepted ayahs (FR-LIVE-005).
 
 ### B.9 One evaluation run (`runs/*.json`)
 
-Made by `services/ai/scripts/evaluate.py <tibyan-eval folder> --split dev|test` (the numbers:
-`services/ai/app/evaluation.py`). A test run is refused when `recordings.jsonl` or `labels.jsonl` no
-longer match the SHA-256 values frozen in `splits.json`.
+Two steps. `services/ai/scripts/run_models.py <tibyan-eval folder>` runs the gate and both models
+once on every recording (the GPU part) and saves what they found in `outputs/<run name>/`
+(`app/saved_outputs.py`). It also saves every gate measurement, even after a failed rule, so the
+gate can be tuned without running it again. Then
+`services/ai/scripts/evaluate.py <tibyan-eval folder> --split dev|test [--outputs <run name>]` works
+out the merge and the decisions from those outputs with today's policy and threshold, in seconds
+(the numbers: `services/ai/app/evaluation.py`). A test run is refused when `recordings.jsonl` or
+`labels.jsonl` no longer match the SHA-256 values frozen in `splits.json`.
 
 Stores: model names and exact versions, the decision-policy version, threshold, dataset hash from
 `splits.json`, which split was used, every metric from B.8, and the date. A run file holds metrics
