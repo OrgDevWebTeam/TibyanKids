@@ -18,7 +18,9 @@
     torch brings, so torch must start the GPU before the model loads (`app/adapters/arabic_words.py`
     checks `torch.cuda.is_available()` first). Checked on 2026-11-23: the recitation models give
     the same results on the 25 reference recordings at all three levels as with CUDA 13, and
-    large-v3 writes the same 97 transcripts.
+    large-v3 writes the same 97 transcripts. The same checks in the Linux image (`Dockerfile.gpu`,
+    where torch brings the CUDA 12 libraries as `nvidia-*-cu12` packages) give the same results
+    and transcripts too.
   - **The model never decides alone.** When nothing close to the expected word is heard, the
     answer is `uncertain` (record again, or the teacher checks), never `error` (§4).
 - Code: `services/ai/scripts/benchmark_arabic_whisper.py` (the measurement). The words-stage
