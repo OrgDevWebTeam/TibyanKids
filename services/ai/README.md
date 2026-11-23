@@ -170,13 +170,15 @@ Then open http://localhost:8000/health or http://localhost:8000/docs.
 
 ## Run the real models (GPU machine)
 
-Needs an NVIDIA GPU, Python 3.12 and ffmpeg on `PATH`.
+Needs an NVIDIA GPU, Python 3.12 and ffmpeg on `PATH`. Use 3.12, as CI and Docker do: a newer
+Python can miss packages (faster-whisper needs onnxruntime, which has no Python 3.15 build yet).
 
 ```bash
 cd services/ai
 pip install -r requirements-dev.txt   # includes requirements-gpu.txt (torch for CUDA 13)
 python scripts/download_models.py   # the models, at the pinned revisions, into services/ai/models/
 python scripts/run_real_audio.py <folder with the recordings> <beginner|intermediate|advanced>
+python scripts/benchmark_arabic_whisper.py   # OD-03: faster-whisper sizes for the Arabic words stage
 ```
 
 The folder holds one mp3 per ayah, named `SSSAAA.mp3` (surah and ayah, 3 digits each), for example

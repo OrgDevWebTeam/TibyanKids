@@ -7,3 +7,9 @@ transformers==4.57.6
 quran-muaalem==0.3.0
 quran-transcript==0.6.4
 silero-vad==6.2.3
+# Arabic words stage (FR-ARB-002, OD-03): speech-to-text with an open Whisper model
+faster-whisper==1.2.1
+# CTranslate2 (inside faster-whisper) is built for CUDA 12, torch above for CUDA 13: the CUDA 12
+# libraries it needs, made findable by app/cuda12.py
+nvidia-cublas-cu12==12.9.2.10
+nvidia-cudnn-cu12==9.28.1.4
