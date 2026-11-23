@@ -17,11 +17,6 @@ MODELS = [
 ]
 
 
-def size_gb(folder):
-    """The size of a folder in GB."""
-    return sum(f.stat().st_size for f in folder.rglob("*") if f.is_file()) / 1024**3
-
-
 def main():
     """Downloads each model not yet at its pinned revision, then moves it into place."""
     print(f"Models folder: {models_dir()}")
@@ -29,7 +24,8 @@ def main():
         target = folder_for(repo_id)
         marker = target / "REVISION"
         if marker.exists() and marker.read_text(encoding="utf-8").strip() == revision:
-            print(f"{repo_id}@{revision[:12]}: already there ({size_gb(target):.2f} GB)")
+            size = sum(f.stat().st_size for f in target.rglob("*") if f.is_file()) / 1024**3
+            print(f"{repo_id}@{revision[:12]}: already there ({size:.2f} GB)")
             continue
 
         partial = target.with_name(target.name + ".partial")
@@ -38,7 +34,8 @@ def main():
         (partial / "REVISION").write_text(revision + "\n", encoding="utf-8")
         shutil.rmtree(target, ignore_errors=True)
         partial.rename(target)
-        print(f"{repo_id}@{revision[:12]}: ready ({size_gb(target):.2f} GB)")
+        size = sum(f.stat().st_size for f in target.rglob("*") if f.is_file()) / 1024**3
+        print(f"{repo_id}@{revision[:12]}: ready ({size:.2f} GB)")
 
 
 if __name__ == "__main__":

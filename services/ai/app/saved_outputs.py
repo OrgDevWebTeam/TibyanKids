@@ -51,11 +51,6 @@ def read_output(run_folder, recording_id):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def read_run(run_folder):
-    """The run.json of a run folder: date and model versions."""
-    return json.loads((Path(run_folder) / RUN_FILE).read_text(encoding="utf-8"))
-
-
 def newest_run(folder):
     """The name of the newest run folder in <tibyan-eval>/outputs/ (the names start with the date)."""
     runs = []

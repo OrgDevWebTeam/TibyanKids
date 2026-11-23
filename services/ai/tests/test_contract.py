@@ -24,17 +24,12 @@ FINDING = SCHEMA["$defs"]["finding"]["properties"]
 client = TestClient(app)
 
 
-def values(literal):
-    """The values of a Literal type."""
-    return list(typing.get_args(literal))
-
-
 def test_pydantic_enums_match_the_schema():
     """Pydantic enums match the schema."""
-    assert values(Decision) == SCHEMA["properties"]["decision"]["enum"]
-    assert values(Quality) == SCHEMA["properties"]["quality"]["enum"]
-    assert values(Category) == FINDING["category"]["enum"]
-    assert values(ErrorCode) == FINDING["code"]["enum"]
+    assert list(typing.get_args(Decision)) == SCHEMA["properties"]["decision"]["enum"]
+    assert list(typing.get_args(Quality)) == SCHEMA["properties"]["quality"]["enum"]
+    assert list(typing.get_args(Category)) == FINDING["category"]["enum"]
+    assert list(typing.get_args(ErrorCode)) == FINDING["code"]["enum"]
     assert list(CODES) == FINDING["code"]["enum"]
 
 

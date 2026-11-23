@@ -192,23 +192,18 @@ def labelled(out, tmp_path, decision_of=all_correct, only_speakers=None):
     """The teacher's labels for every word, or only for the recordings of only_speakers."""
     def decide(row):
         """The teacher's decision, or nothing for a speaker not labelled yet."""
-        if only_speakers and prepare.speaker_of(row["recordingId"]) not in only_speakers:
+        if only_speakers and prepare.parse_recording_id(row["recordingId"])[0] not in only_speakers:
             return "", ""
         return decision_of(row)
 
     assert prepare.import_labels(out, teacher_sheet(out, tmp_path / "teacher.csv", decide)) == []
 
 
-def splits_of(out):
-    """The contents of splits.json."""
-    return json.loads((out / "splits.json").read_text(encoding="utf-8"))
-
-
 def test_split_by_speaker_balanced_by_age_band_before_any_label(out):
     """Split by speaker balanced by age band before any label."""
     fill_speakers(out)
     assert prepare.split(out, test_count=3, dev_count=2) == []
-    splits = splits_of(out)
+    splits = json.loads((out / "splits.json").read_text(encoding="utf-8"))
     assert splits["test"] == ["SPK_001", "SPK_003", "SPK_005"]
     assert splits["dev"] == ["SPK_002", "SPK_004"]
     assert splits["train"] == ["SPK_006"]
@@ -219,7 +214,7 @@ def test_split_with_no_train_speakers(out):
     """Split with no train speakers."""
     fill_speakers(out)
     assert prepare.split(out, test_count=4, dev_count=2) == []
-    assert splits_of(out)["train"] == []
+    assert json.loads((out / "splits.json").read_text(encoding="utf-8"))["train"] == []
 
 
 def test_split_writes_recordings(out):
@@ -261,11 +256,11 @@ def test_dev_can_be_evaluated_before_the_test_labels_exist(out, tmp_path):
     """The teacher labels the dev children first; evaluate.py --split dev works on them, test is refused."""
     fill_speakers(out)
     prepare.split(out, test_count=3, dev_count=2)
-    dev = splits_of(out)["dev"]
+    dev = json.loads((out / "splits.json").read_text(encoding="utf-8"))["dev"]
     labelled(out, tmp_path, only_speakers=dev)
     gold, _ = evaluation.gold_labels(evaluation.read_jsonl(out / "labels.jsonl"))
-    assert {prepare.speaker_of(rec) for rec in gold} == set(dev)
-    assert not evaluation.check_frozen(out, splits_of(out))
+    assert {prepare.parse_recording_id(rec)[0] for rec in gold} == set(dev)
+    assert not evaluation.check_frozen(out, json.loads((out / "splits.json").read_text(encoding="utf-8")))
 
 
 def test_labels_imported_after_the_split_update_audio_quality(out, tmp_path):
@@ -284,7 +279,7 @@ def test_freeze_stores_hashes_that_evaluate_accepts(out, tmp_path):
     prepare.split(out, test_count=3, dev_count=2)
     labelled(out, tmp_path)
     assert prepare.freeze(out) == []
-    splits = splits_of(out)
+    splits = json.loads((out / "splits.json").read_text(encoding="utf-8"))
     assert evaluation.check_frozen(out, splits)
     assert splits["test"] == ["SPK_001", "SPK_003", "SPK_005"]
 
@@ -293,11 +288,11 @@ def test_freeze_refuses_while_test_recordings_are_unlabelled(out, tmp_path):
     """Freeze refuses while test recordings are unlabelled."""
     fill_speakers(out)
     prepare.split(out, test_count=3, dev_count=2)
-    dev = splits_of(out)["dev"]
+    dev = json.loads((out / "splits.json").read_text(encoding="utf-8"))["dev"]
     labelled(out, tmp_path, only_speakers=dev)
     problems = prepare.freeze(out)
     assert problems and "test recordings have no labels yet" in problems[0]
-    assert "sha256" not in splits_of(out)
+    assert "sha256" not in json.loads((out / "splits.json").read_text(encoding="utf-8"))
 
 
 def test_freeze_needs_the_split_first(out, tmp_path):

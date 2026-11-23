@@ -25,11 +25,6 @@ def surah_and_ayah(recording_id):
     return int(surah), int(ayah)
 
 
-def seconds_since(started):
-    """Seconds since started (a time.perf_counter() value), rounded to milliseconds."""
-    return round(time.perf_counter() - started, 3)
-
-
 def empty_output(recording_id):
     """A saved output before any step has run."""
     surah, ayah = surah_and_ayah(recording_id)
@@ -57,7 +52,7 @@ def run_gate(samples, saved):
 
     saved["gate"] = measure_recording(samples, speech_already_found)
     quality, _, clip = check_quality(samples, speech_already_found)
-    saved["seconds"]["gate"] = seconds_since(started)
+    saved["seconds"]["gate"] = round(time.perf_counter() - started, 3)
     saved["quality"] = quality
     return clip
 
@@ -73,7 +68,7 @@ def run_model(name, find_errors, clip, reference, saved):
     except RuntimeError as error:
         saved["modelProblems"][name] = type(error).__name__
         findings = None
-    saved["seconds"][name] = seconds_since(started)
+    saved["seconds"][name] = round(time.perf_counter() - started, 3)
     if findings is None:
         saved["findings"][name] = None
     else:
@@ -93,7 +88,7 @@ def analyse(path, recording_id, models=None):
         saved["quality"] = saved_outputs.UNREADABLE
         saved["error"] = error.code
         return saved
-    saved["seconds"]["decode"] = seconds_since(started)
+    saved["seconds"]["decode"] = round(time.perf_counter() - started, 3)
 
     clip = run_gate(samples, saved)
     if clip is None:
@@ -109,7 +104,7 @@ def analyse(path, recording_id, models=None):
 def start_run(run_folder, versions):
     """Creates the run folder, or checks that a folder being continued used the same model versions."""
     if (run_folder / saved_outputs.RUN_FILE).exists():
-        earlier = saved_outputs.read_run(run_folder)["models"]
+        earlier = json.loads((run_folder / saved_outputs.RUN_FILE).read_text(encoding="utf-8"))["models"]
         if earlier != versions:
             sys.exit(f"{run_folder.name} was made with {earlier}, not {versions}: use another --name")
         return

@@ -47,16 +47,6 @@ def model_versions():
     ]
 
 
-def combined_version():
-    """Both exact model versions joined with " + " (OPS-008)."""
-    return " + ".join(f"{model['name']} {model['version']}" for model in model_versions())
-
-
-def elapsed_ms(started):
-    """Milliseconds since started (a time.perf_counter() value)."""
-    return int((time.perf_counter() - started) * 1000)
-
-
 def analyze_recording(audio_bytes, surah, ayah, level, attempt_id):
     """One AnalysisResult for a prototype ayah; raises AudioError or ModelFailed; logs one JSON line."""
     started = time.perf_counter()
@@ -71,17 +61,17 @@ def analyze_recording(audio_bytes, surah, ayah, level, attempt_id):
         log_entry["error"] = "MODEL_FAILED"
         raise
     finally:
-        log_entry["ms"]["total"] = elapsed_ms(started)
+        log_entry["ms"]["total"] = int((time.perf_counter() - started) * 1000)
         log.info(json.dumps(log_entry))
 
     return AnalysisResult(
         attemptId=attempt_id,
         model=COMBINED_MODEL,
-        modelVersion=combined_version(),
+        modelVersion=" + ".join(f"{model['name']} {model['version']}" for model in model_versions()),
         decision=decision,
         quality=quality,
         findings=findings,
-        processingMs=elapsed_ms(started),
+        processingMs=int((time.perf_counter() - started) * 1000),
     )
 
 
@@ -91,12 +81,12 @@ def check_recording(audio_bytes, surah, ayah, level, log_entry):
 
     stage_started = time.perf_counter()
     samples = decode_audio(audio_bytes)
-    log_entry["ms"]["decode"] = elapsed_ms(stage_started)
+    log_entry["ms"]["decode"] = int((time.perf_counter() - stage_started) * 1000)
 
     with MODELS_LOCK:
         stage_started = time.perf_counter()
         quality, report, clip = check_quality(samples)
-        log_entry["ms"]["gate"] = elapsed_ms(stage_started)
+        log_entry["ms"]["gate"] = int((time.perf_counter() - stage_started) * 1000)
         log_entry["quality"] = quality
         log_entry["gate"] = report
         if quality != "ok":
@@ -109,7 +99,7 @@ def check_recording(audio_bytes, surah, ayah, level, log_entry):
         except Exception as error:
             log_entry["models"][muaalem.NAME] = "error"
             raise ModelFailed(muaalem.NAME) from error
-        log_entry["ms"][muaalem.NAME] = elapsed_ms(stage_started)
+        log_entry["ms"][muaalem.NAME] = int((time.perf_counter() - stage_started) * 1000)
         log_entry["models"][muaalem.NAME] = "ok"
 
         stage_started = time.perf_counter()
@@ -123,7 +113,7 @@ def check_recording(audio_bytes, surah, ayah, level, log_entry):
         except Exception as error:
             log_entry["models"][whisper_quran.NAME] = "error"
             raise ModelFailed(whisper_quran.NAME) from error
-        log_entry["ms"][whisper_quran.NAME] = elapsed_ms(stage_started)
+        log_entry["ms"][whisper_quran.NAME] = int((time.perf_counter() - stage_started) * 1000)
         log_entry["models"][whisper_quran.NAME] = "ok"
 
     findings = combine_findings(muaalem_findings, whisper_findings)

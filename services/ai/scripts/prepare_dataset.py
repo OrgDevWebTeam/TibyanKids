@@ -39,11 +39,6 @@ def parse_recording_id(rec_id):
     return f"SPK_{speaker_number}", int(surah), int(ayah)
 
 
-def speaker_of(rec_id):
-    """The speakerId of a recording id."""
-    return parse_recording_id(rec_id)[0]
-
-
 def refuse_inside_repo(folder):
     """Stops the script for a folder in the public repository, except datasets/."""
     path = Path(folder).resolve()
@@ -90,14 +85,10 @@ def read_labels(out):
     return labels
 
 
-def read_splits(out):
-    """The contents of splits.json."""
-    return json.loads((Path(out) / "splits.json").read_text(encoding="utf-8"))
-
-
 def is_frozen(out):
     """True once freeze has stored the hashes in splits.json."""
-    return (Path(out) / "splits.json").exists() and "sha256" in read_splits(out)
+    path = Path(out) / "splits.json"
+    return path.exists() and "sha256" in json.loads(path.read_text(encoding="utf-8"))
 
 
 def print_problems(problems):
@@ -225,11 +216,6 @@ def speaker_info(out):
     return info
 
 
-def age_band_of(info, speaker):
-    """The age band of a speaker, from speakers.csv."""
-    return info[speaker]["ageBand"].strip()
-
-
 def speakers_in_turn(speakers_by_band):
     """All speakers, one from each age band in turn, youngest first."""
     queues = []
@@ -295,7 +281,7 @@ def write_recordings(out):
     """Writes recordings.jsonl from audio/, speakers.csv, splits.json and the labels so far."""
     out = Path(out)
     info = speaker_info(out)
-    split_of = split_of_each_speaker(read_splits(out))
+    split_of = split_of_each_speaker(json.loads((Path(out) / "splits.json").read_text(encoding="utf-8")))
     decisions = final_decisions(read_labels(out))
     rows = [recording_row(rec_id, info, split_of, decisions) for rec_id in recording_ids(out)]
     write_jsonl(out / "recordings.jsonl", rows)
@@ -306,7 +292,7 @@ def print_split(splits, info):
     for name in ["test", "dev", "train"]:
         bands = {}
         for speaker in splits[name]:
-            band = age_band_of(info, speaker)
+            band = info[speaker]["ageBand"].strip()
             bands[band] = bands.get(band, 0) + 1
         print(f"{name:<5} {len(splits[name]):>2} speakers  by age band: {bands}")
     print(f"Dev speakers, to label first: {', '.join(splits['dev'])}")
@@ -318,7 +304,7 @@ def split(out, test_count, dev_count):
     if (out / "splits.json").exists():
         sys.exit("splits.json exists: the split is already decided (B.7)")
 
-    speakers = sorted({speaker_of(rec_id) for rec_id in recording_ids(out)})
+    speakers = sorted({parse_recording_id(rec_id)[0] for rec_id in recording_ids(out)})
     problems = check_speakers(read_csv(out / "speakers.csv"), speakers)
     if test_count + dev_count > len(speakers):
         problems.append(f"--test {test_count} --dev {dev_count} needs more than the {len(speakers)} speakers")
@@ -328,17 +314,12 @@ def split(out, test_count, dev_count):
     info = speaker_info(out)
     speakers_by_band = {}
     for speaker in speakers:
-        speakers_by_band.setdefault(age_band_of(info, speaker), []).append(speaker)
+        speakers_by_band.setdefault(info[speaker]["ageBand"].strip(), []).append(speaker)
     splits = assign_splits(speakers_by_band, test_count, dev_count)
     (out / "splits.json").write_text(json.dumps(splits, indent=2), encoding="utf-8")
     write_recordings(out)
     print_split(splits, info)
     return []
-
-
-def split_codes(text):
-    """The error codes of one cell: separated by ; or , or spaces."""
-    return [code for code in re.split(r"[;,\s]+", text.strip()) if code]
 
 
 def word_index_problem(row, rec_id):
@@ -379,7 +360,7 @@ def check_label(row, known_recordings, teacher):
     if problem:
         return None, f"{where}: {problem}"
     decision = row.get("teacherDecision", "").strip()
-    codes = split_codes(row.get("errorCodes", ""))
+    codes = [code for code in re.split(r"[;,\s]+", row.get("errorCodes", "").strip()) if code]
     problem = decision_problem(decision, codes)
     if problem:
         return None, f"{where}: {problem}"
@@ -434,7 +415,7 @@ def unlabelled_test_recordings(out, splits, decisions):
     """The test recordings that have no label yet."""
     missing = []
     for rec_id in recording_ids(out):
-        if speaker_of(rec_id) in splits["test"] and rec_id not in decisions:
+        if parse_recording_id(rec_id)[0] in splits["test"] and rec_id not in decisions:
             missing.append(rec_id)
     return missing
 
@@ -449,7 +430,7 @@ def freeze(out):
     if not (out / "labels.jsonl").exists():
         sys.exit("No labels.jsonl: run import-labels first")
 
-    splits = read_splits(out)
+    splits = json.loads((Path(out) / "splits.json").read_text(encoding="utf-8"))
     decisions = final_decisions(read_labels(out))
     missing = unlabelled_test_recordings(out, splits, decisions)
     if missing:

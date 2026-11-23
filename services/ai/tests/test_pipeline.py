@@ -44,16 +44,11 @@ def use_models(monkeypatch, muaalem_model=None, whisper_model=None):
     monkeypatch.setattr(pipeline, "models_loaded", True)
 
 
-def analyze(level="beginner"):
-    """Runs the pipeline on one recording."""
-    return pipeline.analyze_recording(b"audio", 1, 1, level, ATTEMPT)
-
-
 def test_no_findings_is_accepted_with_both_model_versions(monkeypatch):
     """No findings is accepted with both model versions."""
     use_models(monkeypatch)
 
-    result = analyze()
+    result = pipeline.analyze_recording(b"audio", 1, 1, "beginner", ATTEMPT)
 
     assert (result.decision, result.quality, result.findings) == ("accepted", "ok", [])
     assert result.model == "combined"
@@ -67,7 +62,7 @@ def test_a_wrong_word_is_an_error_with_the_segment_of_that_word(monkeypatch):
     muaalem = fake_model("quran-muaalem", [make_finding(2, "ERR_PRON_LETTER_SUB", 0.9, 0, 0)])
     use_models(monkeypatch, muaalem, whisper)
 
-    result = analyze()
+    result = pipeline.analyze_recording(b"audio", 1, 1, "beginner", ATTEMPT)
 
     assert result.decision == "error"
     assert [(f.wordIndex, f.code, f.wordStartMs, f.wordEndMs) for f in result.findings] == [
@@ -79,8 +74,8 @@ def test_the_level_decides_what_stops_the_child(monkeypatch):
     """The level decides what stops the child."""
     use_models(monkeypatch, fake_model("quran-muaalem", [make_finding(3, "ERR_PRON_HARAKA", 0.9, 0, 0)]))
 
-    assert analyze("beginner").decision == "accepted"
-    assert analyze("intermediate").decision == "error"
+    assert pipeline.analyze_recording(b"audio", 1, 1, "beginner", ATTEMPT).decision == "accepted"
+    assert pipeline.analyze_recording(b"audio", 1, 1, "intermediate", ATTEMPT).decision == "error"
 
 
 def test_a_gate_rejection_never_reaches_the_models(monkeypatch):
@@ -89,7 +84,7 @@ def test_a_gate_rejection_never_reaches_the_models(monkeypatch):
     broken = fake_model("quran-muaalem", error=AssertionError("the models must not run"))
     use_models(monkeypatch, broken, broken)
 
-    result = analyze()
+    result = pipeline.analyze_recording(b"audio", 1, 1, "beginner", ATTEMPT)
 
     assert (result.decision, result.quality, result.findings) == ("uncertain", "silent", [])
 
@@ -110,7 +105,7 @@ def test_the_gate_and_the_models_run_inside_the_lock(monkeypatch):
     model = SimpleNamespace(NAME="m", model_version=lambda: "v1", find_errors=find_errors, Runaway=Runaway)
     use_models(monkeypatch, model, model)
 
-    analyze()
+    pipeline.analyze_recording(b"audio", 1, 1, "beginner", ATTEMPT)
     assert not pipeline.MODELS_LOCK.locked()
 
 
@@ -124,7 +119,7 @@ def test_unreadable_audio_raises_its_audio_error(monkeypatch):
     use_models(monkeypatch)
 
     with pytest.raises(AudioError):
-        analyze()
+        pipeline.analyze_recording(b"audio", 1, 1, "beginner", ATTEMPT)
 
 
 def test_a_whisper_runaway_is_uncertain_with_no_findings(monkeypatch):
@@ -132,7 +127,7 @@ def test_a_whisper_runaway_is_uncertain_with_no_findings(monkeypatch):
     muaalem = fake_model("quran-muaalem", [make_finding(1, "ERR_PRON_HARAKA", 0.9, 0, 0)])
     use_models(monkeypatch, muaalem, fake_model("whisper-quran", error=Runaway()))
 
-    result = analyze()
+    result = pipeline.analyze_recording(b"audio", 1, 1, "beginner", ATTEMPT)
 
     assert (result.decision, result.quality, result.findings) == ("uncertain", "ok", [])
 
@@ -146,7 +141,7 @@ def test_a_model_crash_raises_model_failed(monkeypatch, failing):
     use_models(monkeypatch, muaalem, whisper)
 
     with pytest.raises(pipeline.ModelFailed) as raised:
-        analyze()
+        pipeline.analyze_recording(b"audio", 1, 1, "beginner", ATTEMPT)
     assert raised.value.model_name == failing
 
 
@@ -157,7 +152,7 @@ def test_one_json_log_line_with_numbers_and_codes_only(monkeypatch, caplog):
     use_models(monkeypatch, fake_model("quran-muaalem", [unsure]), whisper)
 
     with caplog.at_level(logging.INFO, logger="tibyan.ai"):
-        analyze()
+        pipeline.analyze_recording(b"audio", 1, 1, "beginner", ATTEMPT)
 
     assert len(caplog.records) == 1
     entry = json.loads(caplog.records[0].getMessage())
@@ -175,7 +170,7 @@ def test_a_failed_request_is_logged_too(monkeypatch, caplog):
     use_models(monkeypatch, fake_model("quran-muaalem", error=RuntimeError("CUDA error")))
 
     with caplog.at_level(logging.INFO, logger="tibyan.ai"), pytest.raises(pipeline.ModelFailed):
-        analyze()
+        pipeline.analyze_recording(b"audio", 1, 1, "beginner", ATTEMPT)
 
     entry = json.loads(caplog.records[0].getMessage())
     assert entry["error"] == "MODEL_FAILED"

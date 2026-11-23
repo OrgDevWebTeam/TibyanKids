@@ -39,11 +39,12 @@ def parse_arguments():
 
 def run_file(data, split, report):
     """The contents of one runs/*.json file: metrics, versions and settings only (B.9)."""
+    run = json.loads((data.run_folder / saved_outputs.RUN_FILE).read_text(encoding="utf-8"))
     return {
         "date": datetime.now().isoformat(timespec="seconds"),
         "split": split,
         "outputs": data.run_name,
-        "models": saved_outputs.read_run(data.run_folder)["models"],
+        "models": run["models"],
         "policyVersion": POLICY_VERSION,
         "threshold": confidence_threshold(),
         "datasetSha256": data.splits.get("sha256", {}),

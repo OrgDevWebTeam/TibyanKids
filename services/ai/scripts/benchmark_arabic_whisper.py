@@ -111,11 +111,6 @@ def words_of(text):
     return words
 
 
-def as_one_word(text):
-    """The normalised words of a text joined together, for comparing with one heard word."""
-    return "".join(words_of(text))
-
-
 def edit_distance(a, b):
     """Letters to add, remove or change to turn a into b (Levenshtein)."""
     previous = list(range(len(b) + 1))
@@ -128,26 +123,21 @@ def edit_distance(a, b):
     return previous[-1]
 
 
-def close(a, b):
-    """At most one letter apart: a held madd written as an extra letter, or a dropped letter."""
-    return edit_distance(a, b) <= 1
-
-
 def matches(said, expected, rule):
     """True when the transcript counts as the expected word under this rule."""
     heard = words_of(said)
-    target = as_one_word(expected)
+    target = "".join(words_of(expected))
     if rule == "exact":
         return "".join(heard) == target
     if rule == "contains":
         return target in heard
-    return any(close(word, target) for word in heard)
+    return any(edit_distance(word, target) <= 1 for word in heard)
 
 
 def close_to_any(word, allowed):
     """True when the word is close to one of the allowed words."""
     for ok in allowed:
-        if close(word, ok):
+        if edit_distance(word, ok) <= 1:
             return True
     return False
 
@@ -155,10 +145,10 @@ def close_to_any(word, allowed):
 def made_up_words(said, expected, neighbours):
     """"invented", "extra words" or None for one transcript."""
     heard = words_of(said)
-    target = as_one_word(expected)
+    target = "".join(words_of(expected))
     allowed = [target]
     for word in neighbours:
-        allowed.append(as_one_word(word))
+        allowed.append("".join(words_of(word)))
 
     unknown = []
     for word in heard:
@@ -173,13 +163,13 @@ def made_up_words(said, expected, neighbours):
 
 def wrong_word_for(clips, index):
     """A different word to check this clip against, from halfway down the list."""
-    target = as_one_word(clips[index]["expected"])
+    target = "".join(words_of(clips[index]["expected"]))
     start = index + len(clips) // 2
     if start >= len(clips):
         start -= len(clips)
     candidates = clips[start:] + clips[:start]
     for other in candidates:
-        if as_one_word(other["expected"]) != target:
+        if "".join(words_of(other["expected"])) != target:
             return other["expected"]
     return None
 

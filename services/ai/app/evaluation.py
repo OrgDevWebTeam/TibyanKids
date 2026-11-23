@@ -44,9 +44,11 @@ def gold_labels(labels):
     for (recording_id, word_index), word_labels in by_word.items():
         final = [label for label in word_labels if label["round"] == 2]
         first = [label for label in word_labels if label["round"] == 1]
+        decisions_agree = all(label["teacherDecision"] == first[0]["teacherDecision"] for label in first)
+        codes_agree = all(sorted(label["errorCodes"]) == sorted(first[0]["errorCodes"]) for label in first)
         if final:
             chosen = final[-1]
-        elif first and all(same_label(label, first[0]) for label in first):
+        elif first and decisions_agree and codes_agree:
             chosen = first[0]
         else:
             unresolved.add(recording_id)
@@ -56,11 +58,6 @@ def gold_labels(labels):
     for recording_id in unresolved:
         gold.pop(recording_id, None)
     return gold, unresolved
-
-
-def same_label(a, b):
-    """True when two labels give the same decision and codes."""
-    return a["teacherDecision"] == b["teacherDecision"] and sorted(a["errorCodes"]) == sorted(b["errorCodes"])
 
 
 def gold_stopping_words(word_codes, level):
