@@ -2,6 +2,8 @@
 # models and fake audio: no GPU, no recording of anyone.
 import importlib.util
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -172,9 +174,6 @@ def test_a_run_folder_refuses_other_model_versions(tmp_path):
 
 
 def test_evaluate_reads_saved_outputs_and_refuses_test_before_the_freeze(tmp_path):
-    import subprocess
-    import sys
-
     prepare_script = SCRIPT.parent / "prepare_dataset.py"
     prepare_spec = importlib.util.spec_from_file_location("prepare_dataset", prepare_script)
     prepare = importlib.util.module_from_spec(prepare_spec)

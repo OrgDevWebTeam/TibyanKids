@@ -4,6 +4,8 @@
 import os
 from functools import cache
 
+from faster_whisper import WhisperModel
+
 from app import cuda12
 from app.model_files import check_revision, local_copy
 
@@ -27,10 +29,6 @@ def model_folder():
 @cache
 def load_model():
     """The model in float16 on the GPU, loaded once."""
-    # Imported here, not at the top: only the words stage needs faster-whisper, so the other
-    # adapters and download_models.py work without it
-    from faster_whisper import WhisperModel
-
     if not cuda12.make_findable():
         raise RuntimeError("The CUDA 12 libraries are missing: pip install -r requirements-gpu.txt")
     return WhisperModel(str(model_folder()), device="cuda", compute_type="float16")

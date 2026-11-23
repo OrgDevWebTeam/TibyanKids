@@ -32,10 +32,14 @@ import time
 from datetime import date
 from pathlib import Path
 
+import torch
+from faster_whisper import WhisperModel
+from faster_whisper.utils import download_model
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app import cuda12  # noqa: E402
-from app.adapters import arabic_words  # noqa: E402
+from app.adapters import arabic_words, muaalem, whisper_quran  # noqa: E402
 from app.adapters.whisper_quran import normalize  # noqa: E402
 from app.audio import SAMPLE_RATE, decode_audio  # noqa: E402
 from app.evaluation import percentile  # noqa: E402
@@ -258,8 +262,6 @@ def score(clips, transcripts):
 
 def gpu_used_gib():
     """GPU memory in use on the device, by every library and process (CTranslate2 included)."""
-    import torch
-
     free, total = torch.cuda.mem_get_info()
     return (total - free) / GIB
 
@@ -269,16 +271,12 @@ def model_folder(size):
     services/ai/models/faster-whisper-compare/<size>, as plain files (no Hugging Face cache)."""
     if size == CHOSEN_SIZE:
         return arabic_words.model_folder()
-    from faster_whisper.utils import download_model
-
     return download_model(size, output_dir=str(models_dir() / "faster-whisper-compare" / size))
 
 
 def load_whisper(size):
     """A faster-whisper model of this size in float16 on the GPU. A new one each time (not the
     adapter's cached one), so the benchmark can free it and measure the next size."""
-    from faster_whisper import WhisperModel
-
     if not cuda12.make_findable():
         sys.exit("The CUDA 12 libraries are missing: pip install -r requirements-gpu.txt")
     return WhisperModel(str(model_folder(size)), device="cuda", compute_type="float16")
@@ -385,8 +383,6 @@ def parse_arguments():
 
 def load_recitation_models():
     """Loads the two recitation models, as they are on the pilot machine."""
-    from app.adapters import muaalem, whisper_quran
-
     print("Loading the two recitation models first, as on the pilot machine...")
     muaalem.load_model()
     whisper_quran.load_model()
@@ -394,8 +390,6 @@ def load_recitation_models():
 
 def new_report(total_gib, alone):
     """The numbers file before any size is measured: the settings of the run."""
-    import torch
-
     return {
         "date": date.today().isoformat(),
         "gpu": torch.cuda.get_device_name(),
@@ -411,8 +405,6 @@ def new_report(total_gib, alone):
 def main():
     """Measures each size, saving the numbers after each one, then prints the tables."""
     args = parse_arguments()
-    import torch
-
     if not torch.cuda.is_available():
         sys.exit("No CUDA GPU: OD-03 is measured on the GPU machine")
     clips = word_clips(args.folder)
