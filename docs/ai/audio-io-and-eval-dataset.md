@@ -262,19 +262,19 @@ tibyan-eval/                      restricted, access logged
 
 ### B.5 One recording (`recordings.jsonl`)
 
-| Field           | Example      | Meaning                                                                       |
-| --------------- | ------------ | ----------------------------------------------------------------------------- |
-| `recordingId`   | `REC_0001`   | Anonymous id                                                                  |
-| `speakerId`     | `SPK_017`    | Anonymous speaker, used for the split                                         |
-| `consentId`     | `CON_017`    | The separate model-use consent                                                |
-| `source`        | `child`      | `child` or `seeded_adult`                                                     |
-| `ageBand`       | `9-11`       | `6-8`, `9-11`, `12-14`                                                        |
-| `surah`, `ayah` | `1`, `4`     | Which ayah                                                                    |
-| `device`        | `phone`      | `phone`, `tablet`, `laptop`                                                   |
-| `mimeType`      | `audio/webm` | As uploaded                                                                   |
-| `recordedAt`    | `2026-11-12` | Date only                                                                     |
-| `audioQuality`  | `ok`         | `ok` or `poor_audio`, from the gold labels                                    |
-| `split`         | `test`       | `train`, `dev` or `test`, copied from `splits.json` after the split is frozen |
+| Field           | Example           | Meaning                                                                       |
+| --------------- | ----------------- | ----------------------------------------------------------------------------- |
+| `recordingId`   | `REC_017_001_004` | Anonymous id, `REC_<speaker>_<surah>_<ayah>`                                  |
+| `speakerId`     | `SPK_017`         | Anonymous speaker, used for the split                                         |
+| `consentId`     | `CON_017`         | The separate model-use consent                                                |
+| `source`        | `child`           | `child` or `seeded_adult`                                                     |
+| `ageBand`       | `9-11`            | `6-8`, `9-11`, `12-14`                                                        |
+| `surah`, `ayah` | `1`, `4`          | Which ayah                                                                    |
+| `device`        | `phone`           | `phone`, `tablet`, `laptop`                                                   |
+| `mimeType`      | `audio/webm`      | As uploaded                                                                   |
+| `recordedAt`    | `2026-11-12`      | Date only                                                                     |
+| `audioQuality`  | `ok`              | `ok` or `poor_audio`, from the gold labels                                    |
+| `split`         | `test`            | `train`, `dev` or `test`, copied from `splits.json` after the split is frozen |
 
 ### B.6 One word label (`labels.jsonl`)
 
@@ -282,7 +282,7 @@ Same fields as the annotation guide §4, in camelCase:
 
 | Field             | Example                   | Meaning                                                  |
 | ----------------- | ------------------------- | -------------------------------------------------------- |
-| `recordingId`     | `REC_0001`                |                                                          |
+| `recordingId`     | `REC_017_001_004`         |                                                          |
 | `wordIndex`       | `3`                       | **1 = first word**, same as the contract                 |
 | `annotatorId`     | `TCH_02`                  |                                                          |
 | `round`           | `1`                       | `1` = independent label, `2` = reviewer's final decision |
