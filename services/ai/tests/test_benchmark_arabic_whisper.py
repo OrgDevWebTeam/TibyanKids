@@ -140,3 +140,9 @@ def test_measure_size_records_memory_time_and_scores():
     assert result["rules"]["exact"]["correct"] == round(2 / 3, 3)
     assert set(result["secondsPerWord"]) == {"p50", "p95"}
     assert result["transcripts"][0] == {"ayah": "1:1", "position": 1, "heard": "بسم"}
+
+
+def test_the_default_recordings_are_in_the_repository_datasets_folder():
+    folder = benchmark.default_recordings_folder()
+    assert folder.parts[-2:] == ("datasets", "reference-recitation")
+    assert (folder.parent.parent / "services" / "ai" / "scripts" / "benchmark_arabic_whisper.py").exists()

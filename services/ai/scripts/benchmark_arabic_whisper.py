@@ -45,7 +45,6 @@ from app.evaluation import percentile  # noqa: E402
 from app.model_files import models_dir  # noqa: E402
 from app.reference import get_ayah, get_word_timings  # noqa: E402
 
-REPO = Path(__file__).resolve().parents[3]
 SIZES = ["small", "medium", "large-v3-turbo", "large-v3"]
 CHOSEN_SIZE = "large-v3"  # ADR-0010
 MAX_PADDING_MS = 100
@@ -367,12 +366,20 @@ def print_tables(results):
 # ---------- Command line ----------
 
 
+def default_recordings_folder():
+    """datasets/reference-recitation of the repository, or None when the script is not inside the
+    repository (in the Docker image it is /app/scripts, with no repository around it)."""
+    parents = Path(__file__).resolve().parents
+    if len(parents) < 4:
+        return None
+    return parents[3] / "datasets" / "reference-recitation"
+
+
 def parse_arguments():
     """The reference recordings, the sizes, and where to save the numbers."""
     parser = argparse.ArgumentParser(description="OD-03: faster-whisper sizes for the Arabic words stage")
-    default_folder = REPO / "datasets" / "reference-recitation"
-    parser.add_argument("folder", type=Path, nargs="?", default=default_folder,
-                        help="the 25 reference recordings, SSSAAA.mp3")
+    folder_help = "the 25 reference recordings, SSSAAA.mp3 (default: datasets/reference-recitation)"
+    parser.add_argument("folder", type=Path, nargs="?", default=default_recordings_folder(), help=folder_help)
     parser.add_argument("--sizes", nargs="+", default=SIZES)
     parser.add_argument("--alone", action="store_true", help="do not load the two recitation models first")
     parser.add_argument("--out", type=Path, help="JSON file for the numbers (default: beside the recordings)")
@@ -403,6 +410,8 @@ def new_report(total_gib, alone):
 def main():
     """Measures each size, saving the numbers after each one, then prints the tables."""
     args = parse_arguments()
+    if args.folder is None:
+        sys.exit("Not inside the repository: give the folder of the reference recordings")
     if not torch.cuda.is_available():
         sys.exit("No CUDA GPU: OD-03 is measured on the GPU machine")
     clips = word_clips(args.folder)
