@@ -89,7 +89,13 @@ def test_the_wrong_word_is_never_the_same_word():
 
 
 def clip(expected, neighbours=()):
-    return {"ayah": "1:1", "position": 1, "expected": expected, "neighbours": list(neighbours), "samples": np.zeros(10)}
+    return {
+        "ayah": "1:1",
+        "position": 1,
+        "expected": expected,
+        "neighbours": list(neighbours),
+        "samples": np.zeros(10),
+    }
 
 
 def test_score_counts_correct_false_accept_and_made_up_words():
@@ -117,9 +123,17 @@ def test_measure_size_records_memory_time_and_scores():
     clips = [clip("بِسْمِ"), clip("ٱللَّهِ"), clip("ٱلرَّحْمَٰنِ")]
     answers = iter(["warm-up", "بسم", "الله", "الرحيم"])
     memory = iter([2.0, 3.5, 3.6, 3.7, 3.6])
-    result = benchmark.measure_size(
-        "tiny", clips, load=lambda size: object(), hear=lambda model, samples: next(answers), used=lambda: next(memory)
-    )
+
+    def fake_load(_size):
+        return object()
+
+    def fake_hear(_model, _samples):
+        return next(answers)
+
+    def fake_used():
+        return next(memory)
+
+    result = benchmark.measure_size("tiny", clips, load=fake_load, hear=fake_hear, used=fake_used)
     assert result["size"] == "tiny" and result["words"] == 3
     assert result["modelGiB"] == 1.5  # 3.5 after loading - 2.0 before
     assert result["peakTotalGiB"] == 3.7

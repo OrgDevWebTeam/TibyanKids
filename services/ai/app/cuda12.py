@@ -3,6 +3,7 @@
 # from the pip packages nvidia-cublas-cu12 and nvidia-cudnn-cu12 (requirements-gpu.txt). This file
 # makes them findable. Call make_findable() once, before a faster-whisper model is loaded.
 import ctypes
+import importlib
 import os
 import sys
 from functools import cache
@@ -19,11 +20,13 @@ def library_folders():
     folders = []
     for name in PACKAGES:
         try:
-            package = __import__(name, fromlist=["__path__"])
+            package = importlib.import_module(name)
         except ImportError:
             continue
         root = Path(list(package.__path__)[0])
-        folders += [root / sub for sub in ("bin", "lib") if (root / sub).is_dir()]
+        for sub in ("bin", "lib"):
+            if (root / sub).is_dir():
+                folders.append(root / sub)
     return folders
 
 
