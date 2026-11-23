@@ -17,8 +17,8 @@ over HTTP; browsers never do. It is Python, so it is not part of the pnpm worksp
 - The API sends each recorded ayah here and saves the result (`apps/api`,
   `POST /api/v1/children/:id/recitation-attempts`).
 - `scripts/prepare_dataset.py` turns the children's recordings (`SPK_xxx/<surah>_<ayah>.wav`) into
-  the evaluation layout in `datasets/tibyan-eval` (ignored by git and Docker): `layout`, then
-  `import-labels`, then `freeze`.
+  the evaluation layout in `datasets/tibyan-eval` (ignored by git and Docker): `layout`, `split`,
+  `import-labels` (again as the teacher labels more), then `freeze`.
 - `scripts/evaluate.py` measures the models on a labelled dataset. Next (week 4): the children's
   recordings, then the main model and the first threshold from the numbers (OD-02).
 

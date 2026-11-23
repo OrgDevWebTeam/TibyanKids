@@ -2,19 +2,24 @@
 #
 # The dataset holds children's voices, so the output folder is datasets/tibyan-eval (ignored by git
 # and Docker) or a folder outside the repository. Anywhere else in the repository is refused.
-# Three steps, in this order:
+# Four steps, in this order:
 #
 #   1. layout         python scripts/prepare_dataset.py layout <source> <tibyan-eval>
 #      Copies <source>/SPK_xxx/<surah>_<ayah>.wav to audio/, and writes two sheets to fill in:
 #      speakers.csv (age band, consent) and labelling_sheet.csv (one row per word, for the teacher).
 #
-#   2. import-labels  python scripts/prepare_dataset.py import-labels <tibyan-eval> <sheet.csv>
-#      Checks the teacher's filled-in sheet and writes labels.jsonl (B.6). One teacher labels every
-#      word, so there are no rounds: each label is the final one.
+#   2. split          python scripts/prepare_dataset.py split <tibyan-eval> --test 11 --dev 6
+#      Once speakers.csv is filled in: decides by speaker who is in test, dev and train, balanced by
+#      age band, and writes splits.json and recordings.jsonl (B.5). Done before labelling, so the
+#      teacher can label the dev children first.
 #
-#   3. freeze         python scripts/prepare_dataset.py freeze <tibyan-eval> --test 10 --dev 5
-#      Splits by speaker, balanced by age band, writes recordings.jsonl (B.5) and splits.json with the
-#      SHA-256 of both files (B.7). After this, scripts/evaluate.py --split test refuses changed data.
+#   3. import-labels  python scripts/prepare_dataset.py import-labels <tibyan-eval> <sheet.csv>
+#      Checks the teacher's sheet and writes labels.jsonl (B.6). Can run again on a sheet that is
+#      not finished yet. One teacher labels every word, so there are no rounds: each label is final.
+#
+#   4. freeze         python scripts/prepare_dataset.py freeze <tibyan-eval>
+#      Once every test recording is labelled: stores the SHA-256 of recordings.jsonl and labels.jsonl
+#      in splits.json (B.7). After this, scripts/evaluate.py --split test refuses changed data.
 #
 # Every step prints counts and problems only: never a word of a child's reading or a teacher's note.
 import argparse
@@ -87,7 +92,7 @@ def recording_ids(out):
     return sorted(path.stem for path in (out / "audio").glob("REC_*.wav"))
 
 
-# ---------- Step 1: layout ----------
+# ---------- layout (step 1) ----------
 
 
 def find_recordings(source):
@@ -157,7 +162,7 @@ def layout(source, out):
     return []
 
 
-# ---------- Step 2: import-labels ----------
+# ---------- import-labels (step 3) ----------
 
 
 def split_codes(text):
@@ -201,11 +206,25 @@ def check_label(row, known_recordings, teacher):
     return label, None
 
 
+def is_frozen(out):
+    """True once freeze has stored the hashes in splits.json."""
+    path = Path(out) / "splits.json"
+    return path.exists() and "sha256" in json.loads(path.read_text(encoding="utf-8"))
+
+
+def read_labels(out):
+    """The rows of labels.jsonl, or [] before any labels were imported."""
+    path = Path(out) / "labels.jsonl"
+    if not path.exists():
+        return []
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line]
+
+
 def import_labels(out, sheet, teacher=DEFAULT_TEACHER):
-    """Writes labels.jsonl from the one teacher's filled-in sheet. Returns the problems found (nothing is written then)."""
+    """Writes labels.jsonl from the teacher's sheet (finished or not). Returns the problems found (nothing is written then)."""
     out = Path(out)
-    if (out / "splits.json").exists():
-        sys.exit("splits.json exists: the dataset is frozen, labels cannot change (B.7)")
+    if is_frozen(out):
+        sys.exit("The dataset is frozen: labels cannot change (B.7)")
 
     known = set(recording_ids(out))
     labels, problems, empty_rows = [], [], 0
@@ -231,10 +250,12 @@ def import_labels(out, sheet, teacher=DEFAULT_TEACHER):
     labelled = len({label["recordingId"] for label in labels})
     print(f"{len(labels)} word labels for {labelled} of {len(known)} recordings written to labels.jsonl")
     print(f"{empty_rows} rows without a teacherDecision were skipped")
+    if (out / "splits.json").exists():
+        write_recordings(out)  # audioQuality follows the new labels
     return []
 
 
-# ---------- Step 3: freeze ----------
+# ---------- split (step 2) ----------
 
 
 def final_decisions(labels):
@@ -263,10 +284,11 @@ def check_speakers(rows, speakers):
 
 def assign_splits(speakers_by_band, test_count, dev_count):
     """{"test": [...], "dev": [...], "train": [...]}: speakers taken in turn from each age band, so every split is balanced."""
-    queues = {band: sorted(ids) for band, ids in sorted(speakers_by_band.items())}
+    bands = [band for band in AGE_BANDS if band in speakers_by_band]  # youngest first
+    queues = {band: sorted(speakers_by_band[band]) for band in bands}
     order = []
     while any(queues.values()):
-        for band in sorted(queues):
+        for band in bands:
             if queues[band]:
                 order.append(queues[band].pop(0))
     return {
@@ -276,36 +298,21 @@ def assign_splits(speakers_by_band, test_count, dev_count):
     }
 
 
-def freeze(out, test_count, dev_count):
-    """Writes recordings.jsonl and splits.json. Returns the problems found (nothing is written then)."""
+def speaker_info(out):
+    """{speakerId: its speakers.csv row}."""
+    return {row["speakerId"].strip(): row for row in read_csv(Path(out) / "speakers.csv")}
+
+
+def write_recordings(out):
+    """Writes recordings.jsonl (B.5) from audio/, speakers.csv, splits.json and the labels so far."""
     out = Path(out)
-    if (out / "splits.json").exists():
-        sys.exit("splits.json exists: the dataset is already frozen (B.7)")
-    if not (out / "labels.jsonl").exists():
-        sys.exit("No labels.jsonl: run import-labels first")
-
-    rec_ids = recording_ids(out)
-    speaker_of = {rec: parse_recording_id(rec)[0] for rec in rec_ids}
-    speakers = sorted(set(speaker_of.values()))
-    rows = read_csv(out / "speakers.csv")
-    problems = check_speakers(rows, speakers)
-    if test_count + dev_count > len(speakers):
-        problems.append(f"--test {test_count} --dev {dev_count} needs more than the {len(speakers)} speakers")
-    if problems:
-        return problems
-
-    info = {row["speakerId"].strip(): row for row in rows}
-    by_band = {}
-    for speaker in speakers:
-        by_band.setdefault(info[speaker]["ageBand"].strip(), []).append(speaker)
-    splits = assign_splits(by_band, test_count, dev_count)
-    split_of = {speaker: name for name, members in splits.items() for speaker in members}
-
-    labels = [json.loads(line) for line in (out / "labels.jsonl").read_text(encoding="utf-8").splitlines() if line]
-    decisions = final_decisions(labels)
+    info = speaker_info(out)
+    splits = json.loads((out / "splits.json").read_text(encoding="utf-8"))
+    split_of = {speaker: name for name in ["train", "dev", "test"] for speaker in splits[name]}
+    decisions = final_decisions(read_labels(out))
 
     recordings = []
-    for rec in rec_ids:
+    for rec in recording_ids(out):
         speaker, surah, ayah = parse_recording_id(rec)
         row = info[speaker]
         recordings.append({
@@ -324,8 +331,27 @@ def freeze(out, test_count, dev_count):
         })
     write_jsonl(out / "recordings.jsonl", recordings)
 
-    splits["sha256"] = {name: sha256_of(out / name) for name in ["recordings.jsonl", "labels.jsonl"]}
+
+def split(out, test_count, dev_count):
+    """Decides who is in test, dev and train; writes splits.json and recordings.jsonl. Returns the problems found."""
+    out = Path(out)
+    if (out / "splits.json").exists():
+        sys.exit("splits.json exists: the split is already decided (B.7)")
+
+    speakers = sorted({parse_recording_id(rec)[0] for rec in recording_ids(out)})
+    problems = check_speakers(read_csv(out / "speakers.csv"), speakers)
+    if test_count + dev_count > len(speakers):
+        problems.append(f"--test {test_count} --dev {dev_count} needs more than the {len(speakers)} speakers")
+    if problems:
+        return problems
+
+    info = speaker_info(out)
+    by_band = {}
+    for speaker in speakers:
+        by_band.setdefault(info[speaker]["ageBand"].strip(), []).append(speaker)
+    splits = assign_splits(by_band, test_count, dev_count)
     (out / "splits.json").write_text(json.dumps(splits, indent=2), encoding="utf-8")
+    write_recordings(out)
 
     for name in ["test", "dev", "train"]:
         bands = {}
@@ -333,8 +359,36 @@ def freeze(out, test_count, dev_count):
             band = info[speaker]["ageBand"].strip()
             bands[band] = bands.get(band, 0) + 1
         print(f"{name:<5} {len(splits[name]):>2} speakers  by age band: {bands}")
-    unlabelled = sum(1 for rec in rec_ids if rec not in decisions)
-    print(f"{len(rec_ids)} recordings, {unlabelled} without a final label (left out of every run)")
+    print(f"Dev speakers, to label first: {', '.join(splits['dev'])}")
+    return []
+
+
+# ---------- freeze (step 4) ----------
+
+
+def freeze(out):
+    """Stores the SHA-256 of recordings.jsonl and labels.jsonl in splits.json. Returns the problems found."""
+    out = Path(out)
+    if not (out / "splits.json").exists():
+        sys.exit("No splits.json: run split first")
+    if is_frozen(out):
+        sys.exit("The dataset is already frozen (B.7)")
+    if not (out / "labels.jsonl").exists():
+        sys.exit("No labels.jsonl: run import-labels first")
+
+    splits = json.loads((out / "splits.json").read_text(encoding="utf-8"))
+    decisions = final_decisions(read_labels(out))
+    test_unlabelled = [
+        rec for rec in recording_ids(out) if parse_recording_id(rec)[0] in splits["test"] and rec not in decisions
+    ]
+    if test_unlabelled:
+        return [f"{len(test_unlabelled)} test recordings have no labels yet: finish labelling before freezing"]
+
+    write_recordings(out)
+    splits["sha256"] = {name: sha256_of(out / name) for name in ["recordings.jsonl", "labels.jsonl"]}
+    (out / "splits.json").write_text(json.dumps(splits, indent=2), encoding="utf-8")
+    unlabelled = sum(1 for rec in recording_ids(out) if rec not in decisions)
+    print(f"{len(recording_ids(out))} recordings, {unlabelled} without labels (left out of every run)")
     print("Frozen. Tune on --split dev only; run --split test once, at the end (B.7)")
     return []
 
@@ -348,23 +402,28 @@ def main():
     step.add_argument("source", type=Path, help="folder with SPK_xxx/<surah>_<ayah>.wav")
     step.add_argument("out", type=Path, help="the new tibyan-eval folder: datasets/tibyan-eval or outside the repository")
 
+    step = steps.add_parser("split", help="decide test, dev and train by speaker, balanced by age band")
+    step.add_argument("out", type=Path)
+    step.add_argument("--test", type=int, default=11, help="speakers in the test split (default 11)")
+    step.add_argument("--dev", type=int, default=6, help="speakers in the dev split (default 6)")
+
     step = steps.add_parser("import-labels", help="check the teacher's sheet and write labels.jsonl")
     step.add_argument("out", type=Path)
-    step.add_argument("sheet", type=Path, help="the teacher's filled-in labelling_sheet.csv")
+    step.add_argument("sheet", type=Path, help="the teacher's labelling_sheet.csv, finished or not")
     step.add_argument("--teacher", default=DEFAULT_TEACHER, help=f"the teacher's anonymous id (default {DEFAULT_TEACHER})")
 
-    step = steps.add_parser("freeze", help="split by speaker and freeze the dataset")
+    step = steps.add_parser("freeze", help="store the hashes, so the test data can no longer change")
     step.add_argument("out", type=Path)
-    step.add_argument("--test", type=int, default=10, help="speakers in the test split (default 10)")
-    step.add_argument("--dev", type=int, default=5, help="speakers in the dev split (default 5)")
 
     args = parser.parse_args()
     if args.step == "layout":
         problems = layout(args.source, args.out)
+    elif args.step == "split":
+        problems = split(args.out, args.test, args.dev)
     elif args.step == "import-labels":
         problems = import_labels(args.out, args.sheet, args.teacher)
     else:
-        problems = freeze(args.out, args.test, args.dev)
+        problems = freeze(args.out)
 
     if problems:
         print(f"{len(problems)} problems:")

@@ -160,28 +160,40 @@ def test_import_refuses_the_same_word_twice(out, tmp_path):
     assert problems and "appears twice" in problems[0]
 
 
-def labelled(out, tmp_path, decision_of=lambda row: ("correct", "")):
-    """The teacher's labels for every word."""
-    assert prepare.import_labels(out, teacher_sheet(out, tmp_path / "teacher.csv", decision_of)) == []
+def labelled(out, tmp_path, decision_of=lambda row: ("correct", ""), only=None):
+    """The teacher's labels for every word (or only for the recordings `only` accepts)."""
+    def decide(row):
+        if only and not only(row["recordingId"]):
+            return "", ""
+        return decision_of(row)
+    assert prepare.import_labels(out, teacher_sheet(out, tmp_path / "teacher.csv", decide)) == []
 
 
-def test_freeze_splits_by_speaker_balanced_by_age_band(out, tmp_path):
-    labelled(out, tmp_path)
+def splits_of(out):
+    return json.loads((out / "splits.json").read_text(encoding="utf-8"))
+
+
+def test_split_by_speaker_balanced_by_age_band_before_any_label(out):
     fill_speakers(out)
-    assert prepare.freeze(out, test_count=3, dev_count=2) == []
-    splits = json.loads((out / "splits.json").read_text(encoding="utf-8"))
+    assert prepare.split(out, test_count=3, dev_count=2) == []
+    splits = splits_of(out)
     assert splits["test"] == ["SPK_001", "SPK_003", "SPK_005"]  # one from each age band
-    assert sorted(splits["dev"] + splits["train"] + splits["test"]) == list(BANDS)
-    assert set(splits["dev"]).isdisjoint(splits["test"])
+    assert splits["dev"] == ["SPK_002", "SPK_004"]
+    assert splits["train"] == ["SPK_006"]
+    assert "sha256" not in splits  # decided, not frozen
 
 
-def test_freeze_writes_recordings_that_evaluate_accepts_as_frozen(out, tmp_path):
-    labelled(out, tmp_path)
+def test_split_with_no_train_speakers(out):
     fill_speakers(out)
-    prepare.freeze(out, test_count=3, dev_count=2)
-    splits = json.loads((out / "splits.json").read_text(encoding="utf-8"))
-    assert evaluation.check_frozen(out, splits)
+    assert prepare.split(out, test_count=4, dev_count=2) == []
+    assert splits_of(out)["train"] == []
+
+
+def test_split_writes_recordings(out):
+    fill_speakers(out)
+    prepare.split(out, test_count=3, dev_count=2)
     recordings = evaluation.read_jsonl(out / "recordings.jsonl")
+    assert len(recordings) == 12
     assert recordings[0] == {
         "recordingId": "REC_001_112_001", "speakerId": "SPK_001", "consentId": "CON_001", "source": "child",
         "ageBand": "6-8", "surah": 112, "ayah": 1, "device": None, "mimeType": "audio/wav",
@@ -189,29 +201,79 @@ def test_freeze_writes_recordings_that_evaluate_accepts_as_frozen(out, tmp_path)
     }
 
 
-def test_freeze_marks_poor_audio_from_the_teachers(out, tmp_path):
+def test_split_needs_an_age_band_and_consent_for_every_speaker(out):
+    problems = prepare.split(out, test_count=3, dev_count=2)  # speakers.csv not filled in
+    assert len(problems) == 2 * 6
+    assert not (out / "splits.json").exists()
+
+
+def test_split_refuses_more_speakers_than_there_are(out):
+    fill_speakers(out)
+    problems = prepare.split(out, test_count=5, dev_count=2)
+    assert problems and "needs more than the 6 speakers" in problems[0]
+
+
+def test_split_only_once(out):
+    fill_speakers(out)
+    prepare.split(out, test_count=3, dev_count=2)
+    with pytest.raises(SystemExit):
+        prepare.split(out, test_count=3, dev_count=2)
+
+
+def test_dev_can_be_evaluated_before_the_test_labels_exist(out, tmp_path):
+    """The teacher labels the dev children first; evaluate.py --split dev works on them, test is refused."""
+    fill_speakers(out)
+    prepare.split(out, test_count=3, dev_count=2)
+    dev = splits_of(out)["dev"]
+    labelled(out, tmp_path, only=lambda rec: prepare.parse_recording_id(rec)[0] in dev)
+    gold, _ = evaluation.gold_labels(evaluation.read_jsonl(out / "labels.jsonl"))
+    assert {prepare.parse_recording_id(rec)[0] for rec in gold} == set(dev)
+    assert not evaluation.check_frozen(out, splits_of(out))  # so a test run is refused
+
+
+def test_labels_imported_after_the_split_update_audio_quality(out, tmp_path):
+    fill_speakers(out)
+    prepare.split(out, test_count=3, dev_count=2)
     poor = lambda row: ("poor_audio", "") if row["recordingId"] == "REC_002_112_001" else ("correct", "")  # noqa: E731
     labelled(out, tmp_path, poor)
-    fill_speakers(out)
-    prepare.freeze(out, test_count=3, dev_count=2)
     quality = {r["recordingId"]: r["audioQuality"] for r in evaluation.read_jsonl(out / "recordings.jsonl")}
     assert quality["REC_002_112_001"] == "poor_audio"
     assert quality["REC_001_112_001"] == "ok"
 
 
-def test_freeze_needs_an_age_band_and_consent_for_every_speaker(out, tmp_path):
-    labelled(out, tmp_path)
-    problems = prepare.freeze(out, test_count=3, dev_count=2)  # speakers.csv not filled in
-    assert len(problems) == 2 * 6
-    assert not (out / "splits.json").exists()
-
-
-def test_freeze_only_once(out, tmp_path):
-    labelled(out, tmp_path)
+def test_freeze_stores_hashes_that_evaluate_accepts(out, tmp_path):
     fill_speakers(out)
-    prepare.freeze(out, test_count=3, dev_count=2)
+    prepare.split(out, test_count=3, dev_count=2)
+    labelled(out, tmp_path)
+    assert prepare.freeze(out) == []
+    splits = splits_of(out)
+    assert evaluation.check_frozen(out, splits)
+    assert splits["test"] == ["SPK_001", "SPK_003", "SPK_005"]  # the split does not change
+
+
+def test_freeze_refuses_while_test_recordings_are_unlabelled(out, tmp_path):
+    fill_speakers(out)
+    prepare.split(out, test_count=3, dev_count=2)
+    dev = splits_of(out)["dev"]
+    labelled(out, tmp_path, only=lambda rec: prepare.parse_recording_id(rec)[0] in dev)
+    problems = prepare.freeze(out)
+    assert problems and "test recordings have no labels yet" in problems[0]
+    assert "sha256" not in splits_of(out)
+
+
+def test_freeze_needs_the_split_first(out, tmp_path):
+    labelled(out, tmp_path)
     with pytest.raises(SystemExit):
-        prepare.freeze(out, test_count=3, dev_count=2)
+        prepare.freeze(out)
+
+
+def test_freeze_only_once_and_labels_stay_fixed(out, tmp_path):
+    fill_speakers(out)
+    prepare.split(out, test_count=3, dev_count=2)
+    labelled(out, tmp_path)
+    prepare.freeze(out)
+    with pytest.raises(SystemExit):
+        prepare.freeze(out)
     with pytest.raises(SystemExit):
         prepare.import_labels(out, tmp_path / "teacher.csv")
 

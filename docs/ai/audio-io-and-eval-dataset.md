@@ -243,7 +243,8 @@ covers model use (SEC-017).
 ### B.4 Folder layout (on the GPU machine only)
 
 Made by `services/ai/scripts/prepare_dataset.py` from a folder of `SPK_xxx/<surah>_<ayah>.wav`
-recordings (`layout`, `import-labels`, `freeze`). Recording ids are `REC_<speaker>_<surah>_<ayah>`.
+recordings (`layout`, `split`, `import-labels`, `freeze`). Recording ids are
+`REC_<speaker>_<surah>_<ayah>`.
 The folder is `datasets/tibyan-eval` in the repository, which `.gitignore` and `.dockerignore` both
 leave out. The script refuses any other folder in the repository.
 
@@ -299,8 +300,12 @@ so the week 4 numbers carry the labelling errors of one person. The report must 
 ### B.7 Split
 
 - Split **by speaker**, never by recording, so one child is never in two parts.
-- 🔶 Test: 10 children (about 250 recordings, balanced by age band). Dev: 5 children. Train: the
-  rest.
+- Week 4 (17 children, decided by Qussai): **test 11 children** (275 recordings), **dev 6 children**
+  (150 recordings), **train none**. Balanced by age band. A week 6 fine-tune would need new
+  recordings, because the test set is never used for training.
+- The split is decided **before labelling** (`prepare_dataset.py split`, from `speakers.csv`), so
+  the teacher labels the dev children first and tuning can start early. The hashes are stored only
+  when every test recording is labelled (`prepare_dataset.py freeze`).
 - **The train split is consent-gated and unused for now.** A recording can be used for training
   only if its consent covers model use (SEC-017) and a fine-tuning decision has been approved
   (B.1, week 6). Until then recordings are used for evaluation only, and no model is trained on them.
