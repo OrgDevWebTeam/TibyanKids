@@ -21,8 +21,9 @@ over HTTP; browsers never do. It is Python, so it is not part of the pnpm worksp
   `import-labels` (again as the teacher labels more), then `freeze`.
 - `scripts/run_models.py` runs the gate and both models once on the dataset and saves what they
   found (`app/saved_outputs.py`). `scripts/evaluate.py` measures the models on the labelled dataset
-  from those saved outputs, without loading a model. Next (week 4): the main model and the first
-  threshold from the numbers (OD-02).
+  from those saved outputs, without loading a model. `scripts/sweep_threshold.py` tries thresholds
+  0.50 to 0.95 on the dev split and marks those within the B.8 targets. Next (week 4): the main
+  model and the first threshold from the numbers (OD-02).
 
 ## How it works
 

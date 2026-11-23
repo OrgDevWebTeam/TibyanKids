@@ -352,6 +352,12 @@ out the merge and the decisions from those outputs with today's policy and thres
 (the numbers: `services/ai/app/evaluation.py`). A test run is refused when `recordings.jsonl` or
 `labels.jsonl` no longer match the SHA-256 values frozen in `splits.json`.
 
+**Threshold sweep (OD-02).** `services/ai/scripts/sweep_threshold.py <tibyan-eval folder>` tries
+thresholds 0.50 to 0.95 (step 0.05) on the **dev split only**, and writes
+`runs/<date>-sweep-dev.csv`: per model, level and threshold, the false reject, false accept, false
+accept on memorization errors, word location and uncertain rates. A row is marked when it meets the
+B.8 starting targets; the targets are options of the script, so the approved numbers replace them.
+
 Stores: model names and exact versions, the decision-policy version, threshold, dataset hash from
 `splits.json`, which split was used, every metric from B.8, and the date. A run file holds metrics
 and versions only, no audio, transcripts or phoneme text. Runs are kept for the AI pilot report

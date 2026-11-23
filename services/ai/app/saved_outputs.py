@@ -11,6 +11,7 @@
 import json
 from pathlib import Path
 
+from app import evaluation
 from app.combine import combine_findings
 from app.evaluation import GUARD, LEVELS
 from app.policy import decide
@@ -44,6 +45,45 @@ def read_run(run_folder):
     return json.loads((Path(run_folder) / RUN_FILE).read_text(encoding="utf-8"))
 
 
+class DatasetProblem(Exception):
+    """The dataset or its saved outputs cannot be used for this run; the message says why."""
+
+
+def newest_run(folder):
+    """The name of the newest run folder in <tibyan-eval>/outputs/."""
+    runs = sorted(path.name for path in (Path(folder) / "outputs").glob("*") if (path / RUN_FILE).exists())
+    if not runs:
+        raise DatasetProblem(f"No saved outputs in {Path(folder) / 'outputs'}: run scripts/run_models.py first")
+    return runs[-1]
+
+
+def load_split(folder, split, run_name=None):
+    """The labelled recordings of one split with their saved outputs, as a dict:
+    recordings, gold, saved ({recordingId: saved output}), runName, splits, frozen, unresolved.
+    A test split is refused unless the dataset is frozen (B.7)."""
+    folder = Path(folder)
+    splits = json.loads((folder / "splits.json").read_text(encoding="utf-8"))
+    frozen = evaluation.check_frozen(folder, splits)
+    if split == "test" and not frozen:
+        raise DatasetProblem("recordings.jsonl or labels.jsonl changed after the split was frozen: no test run (B.7)")
+
+    speakers = set(splits[split])
+    recordings = [r for r in evaluation.read_jsonl(folder / "recordings.jsonl") if r["speakerId"] in speakers]
+    gold, unresolved = evaluation.gold_labels(evaluation.read_jsonl(folder / "labels.jsonl"))
+    labelled = [r for r in recordings if r["recordingId"] in gold]
+
+    run_name = run_name or newest_run(folder)
+    run_folder = folder / "outputs" / run_name
+    saved = {r["recordingId"]: read_output(run_folder, r["recordingId"]) for r in labelled}
+    missing = [rec for rec, output in saved.items() if output is None]
+    if missing:
+        raise DatasetProblem(f"{len(missing)} recordings have no saved output in {run_name}: run scripts/run_models.py again")
+    return {
+        "recordings": labelled, "gold": gold, "saved": saved, "runName": run_name,
+        "splits": splits, "frozen": frozen, "unresolved": unresolved,
+    }
+
+
 def model_findings(saved):
     """{model: [Finding] or None} for each model alone and both combined.
     None means no usable answer (whisper ran away, or a model failed): the ayah is uncertain."""
@@ -58,9 +98,9 @@ def model_findings(saved):
     return findings
 
 
-def case_output(saved):
+def case_output(saved, threshold=None):
     """{"quality", "seconds", "decisions"} for one recording, as app/evaluation.py reads it:
-    the decision of each model at every level, with the threshold in CONFIDENCE_THRESHOLD."""
+    the decision of each model at every level, at this threshold (None: CONFIDENCE_THRESHOLD)."""
     quality = saved["quality"]
     if quality in (UNREADABLE, "too_long"):
         # Not a quality result: the duration guard or unreadable audio (dataset doc, B.8)
@@ -76,5 +116,5 @@ def case_output(saved):
             if findings is None:
                 decisions[model][level] = ("uncertain", [])
             else:
-                decisions[model][level] = decide(add_word_segments(findings, timings), level)
+                decisions[model][level] = decide(add_word_segments(findings, timings), level, threshold=threshold)
     return {"quality": "ok", "seconds": saved["seconds"], "decisions": decisions}

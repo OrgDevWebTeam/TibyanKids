@@ -60,9 +60,11 @@ def stops_child(finding, level, targeted_tajweed_codes=()):
     return level == "advanced" and finding.code in targeted_tajweed_codes
 
 
-def decide(findings, level, targeted_tajweed_codes=()):
-    """(decision, findings); when uncertain, every finding gets the teacher message."""
-    threshold = confidence_threshold()
+def decide(findings, level, targeted_tajweed_codes=(), threshold=None):
+    """(decision, findings); when uncertain, every finding gets the teacher message.
+    threshold None means CONFIDENCE_THRESHOLD (the service); the threshold sweep passes its own."""
+    if threshold is None:
+        threshold = confidence_threshold()
     unsure = [f for f in findings if f.confidence < threshold or f.code in ALWAYS_UNCERTAIN]
 
     if unsure:
