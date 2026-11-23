@@ -146,6 +146,13 @@ def test_analyse_keeps_going_when_a_model_fails(fake_audio):
     assert output["modelProblems"] == {muaalem.NAME: "RuntimeError"}
 
 
+def test_analyse_stops_on_an_error_that_is_a_bug(fake_audio):
+    """Only a GPU failure (RuntimeError) is saved as no answer; any other error stops the run."""
+    buggy = FakeModel(error=ValueError("a bug in our code"))
+    with pytest.raises(ValueError):
+        run_models.analyse(fake_audio, REC, fake_models(muaalem_model=buggy))
+
+
 def test_analyse_does_not_run_the_models_on_a_rejected_recording(fake_audio, monkeypatch):
     monkeypatch.setattr(run_models, "speech_parts", lambda _samples: [])
     never_called = FakeModel(error=AssertionError("must not run"))

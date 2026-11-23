@@ -81,7 +81,7 @@ def run_model(name, find_errors, clip, reference, saved):
     except whisper_quran.Runaway:
         saved["modelProblems"][name] = "runaway"
         findings = None
-    except Exception as error:  # noqa: BLE001
+    except RuntimeError as error:
         saved["modelProblems"][name] = type(error).__name__
         findings = None
     saved["seconds"][name] = seconds_since(started)

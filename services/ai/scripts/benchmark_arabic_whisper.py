@@ -178,15 +178,29 @@ def matches(said, expected, rule):
     return any(close(word, target) for word in heard)
 
 
+def close_to_any(word, allowed):
+    """True when the word is close to one of the allowed words."""
+    for ok in allowed:
+        if close(word, ok):
+            return True
+    return False
+
+
 def made_up_words(said, expected, neighbours):
-    """"invented", "extra words" or None for one transcript (see the scores at the top)."""
+    """"invented", "extra words" or None for one transcript."""
     heard = words_of(said)
     target = as_one_word(expected)
-    allowed = [target] + [as_one_word(word) for word in neighbours]
-    unknown = [word for word in heard if not any(close(word, ok) for ok in allowed)]
+    allowed = [target]
+    for word in neighbours:
+        allowed.append(as_one_word(word))
+
+    unknown = []
+    for word in heard:
+        if not close_to_any(word, allowed):
+            unknown.append(word)
     if not unknown:
         return None
-    if any(close(word, target) for word in heard):
+    if close_to_any(target, heard):
         return "extra words"
     return "invented"
 
@@ -195,8 +209,9 @@ def wrong_word_for(clips, index):
     """A different expected word to check this clip against: the first one from halfway down the
     list onwards (going round to the start), so it is usually from another surah."""
     target = as_one_word(clips[index]["expected"])
-    # Halfway down the list from this clip; past the end, it counts on from the start of the list
-    start = (index + len(clips) // 2) % len(clips)
+    start = index + len(clips) // 2
+    if start >= len(clips):
+        start -= len(clips)
     candidates = clips[start:] + clips[:start]
     for other in candidates:
         if as_one_word(other["expected"]) != target:
