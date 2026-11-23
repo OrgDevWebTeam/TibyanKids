@@ -29,7 +29,9 @@
       `whisper-quran` (`tarteel-ai/whisper-base-ar-quran`). When it disagrees with muaalem the
       finding is `ERR_TECH_MODELS_DISAGREE` and the result is `uncertain`.
    3. **Spoken Arabic words** in the Arabic track (FR-ARB-002) with **faster-whisper and an open
-      Whisper model** (size decided in OD-03). Not the same model as `whisper-quran`.
+      Whisper model**: large-v3, decided in OD-03 (`docs/adr/0010-arabic-words-whisper-large-v3.md`).
+      Not the same model as `whisper-quran`. When nothing close to the expected word is heard, the
+      answer is `uncertain`, never `error`.
    - **Hard rule:** Whisper transcripts are **never shown to a child** and never leave the AI
      service, so a transcription hallucination can never reach a child. The child only sees the
      text for a `messageKey` (contract: `docs/contracts/ai-result.md`).
