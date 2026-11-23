@@ -6,12 +6,25 @@
 # accuracy is only a first sign, because children reading Arabic-track words will sound different.
 # No child's recording is used.
 #
+# Each word is padded by up to 100 ms, but never past half the gap to its neighbours, so no sound of
+# the next or previous word gets in. Decoding is greedy and short (temperature 0, at most 10 new
+# tokens), so a one-word clip cannot turn into a sentence.
+#
+# Scores, each with three ways to say "the child read the word" (exact, contains, close):
+#   correct      the clip of a word, checked against that word
+#   falseAccept  the same clip, checked against a different word: "correct" here means a child who
+#                read something else would be told they were right
+#   invented     something was heard, but nothing close to the expected word or its neighbours
+#   extra words  the word is there, plus made-up words that are neither it nor its neighbours
+# Every score is also given for the clips shorter than 1 second, where invented phrases happen most.
+#
 # By default the two recitation models are loaded first, as on the pilot machine, so the memory
 # numbers show whether each size fits next to them (--alone measures the word model by itself).
-# Prints a table and writes a JSON file of numbers only.
+# Prints a table and writes a JSON file of numbers only, after every size.
 import argparse
 import gc
 import json
+import re
 import sys
 import time
 from datetime import date
@@ -28,12 +41,33 @@ from app.reference import get_ayah, get_word_timings  # noqa: E402
 
 REPO = Path(__file__).resolve().parents[3]
 SIZES = ["small", "medium", "large-v3-turbo", "large-v3"]
-PADDING_MS = 100  # a little audio around each word, as a child's recording of one word would have
+MAX_PADDING_MS = 100
+MAX_NEW_TOKENS = 10  # one Arabic word is a few tokens; more than this is a sentence that is not there
+RULES = ["exact", "contains", "close"]
 GIB = 2**30
 
 
+# ---------- Cutting the words ----------
+
+
+def padded_bounds(timings, position, duration_ms):
+    """(start_ms, end_ms) of one word, padded into the gaps around it: at most MAX_PADDING_MS, and
+    never past half the gap to the previous or next word (nor outside the recording)."""
+    start, end = timings[position]
+    before = timings.get(position - 1)
+    after = timings.get(position + 1)
+    pad_before = MAX_PADDING_MS if before is None else max(0, min(MAX_PADDING_MS, (start - before[1]) // 2))
+    pad_after = MAX_PADDING_MS if after is None else max(0, min(MAX_PADDING_MS, (after[0] - end) // 2))
+    return max(0, start - pad_before), min(duration_ms, end + pad_after)
+
+
+def cut(samples, start_ms, end_ms):
+    """The samples from start_ms to end_ms."""
+    return samples[start_ms * SAMPLE_RATE // 1000 : end_ms * SAMPLE_RATE // 1000]
+
+
 def word_clips(folder):
-    """[(ayah id, word position, expected word, samples)] for every word of every reference recording."""
+    """One clip per word of every reference recording: {ayah, position, expected, neighbours, samples}."""
     clips = []
     for path in sorted(Path(folder).glob("*.mp3")):
         surah, ayah = int(path.stem[:3]), int(path.stem[3:])
@@ -41,23 +75,82 @@ def word_clips(folder):
         if reference is None:
             continue
         samples = decode_audio(path.read_bytes())
-        for position, (start_ms, end_ms) in sorted(get_word_timings(surah, ayah).items()):
-            clips.append((f"{surah}:{ayah}", position, reference["words"][position - 1]["text_imlaei"],
-                          cut(samples, start_ms, end_ms)))
+        duration_ms = len(samples) * 1000 // SAMPLE_RATE
+        timings = get_word_timings(surah, ayah)
+        words = [word["text_imlaei"] for word in reference["words"]]
+        for position in sorted(timings):
+            neighbours = [words[i - 1] for i in (position - 1, position + 1) if 1 <= i <= len(words)]
+            clips.append({
+                "ayah": f"{surah}:{ayah}",
+                "position": position,
+                "expected": words[position - 1],
+                "neighbours": neighbours,
+                "samples": cut(samples, *padded_bounds(timings, position, duration_ms)),
+            })
     return clips
 
 
-def cut(samples, start_ms, end_ms, padding_ms=PADDING_MS):
-    """The samples from start_ms to end_ms, with padding_ms more on both sides (within the recording)."""
-    start = max(0, (start_ms - padding_ms) * SAMPLE_RATE // 1000)
-    end = min(len(samples), (end_ms + padding_ms) * SAMPLE_RATE // 1000)
-    return samples[start:end]
+# ---------- Comparing what was heard with the expected word ----------
 
 
-def same_word(said, expected):
-    """True when the transcript is the expected word, ignoring marks, letter forms and spaces."""
-    clean = lambda text: normalize(text).replace(" ", "").strip(".,،؟!")  # noqa: E731
-    return clean(said) == clean(expected)
+def words_of(text):
+    """The words of a text, normalised: no marks, one form per letter, no punctuation, and a repeated
+    letter written once (a held sound comes out as ووووو). Both sides are normalised the same way,
+    so الله and اله still compare equal to each other."""
+    words = (re.sub(r"(.)\1+", r"\1", normalize(w).strip(".,،؟!")) for w in text.split())
+    return [word for word in words if word]
+
+
+def edit_distance(a, b):
+    """Letters to add, remove or change to turn a into b (Levenshtein)."""
+    previous = list(range(len(b) + 1))
+    for i, letter_a in enumerate(a, 1):
+        current = [i]
+        for j, letter_b in enumerate(b, 1):
+            current.append(min(previous[j] + 1, current[j - 1] + 1, previous[j - 1] + (letter_a != letter_b)))
+        previous = current
+    return previous[-1]
+
+
+def close(a, b):
+    """At most one letter apart: a held madd written as an extra letter, or a dropped letter."""
+    return edit_distance(a, b) <= 1
+
+
+def matches(said, expected, rule):
+    """True when the transcript counts as the expected word under this rule."""
+    heard, target = words_of(said), "".join(words_of(expected))
+    if rule == "exact":
+        return "".join(heard) == target
+    if rule == "contains":
+        return target in heard
+    return any(close(word, target) for word in heard)
+
+
+def made_up_words(said, expected, neighbours):
+    """("invented" or "extra words" or None) for one transcript:
+    invented     something was heard, but nothing close to the expected word or its neighbours
+    extra words  the expected word is there, plus words that are neither it nor its neighbours"""
+    heard = words_of(said)
+    target = "".join(words_of(expected))
+    allowed = [target] + ["".join(words_of(word)) for word in neighbours]
+    unknown = [word for word in heard if not any(close(word, ok) for ok in allowed)]
+    if not unknown:
+        return None
+    return "extra words" if any(close(word, target) for word in heard) else "invented"
+
+
+def wrong_word_for(clips, index):
+    """A different expected word to check this clip against: half the list away, not the same word."""
+    target = "".join(words_of(clips[index]["expected"]))
+    for step in range(len(clips) // 2, len(clips) + len(clips) // 2):
+        other = clips[(index + step) % len(clips)]["expected"]
+        if "".join(words_of(other)) != target:
+            return other
+    return None
+
+
+# ---------- The model ----------
 
 
 def gpu_used_gib():
@@ -82,29 +175,74 @@ def load_whisper(size):
 
 
 def transcribe(model, samples):
-    """The text the model hears in one clip (Arabic, no timestamps, no faster-whisper VAD)."""
+    """The text the model hears in one clip: Arabic, greedy, short, no timestamps, no faster-whisper VAD."""
     segments, _ = model.transcribe(
-        samples, language="ar", beam_size=5, without_timestamps=True,
-        condition_on_previous_text=False, vad_filter=False,
+        samples, language="ar", beam_size=1, temperature=0.0, max_new_tokens=MAX_NEW_TOKENS,
+        without_timestamps=True, condition_on_previous_text=False, vad_filter=False,
     )
     return "".join(segment.text for segment in segments).strip()
 
 
+# ---------- One size ----------
+
+
+SHORT_CLIP_SECONDS = 1.0  # invented phrases happen mostly below this
+
+
+def judge(clips, transcripts):
+    """One verdict per clip: correct and falseAccept per rule, made-up words, and whether it is short."""
+    verdicts = []
+    for index, (clip, said) in enumerate(zip(clips, transcripts)):
+        wrong = wrong_word_for(clips, index)
+        verdicts.append({
+            "short": len(clip["samples"]) / SAMPLE_RATE < SHORT_CLIP_SECONDS,
+            "correct": {rule: matches(said, clip["expected"], rule) for rule in RULES},
+            "falseAccept": {rule: None if wrong is None else matches(said, wrong, rule) for rule in RULES},
+            "madeUp": made_up_words(said, clip["expected"], clip["neighbours"]),
+        })
+    return verdicts
+
+
+def rates(verdicts):
+    """The rates over a group of verdicts."""
+    def share(values):
+        values = [value for value in values if value is not None]
+        return round(sum(values) / len(values), 3) if values else None
+
+    return {
+        "clips": len(verdicts),
+        "rules": {
+            rule: {
+                "correct": share(v["correct"][rule] for v in verdicts),
+                "falseAccept": share(v["falseAccept"][rule] for v in verdicts),
+            }
+            for rule in RULES
+        },
+        "inventedRate": share(v["madeUp"] == "invented" for v in verdicts),
+        "extraWordsRate": share(v["madeUp"] == "extra words" for v in verdicts),
+    }
+
+
+def score(clips, transcripts):
+    """The rates over all clips, and over the short clips apart."""
+    verdicts = judge(clips, transcripts)
+    return {**rates(verdicts), "shortClips": rates([v for v in verdicts if v["short"]])}
+
+
 def measure_size(size, clips, load=load_whisper, hear=transcribe, used=gpu_used_gib):
-    """The numbers of one size: memory, load time, seconds per word, exact-match accuracy."""
+    """The numbers of one size: memory, load time, seconds per word, and the scores."""
     before = used()
     started = time.perf_counter()
     model = load(size)
     load_seconds = time.perf_counter() - started
     loaded = used()
 
-    hear(model, clips[0][3])  # warm-up, not timed
-    seconds, correct, peak = [], 0, loaded
-    for _, _, expected, samples in clips:
+    hear(model, clips[0]["samples"])  # warm-up, not timed
+    seconds, transcripts, peak = [], [], loaded
+    for clip in clips:
         started = time.perf_counter()
-        said = hear(model, samples)
+        transcripts.append(hear(model, clip["samples"]))
         seconds.append(time.perf_counter() - started)
-        correct += same_word(said, expected)
         peak = max(peak, used())
 
     del model
@@ -116,12 +254,35 @@ def measure_size(size, clips, load=load_whisper, hear=transcribe, used=gpu_used_
         "peakTotalGiB": round(peak, 2),
         "secondsPerWord": {"p50": percentile(seconds, 0.5), "p95": percentile(seconds, 0.95)},
         "words": len(clips),
-        "exactMatch": round(correct / len(clips), 3) if clips else None,
+        **score(clips, transcripts),
+        # The reference reciter only, never a child: kept so the scores can be worked out again
+        "transcripts": [
+            {"ayah": clip["ayah"], "position": clip["position"], "heard": said} for clip, said in zip(clips, transcripts)
+        ],
     }
 
 
+def print_table(results):
+    """Memory and speed, then the scores of all clips and of the short clips."""
+    print(f"{'size':<16} {'model GiB':>9} {'peak total':>10} {'p50 s':>7} {'p95 s':>7}")
+    for r in results:
+        print(f"{r['size']:<16} {r['modelGiB']:>9} {r['peakTotalGiB']:>10} {r['secondsPerWord']['p50']:>7} "
+              f"{r['secondsPerWord']['p95']:>7}")
+    for title, key in [("all clips", None), (f"clips under {SHORT_CLIP_SECONDS:g} s", "shortClips")]:
+        print()
+        print(f"-- {title}")
+        header = " ".join(f"{rule + ' ok':>11} {rule + ' FA':>11}" for rule in RULES)
+        print(f"{'size':<16} {'clips':>5} {header} {'invented':>9} {'extra':>7}")
+        for r in results:
+            group = r[key] if key else r
+            cells = " ".join(
+                f"{str(group['rules'][rule]['correct']):>11} {str(group['rules'][rule]['falseAccept']):>11}" for rule in RULES
+            )
+            print(f"{r['size']:<16} {group['clips']:>5} {cells} {str(group['inventedRate']):>9} {str(group['extraWordsRate']):>7}")
+
+
 def main():
-    """Measures each size and prints the table; writes the numbers to --out."""
+    """Measures each size, saving after each one, and prints the tables."""
     parser = argparse.ArgumentParser(description="OD-03: faster-whisper sizes for the Arabic words stage")
     parser.add_argument("folder", type=Path, nargs="?", default=REPO / "datasets" / "reference-recitation",
                         help="the 25 reference recordings, SSSAAA.mp3 (default datasets/reference-recitation)")
@@ -155,25 +316,18 @@ def main():
         "gpuTotalGiB": round(total_gib, 2),
         "withRecitationModels": not args.alone,
         "computeType": "float16",
-        "audio": "reference recitation, one clip per word",
+        "decoding": {"beamSize": 1, "temperature": 0.0, "maxNewTokens": MAX_NEW_TOKENS},
+        "audio": f"reference recitation, one clip per word, padded up to {MAX_PADDING_MS} ms into the gaps",
         "results": [],
     }
     out = args.out or args.folder.parent / f"od03-{date.today().isoformat()}.json"
-    results = report["results"]
     for size in args.sizes:
         print(f"Measuring {size}...", flush=True)
-        results.append(measure_size(size, clips))
-        # Saved after every size, so a failure later never loses the sizes already measured
+        report["results"].append(measure_size(size, clips))
         out.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-        r = results[-1]
-        print(f"  {r['modelGiB']} GiB, p50 {r['secondsPerWord']['p50']} s per word, exact {r['exactMatch']}", flush=True)
 
     print()
-    print(f"{'size':<16} {'model GiB':>9} {'peak total':>10} {'p50 s':>7} {'p95 s':>7} {'exact':>7} {'load s':>7}")
-    for r in results:
-        print(f"{r['size']:<16} {r['modelGiB']:>9} {r['peakTotalGiB']:>10} {r['secondsPerWord']['p50']:>7} "
-              f"{r['secondsPerWord']['p95']:>7} {r['exactMatch']:>7} {r['loadSeconds']:>7}")
-
+    print_table(report["results"])
     print(f"Numbers saved: {out}")
 
 
