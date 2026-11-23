@@ -4,8 +4,6 @@ from pathlib import Path
 
 import numpy as np
 
-from app import cuda12
-
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "benchmark_arabic_whisper.py"
 spec = importlib.util.spec_from_file_location("benchmark_arabic_whisper", SCRIPT)
 benchmark = importlib.util.module_from_spec(spec)
@@ -142,12 +140,3 @@ def test_measure_size_records_memory_time_and_scores():
     assert result["rules"]["exact"]["correct"] == round(2 / 3, 3)
     assert set(result["secondsPerWord"]) == {"p50", "p95"}
     assert result["transcripts"][0] == {"ayah": "1:1", "position": 1, "heard": "بسم"}
-
-
-def test_cuda12_folders_are_found_when_the_packages_are_installed():
-    folders = cuda12.library_folders()
-    if importlib.util.find_spec("nvidia.cublas") is None:
-        assert folders == []  # not installed: nothing to add, and no error
-        return
-    assert folders and all(folder.is_dir() for folder in folders)
-    assert cuda12.make_findable() == cuda12.make_findable()  # once is enough; a second call changes nothing

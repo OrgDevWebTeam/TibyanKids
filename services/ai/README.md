@@ -7,7 +7,7 @@ over HTTP; browsers never do. It is Python, so it is not part of the pnpm worksp
 - Audio input and evaluation data: [`docs/ai/audio-io-and-eval-dataset.md`](../../docs/ai/audio-io-and-eval-dataset.md)
 - Safety rules: [`docs/ai/genai_and_safety_boundaries.md`](../../docs/ai/genai_and_safety_boundaries.md)
 
-## Where we are (end of week 3)
+## Where we are (week 4)
 
 - With `MOCK_MODE=true` (the default) the endpoint returns **mock** results, so nobody needs a GPU
   to build features.
@@ -16,14 +16,17 @@ over HTTP; browsers never do. It is Python, so it is not part of the pnpm worksp
   Docker (`Dockerfile.gpu`).
 - The API sends each recorded ayah here and saves the result (`apps/api`,
   `POST /api/v1/children/:id/recitation-attempts`).
-- `scripts/prepare_dataset.py` turns the children's recordings (`SPK_xxx/<surah>_<ayah>.wav`) into
-  the evaluation layout in `datasets/tibyan-eval` (ignored by git and Docker): `layout`, `split`,
-  `import-labels` (again as the teacher labels more), then `freeze`.
-- `scripts/run_models.py` runs the gate and both models once on the dataset and saves what they
-  found (`app/saved_outputs.py`). `scripts/evaluate.py` measures the models on the labelled dataset
-  from those saved outputs, without loading a model. `scripts/sweep_threshold.py` tries thresholds
-  0.50 to 0.95 on the dev split and marks those within the B.8 targets. Next (week 4): the main
-  model and the first threshold from the numbers (OD-02).
+- Week 4 evaluation, on the 17 children's recordings in `datasets/tibyan-eval` (ignored by git and
+  Docker):
+  1. `scripts/prepare_dataset.py`: `layout`, `split`, `import-labels` (again as the teacher labels
+     more), then `freeze`.
+  2. `scripts/run_models.py`: the gate and both models once on every recording; what they found is
+     saved (`app/saved_outputs.py`).
+  3. `scripts/evaluate.py` and `scripts/sweep_threshold.py`: the numbers and the threshold sweep on
+     the dev split, from the saved outputs, without loading a model. Then the main model and the
+     first threshold (OD-02).
+- The Arabic words stage (FR-ARB-002) will use Whisper large-v3 (ADR-0010, OD-03). Its adapter
+  (`app/adapters/arabic_words.py`) pins and loads the model; the word check endpoint is week 5.
 
 ## How it works
 
@@ -76,7 +79,7 @@ One request checks **one recorded ayah**. The recording goes through four steps:
 share one GPU; `MODELS_LOCK`). It writes one JSON log line per request: numbers and codes only.
 Each adapter's `find_errors()` returns its findings and decides nothing; `decide()` makes the one
 decision. Every module imports its packages at the top, so the model packages (torch, transformers,
-silero-vad) are installed everywhere, including CI and the laptop image; no model is loaded there.
+silero-vad, faster-whisper) are installed everywhere, including CI and the laptop image; no model is loaded there.
 
 ### Where to start reading
 
@@ -103,10 +106,16 @@ silero-vad) are installed everywhere, including CI and the laptop image; no mode
 | `app/model_files.py`                                   | Where the model files are loaded from (`services/ai/models/` or the cache)                       |
 | `app/adapters/muaalem.py`                              | quran-muaalem: sounds and tajweed → findings                                                     |
 | `app/adapters/whisper_quran.py`                        | whisper-quran: transcript → word comparison → findings                                           |
+| `app/adapters/arabic_words.py`                         | Whisper large-v3 for the Arabic words stage: the pinned model, loaded on the GPU (ADR-0010)      |
+| `app/saved_outputs.py`                                 | The models' saved output per recording, and the decisions worked out again from it (no GPU)      |
 | `scripts/run_real_audio.py`                            | Runs the gate and both models on a folder of recordings (GPU machine)                            |
 | `scripts/download_models.py`                           | Puts the pinned model files into `services/ai/models/` (GPU machine)                             |
 | `app/evaluation.py`                                    | Evaluation numbers: gold labels, false reject / accept, word location, gate, latency (no models) |
-| `scripts/evaluate.py`                                  | One evaluation run on a labelled dataset (GPU machine). Writes `runs/*.json`                     |
+| `scripts/prepare_dataset.py`                           | The children's recordings into the evaluation layout: layout, split, import-labels, freeze       |
+| `scripts/run_models.py`                                | The gate and both models once on every recording of the dataset; saves what they found (GPU)     |
+| `scripts/evaluate.py`                                  | One evaluation run from the saved outputs (no GPU). Writes `runs/*.json`                         |
+| `scripts/sweep_threshold.py`                           | The confidence threshold sweep on the dev split, from the saved outputs (OD-02)                  |
+| `scripts/benchmark_arabic_whisper.py`                  | OD-03: faster-whisper sizes for the Arabic words stage, on words of the reference recitation     |
 | `scripts/align_word_timings.py`                        | Proposes word timings for the reference recitation (GPU machine)                                 |
 | `tests/test_contract.py`                               | The service and the mock follow the contract's JSON Schema and message list                      |
 | `tests/test_policy.py`                                 | The decision rules                                                                               |
@@ -115,6 +124,11 @@ silero-vad) are installed everywhere, including CI and the laptop image; no mode
 | `tests/test_whisper_model.py`                          | whisper-quran's model side with a fake transcript: `find_errors()`, the output cap, loading      |
 | `tests/test_muaalem_codes.py`                          | How quran-muaalem's errors become our codes, with errors built by hand                           |
 | `tests/test_evaluation.py`                             | The evaluation numbers, on synthetic labels with values worked out by hand                       |
+| `tests/test_prepare_dataset.py`                        | The dataset steps on synthetic folders (fake audio, never a recording)                           |
+| `tests/test_saved_outputs.py`                          | Saved outputs, the model run with fake models, and evaluate.py end to end                        |
+| `tests/test_sweep_threshold.py`                        | The threshold sweep and `decide()`'s threshold argument                                          |
+| `tests/test_benchmark_arabic_whisper.py`               | The OD-03 benchmark's cutting, comparing and scoring, with a fake model                          |
+| `tests/test_arabic_words.py`                           | Where the Arabic words model is loaded from, and the revision check                              |
 | `tests/test_main.py`, `tests/test_pipeline.py`         | The endpoints and the real pipeline, with fake models (no GPU)                                   |
 | `tests/test_combine.py`                                | Merging the two models' findings                                                                 |
 | `tests/test_reference.py`, `tests/test_model_files.py` | Loading the reference text and the model files                                                   |
@@ -171,10 +185,13 @@ Then open http://localhost:8000/health or http://localhost:8000/docs.
 
 Needs an NVIDIA GPU, Python 3.12 and ffmpeg on `PATH`. Use 3.12, as CI and Docker do: a newer
 Python can miss packages (faster-whisper needs onnxruntime, which has no Python 3.15 build yet).
+The whole service runs on CUDA 12: torch is the CUDA 12.6 build, and faster-whisper's engine
+(CTranslate2) uses the CUDA libraries torch brings, so torch must start the GPU before
+faster-whisper runs (`app/adapters/arabic_words.py` does that).
 
 ```bash
 cd services/ai
-pip install -r requirements-dev.txt   # includes requirements-gpu.txt (torch for CUDA 13)
+pip install -r requirements-dev.txt   # includes requirements-gpu.txt (torch for CUDA 12.6)
 python scripts/download_models.py   # the models, at the pinned revisions, into services/ai/models/
 python scripts/run_real_audio.py <folder with the recordings> <beginner|intermediate|advanced>
 python scripts/benchmark_arabic_whisper.py   # OD-03: faster-whisper sizes for the Arabic words stage
@@ -190,7 +207,7 @@ memory used.
 
 ### The real service in Docker
 
-`Dockerfile.gpu` is the AI service with the real models (Python 3.12, torch 2.14.1 for CUDA 13,
+`Dockerfile.gpu` is the AI service with the real models (Python 3.12, torch 2.14.1 for CUDA 12.6,
 ffmpeg). It needs the NVIDIA driver and container toolkit (Docker Desktop on Windows: WSL 2), and
 `services/ai/models/` filled by `scripts/download_models.py`. From the repository root:
 
@@ -225,6 +242,7 @@ from inside the repository.
 | `MODELS_DIR`             | `services/ai/models` | Local model files (not in git), filled by `scripts/download_models.py`. Without them the Hugging Face cache is used                        |
 | `MUAALEM_REVISION`       | `01a1ef9f…`          | Exact Hugging Face commit of `obadx/muaalem-model-v3_2` (full 40 characters). Change only with an evaluation run                           |
 | `WHISPER_QURAN_REVISION` | `5c3c53fd…`          | Exact Hugging Face commit of `tarteel-ai/whisper-base-ar-quran` (full 40 characters). Change only with an evaluation run                   |
+| `ARABIC_WORDS_REVISION`  | `edaa852e…`          | Exact Hugging Face commit of `Systran/faster-whisper-large-v3` (full 40 characters). Change only with a new measurement (ADR-0010)         |
 
 ## What the mock returns
 
@@ -241,6 +259,7 @@ from inside the repository.
 | -------------------------------- | ------------------------------------- | ------------------------------------ |
 | quran-muaalem (obadx)            | Pronunciation and tajweed errors      | **QML 1.0**                          |
 | tarteel-ai/whisper-base-ar-quran | Word-level transcript                 | Apache-2.0                           |
+| Systran/faster-whisper-large-v3  | Arabic words stage (ADR-0010)         | MIT (from OpenAI's, Apache-2.0)      |
 | Silero VAD                       | Speech vs silence in the quality gate | MIT                                  |
 | ffmpeg                           | Decoding uploads                      | LGPL/GPL (run as a separate program) |
 

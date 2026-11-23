@@ -36,7 +36,7 @@ folder holding another one is refused.
 | `quran-muaalem`    | 0.3.0                              | **QML 1.0** (`LicenseRef-QML-1.0`)                                                                  | The inference code. Its conditions bind the app: see §5               |
 | `quran-transcript` | 0.6.4                              | MIT                                                                                                 | Phonetizer and error explainer. Ships Tanzil text (CC BY 3.0, see §3) |
 | `transformers`     | 4.57.6                             | Apache-2.0                                                                                          | Pinned below 5: quran-muaalem does not work with transformers 5       |
-| `torch`            | 2.14.1+cu130                       | Apache-2.0 AND Apache-2.0 WITH LLVM-exception AND BSD-2-Clause AND BSD-3-Clause AND BSL-1.0 AND MIT | CUDA build for the GPU machine                                        |
+| `torch`            | 2.14.1+cu126                       | Apache-2.0 AND Apache-2.0 WITH LLVM-exception AND BSD-2-Clause AND BSD-3-Clause AND BSL-1.0 AND MIT | CUDA 12.6 build for the GPU machine (cu130 until 2026-11-23)          |
 | `huggingface-hub`  | 0.36.2                             | Apache-2.0                                                                                          | Downloads the pinned model files                                      |
 | `numpy`            | 2.5.4                              | BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0                                                  |                                                                       |
 | `silero-vad`       | 6.2.3                              | MIT                                                                                                 | Includes the VAD model (§1)                                           |
@@ -61,24 +61,23 @@ known vulnerabilities; this table covers licences.
 
 ### Libraries on the Arabic words stage (ADR-0010)
 
-| Package                  | Version   | Licence (package metadata)                                  | Notes                                                                               |
-| ------------------------ | --------- | ----------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `faster-whisper`         | 1.2.1     | MIT                                                         | Runs the Whisper model                                                              |
-| `ctranslate2`            | 4.9.1     | MIT                                                         | The inference engine inside faster-whisper; built for CUDA 12                       |
-| `av` (PyAV)              | 19.0.2    | BSD-3-Clause                                                | Audio decoding for faster-whisper                                                   |
-| `onnxruntime`            | 1.32.0    | MIT                                                         | A faster-whisper dependency for its own VAD, which we do not use                    |
-| `nvidia-cublas-cu12`     | 12.9.2.10 | 🔶 **NVIDIA proprietary** (`LicenseRef-NVIDIA-Proprietary`) | cuBLAS 12 for CTranslate2 (our torch has CUDA 13); made findable by `app/cuda12.py` |
-| `nvidia-cudnn-cu12`      | 9.28.1.4  | 🔶 **NVIDIA proprietary** (`LicenseRef-NVIDIA-Proprietary`) | cuDNN 9 for CUDA 12, for CTranslate2                                                |
-| `nvidia-cuda-nvrtc-cu12` | 12.9.86   | 🔶 **NVIDIA proprietary** (`LicenseRef-NVIDIA-Proprietary`) | Pulled in by `nvidia-cublas-cu12`                                                   |
+| Package          | Version | Licence (package metadata) | Notes                                                                                         |
+| ---------------- | ------- | -------------------------- | --------------------------------------------------------------------------------------------- |
+| `faster-whisper` | 1.2.1   | MIT                        | Runs the Whisper model                                                                        |
+| `ctranslate2`    | 4.9.1   | MIT                        | The inference engine inside faster-whisper; built for CUDA 12, uses torch's CUDA 12 libraries |
+| `av` (PyAV)      | 19.0.2  | BSD-3-Clause               | Audio decoding for faster-whisper                                                             |
+| `onnxruntime`    | 1.32.0  | MIT                        | A faster-whisper dependency for its own VAD, which we do not use                              |
 
 Versions are those installed in the GPU machine's Python 3.12 environment on 2026-11-23.
 
-🔶 **NVIDIA runtime libraries (open, Mohammad).** The three `nvidia-*` packages are not open source.
-They are not new to the stack: the CUDA build of `torch` (§2) already ships NVIDIA's cuBLAS 13,
-cuDNN 9 and CUDA runtime inside the package (checked in `torch/lib` on 2026-11-23), which this
-register did not list. The rule "everything is self-hosted and open source" (Roadmap §1) is about
-the models and services we run. Mohammad decides whether NVIDIA's GPU runtime libraries are
-accepted as part of the driver stack; they are never changed, and run only on our own machines.
+🔶 **NVIDIA runtime libraries (open, Mohammad).** The CUDA build of `torch` (§2) brings NVIDIA's
+cuBLAS 12, cuDNN 9 and CUDA 12 runtime: inside the package on Windows (`torch/lib`, checked on
+2026-11-23), and as `nvidia-*-cu12` pip packages on Linux. They are NVIDIA proprietary
+(`LicenseRef-NVIDIA-Proprietary`), not open source, and faster-whisper's engine uses the same ones.
+Nothing else adds NVIDIA libraries since torch moved to CUDA 12.6. The rule "everything is
+self-hosted and open source" (Roadmap §1) is about the models and services we run. Mohammad decides
+whether NVIDIA's GPU runtime libraries are accepted as part of the driver stack; they are never
+changed, and run only on our own machines.
 
 ## 3. Quran text
 
@@ -163,3 +162,4 @@ The licences above put these duties on the product, not only on the AI service:
 | ---------- | --------------------------------------------------------------------------------------------------------------------------------- | --------------- |
 | 2026-11-15 | First version of the register                                                                                                     | Qussai / Ismail |
 | 2026-11-23 | The Arabic words stage (ADR-0010): `faster-whisper-large-v3`, its libraries, and the NVIDIA runtime libraries (open for Mohammad) | Qussai          |
+| 2026-11-23 | torch moved to the CUDA 12.6 build; the separate `nvidia-*-cu12` packages are no longer installed                                 | Qussai          |

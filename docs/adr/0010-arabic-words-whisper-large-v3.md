@@ -13,9 +13,12 @@
     `openai/whisper-large-v3`. Run with `faster-whisper==1.2.1`, float16, on the GPU.
   - **Decoding:** Arabic, greedy (beam 1, temperature 0, no fallback), at most 10 new tokens, no
     timestamps, no faster-whisper VAD. A one-word clip cannot become a sentence.
-  - **CUDA 12 next to CUDA 13.** CTranslate2 is built for CUDA 12; our torch is built for CUDA 13.
-    `nvidia-cublas-cu12` and `nvidia-cudnn-cu12` are pinned in `requirements-gpu.txt`, and
-    `services/ai/app/cuda12.py` makes them findable before the model loads.
+  - **One CUDA version: 12.** CTranslate2 (inside faster-whisper) is built for CUDA 12, so torch
+    moved from its CUDA 13 build to `2.14.1+cu126`. CTranslate2 then uses the CUDA 12 libraries
+    torch brings, so torch must start the GPU before the model loads (`app/adapters/arabic_words.py`
+    checks `torch.cuda.is_available()` first). Checked on 2026-11-23: the recitation models give
+    the same results on the 25 reference recordings at all three levels as with CUDA 13, and
+    large-v3 writes the same 97 transcripts.
   - **The model never decides alone.** When nothing close to the expected word is heard, the
     answer is `uncertain` (record again, or the teacher checks), never `error` (§4).
 - Code: `services/ai/scripts/benchmark_arabic_whisper.py` (the measurement). The words-stage
@@ -84,20 +87,18 @@ kept only the two candidates.
 
 Checked on 2026-11-23 at the model cards and in the package metadata.
 
-| What                                                                       | Version         | Licence                                                  |
-| -------------------------------------------------------------------------- | --------------- | -------------------------------------------------------- |
-| `Systran/faster-whisper-large-v3`                                          | `edaa852ec7e1…` | MIT (model card)                                         |
-| `openai/whisper-large-v3` (converted from)                                 | —               | Apache-2.0 (model card)                                  |
-| `faster-whisper`                                                           | 1.2.1           | MIT                                                      |
-| `ctranslate2`                                                              | 4.9.1           | MIT                                                      |
-| `av` (PyAV)                                                                | 19.0.2          | BSD-3-Clause                                             |
-| `onnxruntime` (faster-whisper dependency, not used: we do not use its VAD) | 1.32.0          | MIT                                                      |
-| `nvidia-cublas-cu12`                                                       | 12.9.2.10       | **NVIDIA proprietary** (`LicenseRef-NVIDIA-Proprietary`) |
-| `nvidia-cudnn-cu12`                                                        | 9.28.1.4        | **NVIDIA proprietary** (`LicenseRef-NVIDIA-Proprietary`) |
-| `nvidia-cuda-nvrtc-cu12` (pulled in by `nvidia-cublas-cu12`)               | 12.9.86         | **NVIDIA proprietary** (`LicenseRef-NVIDIA-Proprietary`) |
+| What                                                                       | Version         | Licence                 |
+| -------------------------------------------------------------------------- | --------------- | ----------------------- |
+| `Systran/faster-whisper-large-v3`                                          | `edaa852ec7e1…` | MIT (model card)        |
+| `openai/whisper-large-v3` (converted from)                                 | —               | Apache-2.0 (model card) |
+| `faster-whisper`                                                           | 1.2.1           | MIT                     |
+| `ctranslate2`                                                              | 4.9.1           | MIT                     |
+| `av` (PyAV)                                                                | 19.0.2          | BSD-3-Clause            |
+| `onnxruntime` (faster-whisper dependency, not used: we do not use its VAD) | 1.32.0          | MIT                     |
 
-The three NVIDIA libraries are not open source. They are not new to the stack: the CUDA build of
-torch already ships NVIDIA's cuBLAS 13, cuDNN 9 and CUDA runtime inside its package. The rule
+No separate NVIDIA package is installed for the words stage: CTranslate2 uses the cuBLAS 12, cuDNN 9
+and CUDA 12 runtime that torch's CUDA 12.6 build brings. Those are NVIDIA proprietary, not open
+source (a first version of this ADR pinned them as separate `nvidia-*-cu12` packages). The rule
 "everything is self-hosted and open source" (Roadmap §1) is about the models and services we run.
 **Mohammad decides** whether NVIDIA's GPU runtime libraries are accepted as part of the driver
 stack; the register lists them as open until he does.

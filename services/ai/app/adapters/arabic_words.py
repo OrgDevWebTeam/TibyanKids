@@ -4,9 +4,9 @@
 import os
 from functools import cache
 
+import torch
 from faster_whisper import WhisperModel
 
-from app import cuda12
 from app.model_files import check_revision, local_copy
 
 NAME = "whisper-large-v3"
@@ -29,8 +29,10 @@ def model_folder():
 @cache
 def load_model():
     """The model in float16 on the GPU, loaded once."""
-    if not cuda12.make_findable():
-        raise RuntimeError("The CUDA 12 libraries are missing: pip install -r requirements-gpu.txt")
+    # torch loads its CUDA 12 libraries when it starts using the GPU, and faster-whisper's engine
+    # (CTranslate2) uses those same libraries: without torch it cannot find them
+    if not torch.cuda.is_available():
+        raise RuntimeError("No CUDA GPU: the Arabic words model runs on the GPU machine")
     return WhisperModel(str(model_folder()), device="cuda", compute_type="float16")
 
 

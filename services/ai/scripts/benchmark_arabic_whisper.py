@@ -38,7 +38,6 @@ from faster_whisper.utils import download_model
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app import cuda12  # noqa: E402
 from app.adapters import arabic_words, muaalem, whisper_quran  # noqa: E402
 from app.adapters.whisper_quran import normalize  # noqa: E402
 from app.audio import SAMPLE_RATE, decode_audio  # noqa: E402
@@ -277,8 +276,7 @@ def model_folder(size):
 def load_whisper(size):
     """A faster-whisper model of this size in float16 on the GPU. A new one each time (not the
     adapter's cached one), so the benchmark can free it and measure the next size."""
-    if not cuda12.make_findable():
-        sys.exit("The CUDA 12 libraries are missing: pip install -r requirements-gpu.txt")
+    # torch has started the GPU (main checks it), which loads the CUDA 12 libraries faster-whisper uses
     return WhisperModel(str(model_folder(size)), device="cuda", compute_type="float16")
 
 
