@@ -242,6 +242,11 @@ covers model use (SEC-017).
 
 ### B.4 Folder layout (on the GPU machine only)
 
+Made by `services/ai/scripts/prepare_dataset.py` from a folder of `SPK_xxx/<surah>_<ayah>.wav`
+recordings (`layout`, `import-labels`, `freeze`). Recording ids are `REC_<speaker>_<surah>_<ayah>`.
+The folder is `datasets/tibyan-eval` in the repository, which `.gitignore` and `.dockerignore` both
+leave out. The script refuses any other folder in the repository.
+
 ```text
 tibyan-eval/                      restricted, access logged
 ├── audio/<recordingId>.<ext>   original upload, never edited
@@ -285,6 +290,11 @@ Same fields as the annotation guide §4, in camelCase:
 
 **Gold label for a word:** the two round-1 labels when they agree, otherwise the reviewer's round-2
 label. A recording where the gold label is `poor_audio` is a quality-gate test case only.
+
+**Week 4 dataset: one teacher.** The 17 children's recordings are labelled by a single teacher, so
+each word has one round-1 label, and that label is the gold label (`prepare_dataset.py
+import-labels`, teacher id `TCH_01`). There is no second opinion and no agreement measure (kappa),
+so the week 4 numbers carry the labelling errors of one person. The report must say so.
 
 ### B.7 Split
 
