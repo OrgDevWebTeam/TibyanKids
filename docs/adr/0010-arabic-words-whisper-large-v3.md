@@ -80,7 +80,7 @@ kept only the two candidates.
   apart), which had 0% false accepts with large-v3. A leading ال is not ignored for now: a child
   who drops an ال that should be heard is not accepted.
 
-## 5. Licences (to add to `docs/ai/model-register.md`)
+## 5. Licences (listed in `docs/ai/model-register.md` v1.1)
 
 Checked on 2026-11-23 at the model cards and in the package metadata.
 
@@ -94,11 +94,13 @@ Checked on 2026-11-23 at the model cards and in the package metadata.
 | `onnxruntime` (faster-whisper dependency, not used: we do not use its VAD) | 1.32.0          | MIT                                                      |
 | `nvidia-cublas-cu12`                                                       | 12.9.2.10       | **NVIDIA proprietary** (`LicenseRef-NVIDIA-Proprietary`) |
 | `nvidia-cudnn-cu12`                                                        | 9.28.1.4        | **NVIDIA proprietary** (`LicenseRef-NVIDIA-Proprietary`) |
+| `nvidia-cuda-nvrtc-cu12` (pulled in by `nvidia-cublas-cu12`)               | 12.9.86         | **NVIDIA proprietary** (`LicenseRef-NVIDIA-Proprietary`) |
 
-The two NVIDIA libraries are not open source. The rule "everything is self-hosted and open source"
-(Roadmap §1) is about the models and services we run; the CUDA runtime that torch uses on the GPU
-is NVIDIA's too, and is not listed in the register yet. **Mohammad decides** whether NVIDIA runtime
-libraries are accepted as part of the GPU driver stack, and the register then lists them.
+The three NVIDIA libraries are not open source. They are not new to the stack: the CUDA build of
+torch already ships NVIDIA's cuBLAS 13, cuDNN 9 and CUDA runtime inside its package. The rule
+"everything is self-hosted and open source" (Roadmap §1) is about the models and services we run.
+**Mohammad decides** whether NVIDIA's GPU runtime libraries are accepted as part of the driver
+stack; the register lists them as open until he does.
 
 ## 6. Open questions
 

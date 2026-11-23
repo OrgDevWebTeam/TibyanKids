@@ -1,26 +1,28 @@
 # AI model and data licence register (OPS-009)
 
 - Owners: Ismail (AI 2) + Qussai (AI 1). Approves licences: Mohammad.
-- Version: v1.0, 2026-11-15.
+- Version: v1.1, 2026-11-23 (the Arabic words stage, ADR-0010).
 - Requirement: OPS-009 "Register of every open-source model and its licence". Also AP-06 (no
   runtime call to an outside service: everything below runs on our machines).
 - Related: `docs/ai/genai_and_safety_boundaries.md` §3 (QML 1.0 conditions and the AI notice).
 
-Every model, library, data file and recording on the recitation path, with the licence checked at
-its source on 2026-11-15: package metadata for libraries, the Hugging Face model or dataset card for
+Every model, library, data file and recording on the recitation path (checked on 2026-11-15) and
+on the Arabic words stage (checked on 2026-11-23), with the licence checked at its source: package metadata for libraries, the Hugging Face model or dataset card for
 models, and the notice shipped with the data. **A change of version, revision or source updates
 this file in the same pull request.**
 
 ## 1. Models
 
-| Model                                                                                         | Revision (pinned)                          | Licence    | Built from                                                                   | Used for                                       |
-| --------------------------------------------------------------------------------------------- | ------------------------------------------ | ---------- | ---------------------------------------------------------------------------- | ---------------------------------------------- |
-| [`obadx/muaalem-model-v3_2`](https://huggingface.co/obadx/muaalem-model-v3_2)                 | `01a1ef9fbe40d144ef845101e89ff924aed3fef5` | MIT        | `facebook/w2v-bert-2.0` (MIT), trained on `obadx/muaalem-annotated-v3` (MIT) | Pronunciation and tajweed errors; word timings |
-| [`tarteel-ai/whisper-base-ar-quran`](https://huggingface.co/tarteel-ai/whisper-base-ar-quran) | `5c3c53fdf9272c4f6ee0bee09a1e5a4a615ee25c` | Apache-2.0 | `openai/whisper-base` (Apache-2.0 on its model card)                         | Word-level transcript (memorization errors)    |
-| Silero VAD (bundled in the `silero-vad` package)                                              | package 6.2.3                              | MIT        | —                                                                            | Speech vs silence in the quality gate          |
+| Model                                                                                         | Revision (pinned)                             | Licence          | Built from                                                                         | Used for                                       |
+| --------------------------------------------------------------------------------------------- | --------------------------------------------- | ---------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------- |
+| [`obadx/muaalem-model-v3_2`](https://huggingface.co/obadx/muaalem-model-v3_2)                 | `01a1ef9fbe40d144ef845101e89ff924aed3fef5`    | MIT              | `facebook/w2v-bert-2.0` (MIT), trained on `obadx/muaalem-annotated-v3` (MIT)       | Pronunciation and tajweed errors; word timings |
+| [`tarteel-ai/whisper-base-ar-quran`](https://huggingface.co/tarteel-ai/whisper-base-ar-quran) | `5c3c53fdf9272c4f6ee0bee09a1e5a4a615ee25c`    | Apache-2.0       | `openai/whisper-base` (Apache-2.0 on its model card)                               | Word-level transcript (memorization errors)    |
+| Silero VAD (bundled in the `silero-vad` package)                                              | package 6.2.3                                 | MIT              | —                                                                                  | Speech vs silence in the quality gate          |
+| [`Systran/faster-whisper-large-v3`](https://huggingface.co/Systran/faster-whisper-large-v3)   | `edaa852ec7e145841d8ffdb056a99866b5f0a478` 🔶 | MIT (model card) | `openai/whisper-large-v3` (Apache-2.0 on its model card), converted to CTranslate2 | Arabic words stage (FR-ARB-002, ADR-0010)      |
 
 The revisions are pinned in the adapters (`MUAALEM_REVISION`, `WHISPER_QURAN_REVISION`) and sent
-in `modelVersion` with every result (OPS-008). Changing one needs an evaluation run on the
+in `modelVersion` with every result (OPS-008). 🔶 The faster-whisper revision is the one measured
+for ADR-0010; it is pinned in code with the words-stage adapter (week 5, ADR-0010 §6 question 4). Changing one needs an evaluation run on the
 untouched test set (AI release rules).
 
 On the GPU machine the model files live in `services/ai/models/` (not in git), filled at these
@@ -56,6 +58,27 @@ segments as the GPU machine (ffmpeg 9.0.2).
 
 Versions are those installed on the GPU machine on 2026-11-15. The dependency audit in CI covers
 known vulnerabilities; this table covers licences.
+
+### Libraries on the Arabic words stage (ADR-0010)
+
+| Package                  | Version   | Licence (package metadata)                                  | Notes                                                                               |
+| ------------------------ | --------- | ----------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `faster-whisper`         | 1.2.1     | MIT                                                         | Runs the Whisper model                                                              |
+| `ctranslate2`            | 4.9.1     | MIT                                                         | The inference engine inside faster-whisper; built for CUDA 12                       |
+| `av` (PyAV)              | 19.0.2    | BSD-3-Clause                                                | Audio decoding for faster-whisper                                                   |
+| `onnxruntime`            | 1.32.0    | MIT                                                         | A faster-whisper dependency for its own VAD, which we do not use                    |
+| `nvidia-cublas-cu12`     | 12.9.2.10 | 🔶 **NVIDIA proprietary** (`LicenseRef-NVIDIA-Proprietary`) | cuBLAS 12 for CTranslate2 (our torch has CUDA 13); made findable by `app/cuda12.py` |
+| `nvidia-cudnn-cu12`      | 9.28.1.4  | 🔶 **NVIDIA proprietary** (`LicenseRef-NVIDIA-Proprietary`) | cuDNN 9 for CUDA 12, for CTranslate2                                                |
+| `nvidia-cuda-nvrtc-cu12` | 12.9.86   | 🔶 **NVIDIA proprietary** (`LicenseRef-NVIDIA-Proprietary`) | Pulled in by `nvidia-cublas-cu12`                                                   |
+
+Versions are those installed in the GPU machine's Python 3.12 environment on 2026-11-23.
+
+🔶 **NVIDIA runtime libraries (open, Mohammad).** The three `nvidia-*` packages are not open source.
+They are not new to the stack: the CUDA build of `torch` (§2) already ships NVIDIA's cuBLAS 13,
+cuDNN 9 and CUDA runtime inside the package (checked in `torch/lib` on 2026-11-23), which this
+register did not list. The rule "everything is self-hosted and open source" (Roadmap §1) is about
+the models and services we run. Mohammad decides whether NVIDIA's GPU runtime libraries are
+accepted as part of the driver stack; they are never changed, and run only on our own machines.
 
 ## 3. Quran text
 
@@ -136,6 +159,7 @@ The licences above put these duties on the product, not only on the AI service:
 
 ## 6. Change log
 
-| Date       | Change                        | By              |
-| ---------- | ----------------------------- | --------------- |
-| 2026-11-15 | First version of the register | Qussai / Ismail |
+| Date       | Change                                                                                                                            | By              |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------- | --------------- |
+| 2026-11-15 | First version of the register                                                                                                     | Qussai / Ismail |
+| 2026-11-23 | The Arabic words stage (ADR-0010): `faster-whisper-large-v3`, its libraries, and the NVIDIA runtime libraries (open for Mohammad) | Qussai          |
