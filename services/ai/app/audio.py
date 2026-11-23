@@ -11,18 +11,18 @@ from silero_vad import get_speech_timestamps, load_silero_vad
 SAMPLE_RATE = 16000
 
 MAX_RECORDING_SECONDS = 60.0
-MAX_SPEECH_SECONDS = 30.0  # whisper's input window; a longer reading would look like skipped words
+MAX_SPEECH_SECONDS = 30.0
 MIN_SECONDS = 0.03
 MIN_SPEECH_SECONDS = 0.3
-VAD_THRESHOLD = 0.2  # the default 0.5 misses long madd and ghunna sounds
+VAD_THRESHOLD = 0.2
 MIN_SPEECH_RATIO = 0.30
 MIN_SPEECH_DBFS = -50.0
-MIN_SNR_DB = 15.0  # whisper starts to misread reference recitations below about 17 dB
-FRAME_SAMPLES = 320  # 20 ms
-CLIPPED_LEVEL = 0.976  # 32000 / 32768
+MIN_SNR_DB = 15.0
+FRAME_SAMPLES = 320
+CLIPPED_LEVEL = 0.976
 MAX_CLIPPED_RATIO = 0.01
 PADDING_BEFORE_SECONDS = 0.25
-PADDING_AFTER_SECONDS = 3.0  # Silero VAD stops hearing a long final madd early (1:4)
+PADDING_AFTER_SECONDS = 3.0
 
 DECODE_TIMEOUT_SECONDS = 15
 
@@ -46,7 +46,6 @@ def decode_audio(audio_bytes):
         with open(input_path, "wb") as f:
             f.write(audio_bytes)
 
-        # -t: a tiny file can hold a very long recording, so only a little over the limit is decoded
         command = [
             "ffmpeg", "-nostdin", "-loglevel", "error",
             "-i", input_path,
@@ -97,9 +96,7 @@ def snr_db(samples):
 
 
 def measure_recording(samples, find_speech=None):
-    """Every number the gate looks at, even those after a failed rule, so the gate can be tuned on data.
-    Not used by the service: check_quality stops at the first failed rule. Speech numbers are None
-    when the VAD hears no speech."""
+    """Every number the gate looks at, even after a failed rule, to tune the gate on data."""
     find_speech = find_speech or speech_parts
     numbers = {
         "durationSeconds": round(len(samples) / SAMPLE_RATE, 2),

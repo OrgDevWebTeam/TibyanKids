@@ -1,28 +1,4 @@
-# Turns the children's recordings into the evaluation layout (docs/ai/audio-io-and-eval-dataset.md,
-# B.4 to B.7).
-#
-# The dataset holds children's voices, so the output folder is datasets/tibyan-eval (ignored by git
-# and Docker) or a folder outside the repository. Anywhere else in the repository is refused.
-# Four steps, in this order:
-#
-#   1. layout         python scripts/prepare_dataset.py layout <source> <tibyan-eval>
-#      Copies <source>/SPK_xxx/<surah>_<ayah>.wav to audio/, and writes two sheets to fill in:
-#      speakers.csv (age band, consent) and labelling_sheet.csv (one row per word, for the teacher).
-#
-#   2. split          python scripts/prepare_dataset.py split <tibyan-eval> --test 11 --dev 6
-#      Once speakers.csv is filled in: decides by speaker who is in test, dev and train, balanced by
-#      age band, and writes splits.json and recordings.jsonl (B.5). Done before labelling, so the
-#      teacher can label the dev children first.
-#
-#   3. import-labels  python scripts/prepare_dataset.py import-labels <tibyan-eval> <sheet.csv>
-#      Checks the teacher's sheet and writes labels.jsonl (B.6). Can run again on a sheet that is
-#      not finished yet. One teacher labels every word, so there are no rounds: each label is final.
-#
-#   4. freeze         python scripts/prepare_dataset.py freeze <tibyan-eval>
-#      Once every test recording is labelled: stores the SHA-256 of recordings.jsonl and
-#      labels.jsonl in splits.json (B.7). After that, evaluate.py --split test refuses changed data.
-#
-# Every step prints counts and problems only: never a word of a child's reading or a teacher's note.
+# The children's recordings into the evaluation layout: layout, split, import-labels, freeze (B.4-B.7).
 import argparse
 import csv
 import json
@@ -38,9 +14,9 @@ from app.policy import CODES  # noqa: E402
 from app.reference import get_ayah  # noqa: E402
 
 REPO = Path(__file__).resolve().parents[3]
-DATASETS = REPO / "datasets"  # ignored by git and by Docker builds
+DATASETS = REPO / "datasets"
 
-AGE_BANDS = ["6-8", "9-11", "12-14"]  # youngest first: the split takes speakers in this order
+AGE_BANDS = ["6-8", "9-11", "12-14"]
 DECISIONS = ["correct", "needs_practice", "poor_audio"]
 SPEAKER_FOLDER = re.compile(r"^SPK_(\d{3})$")
 AUDIO_FILE = re.compile(r"^(\d{3})_(\d{3})\.wav$")
@@ -49,10 +25,7 @@ SPEAKER_COLUMNS = ["speakerId", "ageBand", "consentId", "device", "recordedAt"]
 SHEET_COLUMNS = [
     "recordingId", "surah", "ayah", "wordIndex", "word", "teacherDecision", "errorCodes", "notes",
 ]
-DEFAULT_TEACHER = "TCH_01"  # one teacher labels every word, so there is no annotator column
-
-
-# ---------- Shared helpers ----------
+DEFAULT_TEACHER = "TCH_01"
 
 
 def recording_id(speaker_number, surah, ayah):
@@ -72,8 +45,7 @@ def speaker_of(rec_id):
 
 
 def refuse_inside_repo(folder):
-    """Stops the script when folder is in the repository (it is public), except in datasets/,
-    which .gitignore and .dockerignore both leave out."""
+    """Stops the script for a folder in the public repository, except datasets/."""
     path = Path(folder).resolve()
     if path.is_relative_to(REPO) and not path.is_relative_to(DATASETS):
         sys.exit(f"{folder} is in the repository: the dataset holds children's voices, "
@@ -135,9 +107,6 @@ def print_problems(problems):
         print(f"  - {problem}")
 
 
-# ---------- layout (step 1) ----------
-
-
 def find_audio_files(folder):
     """([(speaker number, surah, ayah, path)], problems) for one SPK_xxx folder."""
     speaker_number = SPEAKER_FOLDER.match(folder.name).group(1)
@@ -156,8 +125,7 @@ def find_audio_files(folder):
 
 
 def find_recordings(source):
-    """([(speaker number, surah, ayah, path)], problems) for every SPK_xxx folder under source.
-    The search goes into subfolders, because the dataset may come nested in another folder."""
+    """([(speaker number, surah, ayah, path)], problems) for every SPK_xxx folder."""
     found, problems = [], []
     for folder in sorted(Path(source).rglob("SPK_*")):
         if not folder.is_dir():
@@ -217,7 +185,7 @@ def layout(source, out):
 
     found, problems = find_recordings(source)
     if problems:
-        return problems  # nothing is copied until every file is named right
+        return problems
     if not found:
         sys.exit(f"No SPK_xxx/<surah>_<ayah>.wav recordings under {source}")
 
@@ -231,9 +199,6 @@ def layout(source, out):
         print(f"Note: speakers without all 25 ayat: {missing}")
     print("Next: fill in speakers.csv, and give the teacher labelling_sheet.csv and the audio folder")
     return []
-
-
-# ---------- split (step 2) ----------
 
 
 def check_speakers(rows, speakers):
@@ -266,8 +231,7 @@ def age_band_of(info, speaker):
 
 
 def speakers_in_turn(speakers_by_band):
-    """All speakers, taking one from each age band in turn (youngest band first), so that any first
-    part of the list is balanced across the age bands."""
+    """All speakers, one from each age band in turn, youngest first."""
     queues = []
     for band in AGE_BANDS:
         if band in speakers_by_band:
@@ -349,8 +313,7 @@ def print_split(splits, info):
 
 
 def split(out, test_count, dev_count):
-    """Decides who is in test, dev and train; writes splits.json and recordings.jsonl.
-    Returns the problems found (nothing is written then)."""
+    """Decides test, dev and train; writes splits.json and recordings.jsonl. Returns problems."""
     out = Path(out)
     if (out / "splits.json").exists():
         sys.exit("splits.json exists: the split is already decided (B.7)")
@@ -371,9 +334,6 @@ def split(out, test_count, dev_count):
     write_recordings(out)
     print_split(splits, info)
     return []
-
-
-# ---------- import-labels (step 3) ----------
 
 
 def split_codes(text):
@@ -424,7 +384,6 @@ def check_label(row, known_recordings, teacher):
     if problem:
         return None, f"{where}: {problem}"
 
-    # One teacher, one label per word: it is the final label, so it is stored as round 1 (B.6 format)
     label = {"recordingId": rec_id, "wordIndex": word_index, "annotatorId": teacher, "round": 1}
     label.update({"teacherDecision": decision, "errorCodes": codes, "notes": row.get("notes", "").strip()})
     return label, None
@@ -434,7 +393,7 @@ def labels_from_sheet(sheet, known_recordings, teacher):
     """(labels, problems, rows not filled in) for the teacher's sheet."""
     labels, problems, empty_rows = [], [], 0
     seen = set()
-    for line, row in enumerate(read_csv(sheet), 2):  # line 1 is the header
+    for line, row in enumerate(read_csv(sheet), 2):
         if not row.get("teacherDecision", "").strip():
             empty_rows += 1
             continue
@@ -452,8 +411,7 @@ def labels_from_sheet(sheet, known_recordings, teacher):
 
 
 def import_labels(out, sheet, teacher=DEFAULT_TEACHER):
-    """Writes labels.jsonl from the teacher's sheet, finished or not.
-    Returns the problems found (nothing is written then)."""
+    """Writes labels.jsonl from the teacher's sheet, finished or not. Returns problems."""
     out = Path(out)
     if is_frozen(out):
         sys.exit("The dataset is frozen: labels cannot change (B.7)")
@@ -464,15 +422,12 @@ def import_labels(out, sheet, teacher=DEFAULT_TEACHER):
         return problems
     write_jsonl(out / "labels.jsonl", labels)
     if (out / "splits.json").exists():
-        write_recordings(out)  # audioQuality follows the new labels
+        write_recordings(out)
 
     labelled = len({label["recordingId"] for label in labels})
     print(f"{len(labels)} word labels for {labelled} of {len(known)} recordings written to labels.jsonl")
     print(f"{empty_rows} rows without a teacherDecision were skipped")
     return []
-
-
-# ---------- freeze (step 4) ----------
 
 
 def unlabelled_test_recordings(out, splits, decisions):
@@ -485,8 +440,7 @@ def unlabelled_test_recordings(out, splits, decisions):
 
 
 def freeze(out):
-    """Stores the SHA-256 of recordings.jsonl and labels.jsonl in splits.json.
-    Returns the problems found (nothing is written then)."""
+    """Stores the hashes of recordings.jsonl and labels.jsonl in splits.json. Returns problems."""
     out = Path(out)
     if not (out / "splits.json").exists():
         sys.exit("No splits.json: run split first")
@@ -512,9 +466,6 @@ def freeze(out):
     print(f"{total} recordings, {total - len(decisions)} without labels (left out of every run)")
     print("Frozen. Tune on --split dev only; run --split test once, at the end (B.7)")
     return []
-
-
-# ---------- Command line ----------
 
 
 def parse_arguments():

@@ -1,5 +1,4 @@
-# The threshold sweep (scripts/sweep_threshold.py) and decide()'s threshold argument, on synthetic
-# saved outputs and labels.
+# The threshold sweep and decide()'s threshold argument, on synthetic saved outputs.
 import importlib.util
 from pathlib import Path
 
@@ -16,12 +15,14 @@ TARGETS = {"falseReject": 0.05, "falseAcceptMemorization": 0.15, "uncertain": 0.
 
 
 def test_decide_uses_the_threshold_given():
+    """Decide uses the threshold given."""
     finding = make_finding(1, "ERR_MEM_OMISSION", 0.72, 0, 0)
     assert decide([finding], "beginner", threshold=0.70)[0] == "error"
     assert decide([finding], "beginner", threshold=0.75)[0] == "uncertain"
 
 
 def test_decide_without_a_threshold_reads_the_setting(monkeypatch):
+    """Decide without a threshold reads the setting."""
     finding = make_finding(1, "ERR_MEM_OMISSION", DEFAULT_THRESHOLD, 0, 0)
     assert decide([finding], "beginner")[0] == "error"
     monkeypatch.setenv("CONFIDENCE_THRESHOLD", "0.9")
@@ -29,11 +30,13 @@ def test_decide_without_a_threshold_reads_the_setting(monkeypatch):
 
 
 def test_thresholds_from_050_to_095():
+    """Thresholds from 050 to 095."""
     expected = [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95]
     assert sweep_threshold.thresholds(0.5, 0.95, 0.05) == expected
 
 
 def test_meets_needs_all_three_targets():
+    """Meets needs all three targets."""
     row = {"falseRejectRate": 0.04, "falseAcceptMemorization": 0.10, "uncertainRate": 0.30}
     assert sweep_threshold.meets(row, TARGETS) == "yes"
     assert sweep_threshold.meets({**row, "uncertainRate": 0.31}, TARGETS) == "no"
@@ -41,6 +44,7 @@ def test_meets_needs_all_three_targets():
 
 
 def recording(rec):
+    """One recordings.jsonl row of a child."""
     return {"recordingId": rec, "source": "child", "ageBand": "9-11", "audioQuality": "ok"}
 
 
@@ -77,11 +81,12 @@ def test_a_higher_threshold_turns_errors_into_uncertain():
     assert [combined[t]["uncertainRate"] for t in [0.7, 0.8, 0.9]] == [0.0, 0.5, 1.0]
     assert all(combined[t]["falseAcceptMemorization"] == 0.0 for t in combined)
     assert combined[0.7]["wordLocationAccuracy"] == 1.0
-    assert combined[0.7]["falseRejectRate"] is None  # no correct readings to wrongly stop
+    assert combined[0.7]["falseRejectRate"] is None
     assert combined[0.7]["meetsTargets"] == "unknown"
 
 
 def test_every_model_and_level_gets_a_row_per_threshold():
+    """Every model and level gets a row per threshold."""
     data = labelled_split([recording("REC_A")], {"REC_A": {}}, {"REC_A": saved("REC_A", 0.9)})
     rows = sweep_threshold.sweep(data, [0.5, 0.6], TARGETS)
     assert len(rows) == len(saved_outputs.MODELS) * 3 * 2

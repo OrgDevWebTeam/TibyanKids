@@ -159,6 +159,50 @@ over HTTP.
 | mock mode               | `MOCK_MODE=true`: fake results, no models, no GPU. The default on laptops                                                                                                    |
 | pinned revision         | The exact version of a model, so results never change without us choosing to                                                                                                 |
 
+### Why the code is this way
+
+The code has one short note per file and per function. The reasons behind its values and rules are
+here.
+
+| Code                                                                 | Why                                                                                                                                  |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `audio.py` `MAX_SPEECH_SECONDS = 30`                                 | Whisper's input window. A longer reading would look like skipped words                                                               |
+| `audio.py` `VAD_THRESHOLD = 0.2`                                     | Silero's default 0.5 misses long madd and ghunna sounds                                                                              |
+| `audio.py` `MIN_SNR_DB = 15`                                         | Whisper starts to misread the reference recitation below about 17 dB                                                                 |
+| `audio.py` `FRAME_SAMPLES = 320`, `CLIPPED_LEVEL = 0.976`            | 20 ms frames for the signal-to-noise ratio; 0.976 is 32000 / 32768                                                                   |
+| `audio.py` `PADDING_AFTER_SECONDS = 3.0`                             | Silero VAD stops hearing a long final madd early (1:4)                                                                               |
+| `audio.py` `decode_audio()`, ffmpeg `-t`                             | A tiny file can hold a very long recording, so only a little over the limit is decoded                                               |
+| `pipeline.py` `MODELS_LOCK`                                          | One recording at a time, the gate included: two requests at once corrupted Silero VAD and crashed the service                        |
+| `pipeline.py` advanced level                                         | No targeted tajweed rules per lesson yet (taxonomy §2.1), so advanced stops like intermediate                                        |
+| `main.py` `analyze_recitation()` is not `async`                      | FastAPI runs it in a thread, so `/health` answers while a request waits for the GPU                                                  |
+| `main.py` `MAX_AUDIO_BYTES`                                          | The same 5 MB limit as the API (VAL-016)                                                                                             |
+| `policy.py` `DEFAULT_THRESHOLD = 0.70`                               | Provisional until the week 4 benchmark (OD-02)                                                                                       |
+| `policy.py` `STOPS["advanced"]`                                      | Advanced also stops on the tajweed rules targeted in the lesson (`targeted_tajweed_codes`)                                           |
+| `combine.py` `CODES_MUAALEM_SHOULD_HEAR`                             | A skipped or different word changes the sounds, so muaalem should hear it too; if it did not, the models disagree                    |
+| `evaluation.py` `GUARD`                                              | Unreadable audio and `too_long` are not quality results, so they are left out of the gate's precision and recall                     |
+| `whisper_quran.py` `MAX_NEW_TOKENS = 200`                            | The longest prototype ayah is 75 tokens; past 448 positions the GPU crashes, and noisy audio can loop until then                     |
+| `whisper_quran.py` `MARKS`                                           | Harakat, tanween, the dagger alif, Quranic marks and tatweel are dropped before words are compared                                   |
+| `whisper_quran.py` `use_safetensors=False`                           | Otherwise transformers fetches a converted copy that is not part of the pin                                                          |
+| `whisper_quran.py` `transcribe()`                                    | Special tokens are left out of a word's confidence: they are forced or always certain, so every word would look surer                |
+| `muaalem.py` `error_code()`                                          | The ghunna check comes before the madd check, because `MoshaddadOrModghamNoonRule` (ghunna) is a subclass of `MaddRule`              |
+| The three `*_REVISION` pins                                          | Change a pin only together with an evaluation run (recitation) or a new measurement (Arabic words, ADR-0010)                         |
+| `arabic_words.py` `load_model()`                                     | torch must start the GPU first: faster-whisper's engine (CTranslate2) uses the CUDA 12 libraries torch loads                         |
+| `arabic_words.py` `model_folder()`, `download_models.py`             | No Hugging Face cache: it needs symbolic links, which Windows refuses without Developer Mode                                         |
+| `download_models.py` `.partial` folder                               | A model is moved into place only when complete, so a broken download never looks like a valid copy                                   |
+| `align_word_timings.py` `PAUSE_FRAMES`, `KEEP_FRAMES`, `BACK_FRAMES` | About 400, 120 and 40 ms. Chosen by asking whisper-quran to recognise each cut-out word: 51 of 97, against 18 before                 |
+| `align_word_timings.py` `BLANK = 0`                                  | The CTC blank (`[PAD]`) of quran-muaalem's phoneme level                                                                             |
+| `run_models.py` runs on test recordings too                          | Running a model is not tuning; only the final `evaluate.py --split test` run looks at test numbers (B.7)                             |
+| `run_models.py` a second run with the same name                      | Continues where the first stopped, and refuses other model versions, so one run folder is always one set of models                   |
+| `run_models.py` `run_gate()`                                         | The VAD is the slow part, so it runs once and both the gate and its measurements get its answer                                      |
+| `run_models.py` a rejected recording                                 | Never reaches the models, as in the service                                                                                          |
+| `saved_outputs.py`                                                   | A saved output holds numbers and codes only, but it belongs to a child's recording, so it stays in the dataset folder                |
+| `prepare_dataset.py` `AGE_BANDS` order                               | Youngest first: the split takes speakers in this order, so every split is balanced                                                   |
+| `prepare_dataset.py` labels stored as round 1                        | One teacher labels every word, so each label is final (B.6 format)                                                                   |
+| `prepare_dataset.py` `layout`                                        | Nothing is copied until every file is named right                                                                                    |
+| `benchmark_arabic_whisper.py` `MAX_NEW_TOKENS = 10`                  | One Arabic word is a few tokens; more than this is a sentence that is not there                                                      |
+| `benchmark_arabic_whisper.py` `SHORT_CLIP_SECONDS = 1.0`             | Invented phrases happen mostly below this, so short clips are scored apart                                                           |
+| `benchmark_arabic_whisper.py` results and transcripts                | Saved after every size, so a later failure never loses a measured size; transcripts (reference reciter only) are kept to score again |
+
 ## Run the mock service
 
 With Docker Compose from the repo root (MongoDB and this service on `127.0.0.1:8000`, the API's

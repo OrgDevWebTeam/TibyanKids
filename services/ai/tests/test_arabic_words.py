@@ -5,6 +5,7 @@ from app.adapters import arabic_words
 
 
 def test_the_model_comes_from_its_pinned_folder(tmp_path, monkeypatch):
+    """The model comes from its pinned folder."""
     monkeypatch.setenv("MODELS_DIR", str(tmp_path))
     folder = tmp_path / "Systran--faster-whisper-large-v3"
     folder.mkdir()
@@ -13,12 +14,14 @@ def test_the_model_comes_from_its_pinned_folder(tmp_path, monkeypatch):
 
 
 def test_a_missing_folder_says_to_run_download_models(tmp_path, monkeypatch):
+    """A missing folder says to run download models."""
     monkeypatch.setenv("MODELS_DIR", str(tmp_path))
     with pytest.raises(FileNotFoundError, match="download_models.py"):
         arabic_words.model_folder()
 
 
 def test_a_folder_at_another_revision_is_refused(tmp_path, monkeypatch):
+    """A folder at another revision is refused."""
     monkeypatch.setenv("MODELS_DIR", str(tmp_path))
     folder = tmp_path / "Systran--faster-whisper-large-v3"
     folder.mkdir()
@@ -28,4 +31,5 @@ def test_a_folder_at_another_revision_is_refused(tmp_path, monkeypatch):
 
 
 def test_the_version_names_the_pinned_revision():
+    """The version names the pinned revision."""
     assert arabic_words.model_version() == f"{arabic_words.HF_REPO}@{arabic_words.HF_REVISION[:12]}"

@@ -1,7 +1,6 @@
 # Merges the findings of the two recitation models into one list (taxonomy 1.1 and 4, rule 2).
 from app.policy import CATEGORY_ORDER, make_finding
 
-# A skipped or different word changes the sounds, so muaalem should hear it too
 CODES_MUAALEM_SHOULD_HEAR = {"ERR_MEM_OMISSION", "ERR_MEM_SUBSTITUTION"}
 
 

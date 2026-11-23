@@ -1,14 +1,4 @@
-# The confidence threshold sweep on the dev split (dataset doc B.7 and B.8; OD-02):
-#   python scripts/sweep_threshold.py <tibyan-eval> [--outputs <run name>]
-#
-# For every threshold from 0.50 to 0.95 (step 0.05) it works out the decisions again from the saved
-# outputs (scripts/run_models.py) and gives, per model and level: false reject, false accept, false
-# accept on memorization errors, word location and uncertain rates. No model is loaded.
-#
-# Dev only, never test: the threshold is tuned on dev and confirmed once on test (B.7).
-# A row "meets" when it is within all three targets. The defaults are the B.8 starting targets,
-# not approved yet; replace them with Mohammad's numbers with --max-false-reject and the others.
-# Writes runs/<date>-<time>-sweep-dev.csv (numbers only) and prints the table.
+# The confidence threshold sweep on the dev split (OD-02), from the saved outputs.
 import argparse
 import csv
 import sys
@@ -26,8 +16,7 @@ COLUMNS = [
 
 
 def thresholds(start, stop, step):
-    """start, start + step, ... up to stop, rounded to 2 places.
-    Counted in whole steps, because adding 0.05 again and again drifts (0.1 + 0.2 is not 0.3)."""
+    """start, start + step, ... up to stop, counted in whole steps so they do not drift."""
     steps = round((stop - start) / step)
     return [round(start + number * step, 2) for number in range(steps + 1)]
 

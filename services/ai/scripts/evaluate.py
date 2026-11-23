@@ -1,9 +1,4 @@
-# One evaluation run (dataset doc, Part B):
-#   python scripts/evaluate.py <tibyan-eval folder> --split dev|test [--outputs <run name>]
-#
-# Reads the models' saved outputs (scripts/run_models.py, outputs/<run name>/) and never loads a
-# model, so a run takes seconds. The decisions are worked out again here, with today's decision policy and
-# CONFIDENCE_THRESHOLD.
+# One evaluation run from the saved outputs: python scripts/evaluate.py <tibyan-eval> --split dev|test
 import argparse
 import json
 import sys

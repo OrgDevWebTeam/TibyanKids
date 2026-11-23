@@ -15,7 +15,6 @@ COMBINED_MODEL = "combined"
 
 log = logging.getLogger("tibyan.ai")
 
-# One recording at a time, the gate included: two requests at once corrupted Silero VAD and crashed the service
 MODELS_LOCK = threading.Lock()
 
 models_loaded = False
@@ -61,7 +60,8 @@ def elapsed_ms(started):
 def analyze_recording(audio_bytes, surah, ayah, level, attempt_id):
     """One AnalysisResult for a prototype ayah; raises AudioError or ModelFailed; logs one JSON line."""
     started = time.perf_counter()
-    log_entry = {"attemptId": attempt_id, "surah": surah, "ayah": ayah, "level": level, "ms": {}, "models": {}}
+    log_entry = {"attemptId": attempt_id, "surah": surah, "ayah": ayah, "level": level}
+    log_entry.update({"ms": {}, "models": {}})
     try:
         quality, decision, findings = check_recording(audio_bytes, surah, ayah, level, log_entry)
     except AudioError as error:
@@ -126,7 +126,6 @@ def check_recording(audio_bytes, surah, ayah, level, log_entry):
         log_entry["ms"][whisper_quran.NAME] = elapsed_ms(stage_started)
         log_entry["models"][whisper_quran.NAME] = "ok"
 
-    # No targeted tajweed rules per lesson yet (taxonomy 2.1): advanced stops like intermediate
     findings = combine_findings(muaalem_findings, whisper_findings)
     findings = add_word_segments(findings, get_word_timings(surah, ayah))
     decision, findings = decide(findings, level)

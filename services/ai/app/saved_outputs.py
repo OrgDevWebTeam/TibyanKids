@@ -1,13 +1,4 @@
-# The models' raw output for one recording, saved once by scripts/run_models.py and read by the
-# evaluation scripts, so the GPU runs once per model version (dataset doc, B.4 "outputs/").
-#
-# A saved output is what the models found before any decision: the gate result and its numbers,
-# each model's findings (word, code, confidence) and the time of each step. Merging the two models,
-# the word segments and the decision are worked out again when it is read, so a change to the merge
-# rules, the decision policy or the threshold never needs the GPU.
-#
-# A saved output holds numbers and codes only: no audio, transcript or phoneme text. It still belongs
-# to a child's recording, so it stays in the dataset folder, never in git, logs or telemetry.
+# What the models found per recording (saved by run_models.py), and the decisions worked out from it.
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -24,8 +15,8 @@ COMBINED = "combined"
 MODELS = [muaalem.NAME, whisper_quran.NAME, COMBINED]
 TIMED_STEPS = ["decode", "gate", muaalem.NAME, whisper_quran.NAME]
 
-UNREADABLE = "unreadable"  # the audio could not be decoded (EMPTY_AUDIO, DECODE_FAILED, DECODE_TIMEOUT)
-RUN_FILE = "run.json"  # the model versions and date of a run folder
+UNREADABLE = "unreadable"
+RUN_FILE = "run.json"
 
 
 class DatasetProblem(Exception):
@@ -36,17 +27,14 @@ class DatasetProblem(Exception):
 class LabelledSplit:
     """One split of the dataset, ready to evaluate."""
 
-    recordings: list  # the labelled recordings of the split (recordings.jsonl rows)
-    gold: dict  # {recordingId: {wordIndex: [error codes]}}, the teacher's final labels
-    saved: dict  # {recordingId: saved output}
-    run_name: str  # the folder in outputs/ the saved outputs come from
-    run_folder: Path  # that folder
-    splits: dict  # the contents of splits.json
-    frozen: bool  # the dataset still matches the hashes in splits.json
-    unresolved: set  # recordings whose labels disagree, left out
-
-
-# ---------- Files ----------
+    recordings: list
+    gold: dict
+    saved: dict
+    run_name: str
+    run_folder: Path
+    splits: dict
+    frozen: bool
+    unresolved: set
 
 
 def write_output(run_folder, saved):
@@ -80,9 +68,6 @@ def newest_run(folder):
     return sorted(runs)[-1]
 
 
-# ---------- Loading a split ----------
-
-
 def labelled_recordings(folder, speakers, gold):
     """The recordings.jsonl rows of these speakers that have labels."""
     rows = []
@@ -105,8 +90,7 @@ def saved_outputs_of(run_folder, recordings):
 
 
 def load_split(folder, split, run_name=None):
-    """The labelled recordings of one split with their saved outputs (a LabelledSplit).
-    A test split is refused unless the dataset is frozen (B.7)."""
+    """The labelled recordings of one split with their saved outputs; test only once frozen."""
     folder = Path(folder)
     splits = json.loads((folder / "splits.json").read_text(encoding="utf-8"))
     frozen = evaluation.check_frozen(folder, splits)
@@ -121,9 +105,6 @@ def load_split(folder, split, run_name=None):
     return LabelledSplit(recordings, gold, saved, run_name, run_folder, splits, frozen, unresolved)
 
 
-# ---------- Decisions from a saved output ----------
-
-
 def findings_of(saved, model):
     """The findings one model saved, or None when it gave no usable answer (it ran away or failed)."""
     raw = saved["findings"].get(model)
@@ -133,8 +114,7 @@ def findings_of(saved, model):
 
 
 def model_findings(saved):
-    """{model: [Finding] or None} for each model alone and both combined.
-    None means no usable answer: the ayah is uncertain, as in the service."""
+    """{model: [Finding] or None} for each model and both combined; None means uncertain."""
     muaalem_findings = findings_of(saved, muaalem.NAME)
     whisper_findings = findings_of(saved, whisper_quran.NAME)
     if muaalem_findings is None or whisper_findings is None:
@@ -156,11 +136,9 @@ def decisions_at_every_level(findings, timings, threshold):
 
 
 def case_output(saved, threshold=None):
-    """{"quality", "seconds", "decisions"} for one recording, as app/evaluation.py reads it:
-    the decision of each model at every level, at this threshold (None: CONFIDENCE_THRESHOLD)."""
+    """Quality, seconds and each model's decision at every level, as evaluation.py reads them."""
     quality = saved["quality"]
     if quality in (UNREADABLE, "too_long"):
-        # Not a quality result: the duration guard or unreadable audio (dataset doc, B.8)
         return {"quality": GUARD, "seconds": saved["seconds"], "decisions": {}}
     if quality != "ok":
         return {"quality": quality, "seconds": saved["seconds"], "decisions": {}}

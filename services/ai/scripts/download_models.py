@@ -32,11 +32,8 @@ def main():
             print(f"{repo_id}@{revision[:12]}: already there ({size_gb(target):.2f} GB)")
             continue
 
-        # Moved into place only when complete, so a broken download never looks like a valid copy
         partial = target.with_name(target.name + ".partial")
         shutil.rmtree(partial, ignore_errors=True)
-        # Straight into the folder, not through the Hugging Face cache: the cache needs symbolic
-        # links, which Windows refuses without Developer Mode
         snapshot_download(repo_id, revision=revision, allow_patterns=files, local_dir=partial)
         (partial / "REVISION").write_text(revision + "\n", encoding="utf-8")
         shutil.rmtree(target, ignore_errors=True)

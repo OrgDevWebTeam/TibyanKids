@@ -1,14 +1,4 @@
-# Runs the gate and both models once on every recording of the dataset, and saves what they found
-# (app/saved_outputs.py):
-#   python scripts/run_models.py <tibyan-eval> [--name <run name>]
-#
-# The output goes to <tibyan-eval>/outputs/<run name>/, one file per recording, plus run.json with
-# the model versions. scripts/evaluate.py and the threshold sweep read it and never load a model.
-#
-# Runs on every recording in audio/, test included: running a model is not tuning. What protects
-# the test set is that only the final evaluate.py --split test run looks at test numbers (B.7).
-# A second run with the same name continues where the first stopped (it skips saved recordings),
-# and refuses if the model versions changed. It prints counts and timings only, never findings.
+# The gate and both models once on every recording, saving what they found (dataset doc, B.9).
 import argparse
 import json
 import sys
@@ -59,10 +49,10 @@ def empty_output(recording_id):
 def run_gate(samples, saved):
     """Runs the quality gate and measures every gate number. Returns the clip the models get, or None."""
     started = time.perf_counter()
-    # The VAD is the slow part, so it runs once and both functions are given its answer
     parts = speech_parts(samples)
 
     def speech_already_found(_samples):
+        """The speech parts the VAD already found."""
         return parts
 
     saved["gate"] = measure_recording(samples, speech_already_found)
@@ -73,8 +63,7 @@ def run_gate(samples, saved):
 
 
 def run_model(name, find_errors, clip, reference, saved):
-    """Runs one model and saves its findings as plain dicts. Saves None when it ran away or failed:
-    the service answers uncertain then, and one bad recording must not stop a long run."""
+    """Runs one model and saves its findings, or None on a GPU failure (RuntimeError)."""
     started = time.perf_counter()
     try:
         findings = find_errors(clip, reference)
@@ -108,7 +97,7 @@ def analyse(path, recording_id, models=None):
 
     clip = run_gate(samples, saved)
     if clip is None:
-        return saved  # like the service: a rejected recording never reaches the models
+        return saved
 
     ayah = get_ayah(saved["surah"], saved["ayah"])
     words = [word["text_imlaei"] for word in ayah["words"]]

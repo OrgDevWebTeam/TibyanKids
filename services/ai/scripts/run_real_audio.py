@@ -81,7 +81,8 @@ def main():
         except whisper_quran.Runaway:
             print(f"  {whisper_quran.NAME} ({time.perf_counter() - started:.2f} s): uncertain (runaway)")
             continue
-        print_decision(f"{whisper_quran.NAME} ({time.perf_counter() - started:.2f} s)", whisper_findings, level)
+        label = f"{whisper_quran.NAME} ({time.perf_counter() - started:.2f} s)"
+        print_decision(label, whisper_findings, level)
 
         combined = combine_findings(muaalem_findings, whisper_findings)
         combined = add_word_segments(combined, get_word_timings(surah, ayah_number))
