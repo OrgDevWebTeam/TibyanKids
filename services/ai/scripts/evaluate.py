@@ -1,7 +1,8 @@
-# One evaluation run (dataset doc, Part B): python scripts/evaluate.py <tibyan-eval folder> --split dev|test [--outputs <run name>]
+# One evaluation run (dataset doc, Part B):
+#   python scripts/evaluate.py <tibyan-eval folder> --split dev|test [--outputs <run name>]
 #
-# Reads the models' saved outputs (scripts/run_models.py, outputs/<run name>/) and never loads a model,
-# so a run takes seconds. The decisions are worked out again here, with today's decision policy and
+# Reads the models' saved outputs (scripts/run_models.py, outputs/<run name>/) and never loads a
+# model, so a run takes seconds. The decisions are worked out again here, with today's decision policy and
 # CONFIDENCE_THRESHOLD.
 import argparse
 import json
@@ -26,49 +27,60 @@ def print_tables(report):
         for model, levels in numbers["decisions"].items():
             for level, metrics in levels.items():
                 m = metrics["overall"]
-                cells = [m["falseRejectRate"], m["falseAcceptRate"], m["wordLocationAccuracy"], m["uncertainRate"]]
-                text = " ".join(f"{'-' if v is None else v:>7}" for v in cells)
+                names = ["falseRejectRate", "falseAcceptRate", "wordLocationAccuracy", "uncertainRate"]
+                rates = [m[name] for name in names]
+                text = " ".join(f"{'-' if rate is None else rate:>7}" for rate in rates)
                 print(f"   {model:<15} {level:<13} {text}")
 
 
-def main():
-    """Evaluates one split from the saved outputs, writes runs/<date>-<time>-<split>.json (metrics only) and prints the tables."""
-    parser = argparse.ArgumentParser(description="One evaluation run (docs/ai/audio-io-and-eval-dataset.md, B)")
+def parse_arguments():
+    """The dataset folder, the split and the saved outputs to use."""
+    parser = argparse.ArgumentParser(description="One evaluation run (dataset doc, Part B)")
     parser.add_argument("folder", type=Path, help="the tibyan-eval folder (B.4)")
     parser.add_argument("--split", required=True, choices=["dev", "test"])
     parser.add_argument("--outputs", help="the run folder in outputs/ (default: the newest)")
-    args = parser.parse_args()
-    folder = args.folder
+    return parser.parse_args()
 
-    try:
-        data = saved_outputs.load_split(folder, args.split, args.outputs)
-    except saved_outputs.DatasetProblem as problem:
-        sys.exit(str(problem))
-    if not data["frozen"]:
-        print("Note: the dataset is not frozen yet (fine for dev, never for test)")
-    print(f"{len(data['recordings'])} labelled recordings in {args.split} ({len(data['unresolved'])} unresolved, left out)")
-    print(f"Saved outputs: {data['runName']}")
 
-    outputs = {rec: saved_outputs.case_output(saved) for rec, saved in data["saved"].items()}
-    report = evaluation.summarize(
-        data["recordings"], data["gold"], outputs, saved_outputs.MODELS, saved_outputs.TIMED_STEPS
-    )
-    run = {
+def run_file(data, split, report):
+    """The contents of one runs/*.json file: metrics, versions and settings only (B.9)."""
+    return {
         "date": datetime.now().isoformat(timespec="seconds"),
-        "split": args.split,
-        "outputs": data["runName"],
-        "models": saved_outputs.read_run(folder / "outputs" / data["runName"])["models"],
+        "split": split,
+        "outputs": data.run_name,
+        "models": saved_outputs.read_run(data.run_folder)["models"],
         "policyVersion": POLICY_VERSION,
         "threshold": confidence_threshold(),
-        "datasetSha256": data["splits"].get("sha256", {}),
-        "datasetFrozen": data["frozen"],
-        "unresolvedRecordings": len(data["unresolved"]),
+        "datasetSha256": data.splits.get("sha256", {}),
+        "datasetFrozen": data.frozen,
+        "unresolvedRecordings": len(data.unresolved),
         "results": report,
     }
-    runs = folder / "runs"
+
+
+def main():
+    """Evaluates one split from the saved outputs, writes runs/<date>-<split>.json and prints the tables."""
+    args = parse_arguments()
+    try:
+        data = saved_outputs.load_split(args.folder, args.split, args.outputs)
+    except saved_outputs.DatasetProblem as problem:
+        sys.exit(str(problem))
+    if not data.frozen:
+        print("Note: the dataset is not frozen yet (fine for dev, never for test)")
+    unresolved = len(data.unresolved)
+    print(f"{len(data.recordings)} labelled recordings in {args.split} ({unresolved} unresolved, left out)")
+    print(f"Saved outputs: {data.run_name}")
+
+    outputs = {}
+    for rec_id, saved in data.saved.items():
+        outputs[rec_id] = saved_outputs.case_output(saved)
+    models, steps = saved_outputs.MODELS, saved_outputs.TIMED_STEPS
+    report = evaluation.summarize(data.recordings, data.gold, outputs, models, steps)
+
+    runs = args.folder / "runs"
     runs.mkdir(exist_ok=True)
     out = runs / f"{datetime.now():%Y-%m-%d-%H%M%S}-{args.split}.json"
-    out.write_text(json.dumps(run, indent=2), encoding="utf-8")
+    out.write_text(json.dumps(run_file(data, args.split, report), indent=2), encoding="utf-8")
 
     print_tables(report)
     print()

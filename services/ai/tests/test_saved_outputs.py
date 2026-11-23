@@ -31,16 +31,11 @@ def saved(quality="ok", muaalem_findings=(), whisper_findings=()):
         "recordingId": REC, "surah": 112, "ayah": 1, "quality": quality, "error": None, "gate": {},
         "seconds": {"decode": 0.1, "gate": 0.2},
         "findings": {
-            saved_outputs.MUAALEM: None if muaalem_findings is None else list(muaalem_findings),
-            saved_outputs.WHISPER: None if whisper_findings is None else list(whisper_findings),
+            muaalem.NAME: None if muaalem_findings is None else list(muaalem_findings),
+            whisper_quran.NAME: None if whisper_findings is None else list(whisper_findings),
         },
         "modelProblems": {},
     }
-
-
-def test_model_names_match_the_adapters():
-    assert saved_outputs.MUAALEM == muaalem.NAME
-    assert saved_outputs.WHISPER == whisper_quran.NAME
 
 
 def test_a_saved_output_reads_back_the_same(tmp_path):
@@ -57,7 +52,8 @@ def test_no_findings_is_accepted_by_every_model_at_every_level():
 
 
 def test_the_decision_is_made_with_word_segments_when_read():
-    output = saved(muaalem_findings=[finding(2, "ERR_MEM_OMISSION")], whisper_findings=[finding(2, "ERR_MEM_OMISSION")])
+    skipped = [finding(2, "ERR_MEM_OMISSION")]
+    output = saved(muaalem_findings=skipped, whisper_findings=skipped)
     decision, findings = saved_outputs.case_output(output)["decisions"][saved_outputs.COMBINED]["beginner"]
     assert decision == "error"
     assert findings[0].wordEndMs > findings[0].wordStartMs  # the reference segment of word 2
@@ -66,9 +62,9 @@ def test_the_decision_is_made_with_word_segments_when_read():
 def test_a_model_without_an_answer_is_uncertain_alone_and_combined():
     """whisper ran away (or failed): uncertain, as in the service; muaalem alone still decides."""
     decisions = saved_outputs.case_output(saved(whisper_findings=None))["decisions"]
-    assert decisions[saved_outputs.WHISPER]["beginner"] == ("uncertain", [])
+    assert decisions[whisper_quran.NAME]["beginner"] == ("uncertain", [])
     assert decisions[saved_outputs.COMBINED]["beginner"] == ("uncertain", [])
-    assert decisions[saved_outputs.MUAALEM]["beginner"][0] == "accepted"
+    assert decisions[muaalem.NAME]["beginner"][0] == "accepted"
 
 
 def test_the_two_models_are_combined_when_read():
@@ -102,19 +98,30 @@ def fake_audio(monkeypatch, tmp_path):
     return path
 
 
-def fake_models(muaalem_answer=(), whisper_answer=()):
-    def answer(result):
-        def find(_clip, _reference):
-            if isinstance(result, Exception):
-                raise result
-            return [make_finding(**f) for f in result]
-        return find
-    return {muaalem.NAME: answer(muaalem_answer), whisper_quran.NAME: answer(whisper_answer)}
+class FakeModel:
+    """Stands in for a model: find_errors returns these findings, or raises this error."""
+
+    def __init__(self, findings=(), error=None):
+        self.findings = findings
+        self.error = error
+
+    def find_errors(self, _clip, _reference):
+        if self.error is not None:
+            raise self.error
+        return [make_finding(**finding) for finding in self.findings]
+
+
+def fake_models(muaalem_model=None, whisper_model=None):
+    """{name: find_errors} for analyse(); a model not given finds nothing."""
+    muaalem_model = muaalem_model or FakeModel()
+    whisper_model = whisper_model or FakeModel()
+    return {muaalem.NAME: muaalem_model.find_errors, whisper_quran.NAME: whisper_model.find_errors}
 
 
 def test_analyse_saves_the_gate_numbers_findings_and_times(fake_audio):
-    word = {"word_index": 2, "code": "ERR_PRON_HARAKA", "confidence": 0.8, "word_start_ms": 0, "word_end_ms": 0}
-    output = run_models.analyse(fake_audio, REC, fake_models(muaalem_answer=[word]))
+    word = {"word_index": 2, "code": "ERR_PRON_HARAKA", "confidence": 0.8}
+    word.update({"word_start_ms": 0, "word_end_ms": 0})
+    output = run_models.analyse(fake_audio, REC, fake_models(muaalem_model=FakeModel(findings=[word])))
     assert output["quality"] == "ok"
     assert output["gate"]["speechSeconds"] == 2.0
     assert output["findings"][muaalem.NAME][0]["code"] == "ERR_PRON_HARAKA"
@@ -124,20 +131,23 @@ def test_analyse_saves_the_gate_numbers_findings_and_times(fake_audio):
 
 
 def test_analyse_keeps_a_runaway_as_no_answer(fake_audio):
-    output = run_models.analyse(fake_audio, REC, fake_models(whisper_answer=whisper_quran.Runaway()))
+    runaway = FakeModel(error=whisper_quran.Runaway())
+    output = run_models.analyse(fake_audio, REC, fake_models(whisper_model=runaway))
     assert output["findings"][whisper_quran.NAME] is None
     assert output["modelProblems"] == {whisper_quran.NAME: "runaway"}
 
 
 def test_analyse_keeps_going_when_a_model_fails(fake_audio):
-    output = run_models.analyse(fake_audio, REC, fake_models(muaalem_answer=RuntimeError("CUDA out of memory")))
+    broken = FakeModel(error=RuntimeError("CUDA out of memory"))
+    output = run_models.analyse(fake_audio, REC, fake_models(muaalem_model=broken))
     assert output["findings"][muaalem.NAME] is None
     assert output["modelProblems"] == {muaalem.NAME: "RuntimeError"}
 
 
 def test_analyse_does_not_run_the_models_on_a_rejected_recording(fake_audio, monkeypatch):
     monkeypatch.setattr(run_models, "speech_parts", lambda _samples: [])
-    output = run_models.analyse(fake_audio, REC, fake_models(muaalem_answer=AssertionError("must not run")))
+    never_called = FakeModel(error=AssertionError("must not run"))
+    output = run_models.analyse(fake_audio, REC, fake_models(muaalem_model=never_called))
     assert output["quality"] == "silent"
     assert output["findings"] == {}
     assert output["gate"]["speechSeconds"] == 0.0
@@ -165,7 +175,8 @@ def test_evaluate_reads_saved_outputs_and_refuses_test_before_the_freeze(tmp_pat
     import subprocess
     import sys
 
-    prepare_spec = importlib.util.spec_from_file_location("prepare_dataset", SCRIPT.parent / "prepare_dataset.py")
+    prepare_script = SCRIPT.parent / "prepare_dataset.py"
+    prepare_spec = importlib.util.spec_from_file_location("prepare_dataset", prepare_script)
     prepare = importlib.util.module_from_spec(prepare_spec)
     prepare_spec.loader.exec_module(prepare)
 

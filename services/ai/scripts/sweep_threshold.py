@@ -26,12 +26,10 @@ COLUMNS = [
 
 
 def thresholds(start, stop, step):
-    """start, start + step, ... up to stop, rounded to 2 places."""
-    values, value = [], start
-    while value <= stop + 1e-9:
-        values.append(round(value, 2))
-        value += step
-    return values
+    """start, start + step, ... up to stop, rounded to 2 places.
+    Counted in whole steps, because adding 0.05 again and again drifts (0.1 + 0.2 is not 0.3)."""
+    steps = round((stop - start) / step)
+    return [round(start + number * step, 2) for number in range(steps + 1)]
 
 
 def meets(row, targets):
@@ -50,8 +48,8 @@ def sweep(data, values, targets):
     """One row per model, level and threshold, for the child recordings of the split."""
     rows = []
     for threshold in values:
-        outputs = {rec: saved_outputs.case_output(saved, threshold) for rec, saved in data["saved"].items()}
-        report = evaluation.summarize(data["recordings"], data["gold"], outputs, saved_outputs.MODELS, [])
+        outputs = {rec: saved_outputs.case_output(saved, threshold) for rec, saved in data.saved.items()}
+        report = evaluation.summarize(data.recordings, data.gold, outputs, saved_outputs.MODELS, [])
         if "child" not in report:
             continue
         for model, levels in report["child"]["decisions"].items():
@@ -74,11 +72,15 @@ def sweep(data, values, targets):
     return rows
 
 
+def cell(value):
+    """A rate as a column of 8 characters; "-" when there was nothing to count."""
+    if value is None:
+        return f"{'-':>8}"
+    return f"{value:>8}"
+
+
 def print_rows(rows):
     """One table per model and level, thresholds down the side."""
-    def cell(value):
-        return f"{'-' if value is None else value:>8}"
-
     for model in saved_outputs.MODELS:
         for level in evaluation.LEVELS:
             group = [row for row in rows if row["model"] == model and row["level"] == level]
@@ -101,18 +103,19 @@ def main():
     parser.add_argument("--from", dest="start", type=float, default=0.50)
     parser.add_argument("--to", dest="stop", type=float, default=0.95)
     parser.add_argument("--step", type=float, default=0.05)
-    parser.add_argument("--max-false-reject", type=float, default=0.05, help="B.8 starting target (not approved)")
-    parser.add_argument("--max-false-accept-memorization", type=float, default=0.15, help="B.8 starting target")
-    parser.add_argument("--max-uncertain", type=float, default=0.30, help="B.8 starting target")
+    target = "B.8 starting target, not approved yet"
+    parser.add_argument("--max-false-reject", type=float, default=0.05, help=target)
+    parser.add_argument("--max-false-accept-memorization", type=float, default=0.15, help=target)
+    parser.add_argument("--max-uncertain", type=float, default=0.30, help=target)
     args = parser.parse_args()
 
     try:
         data = saved_outputs.load_split(args.folder, "dev", args.outputs)
     except saved_outputs.DatasetProblem as problem:
         sys.exit(str(problem))
-    if not data["recordings"]:
+    if not data.recordings:
         sys.exit("No labelled dev recordings yet: import the teacher's labels first")
-    print(f"{len(data['recordings'])} labelled dev recordings, saved outputs: {data['runName']}")
+    print(f"{len(data.recordings)} labelled dev recordings, saved outputs: {data.run_name}")
 
     targets = {
         "falseReject": args.max_false_reject,
