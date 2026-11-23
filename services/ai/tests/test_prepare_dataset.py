@@ -14,11 +14,14 @@ prepare = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(prepare)
 
 AYAT = ["112_001", "112_002"]  # 112:1 has 4 words, 112:2 has 2 words
-BANDS = {"SPK_001": "6-8", "SPK_002": "6-8", "SPK_003": "9-11", "SPK_004": "9-11", "SPK_005": "12-14", "SPK_006": "12-14"}
+BANDS = {
+    "SPK_001": "6-8", "SPK_002": "6-8", "SPK_003": "9-11",
+    "SPK_004": "9-11", "SPK_005": "12-14", "SPK_006": "12-14",
+}
 
 
 def make_source(root, speakers=BANDS, ayat=AYAT):
-    """source/Tibyan_Dataset/SPK_xxx/<surah>_<ayah>.wav with fake bytes (the real data is nested like this)."""
+    """source/Tibyan_Dataset/SPK_xxx/<surah>_<ayah>.wav with fake bytes (the real data is nested too)."""
     for speaker in speakers:
         folder = root / "Tibyan_Dataset" / speaker
         folder.mkdir(parents=True)
@@ -33,7 +36,19 @@ def fill_speakers(out, bands=BANDS):
     prepare.write_csv(out / "speakers.csv", prepare.SPEAKER_COLUMNS, rows)
 
 
-def teacher_sheet(out, path, decision_of=lambda row: ("correct", "")):
+def all_correct(row):
+    """The teacher says every word is correct."""
+    return "correct", ""
+
+
+def poor_audio_in_rec_002(row):
+    """The teacher cannot judge one recording of SPK_002; everything else is correct."""
+    if row["recordingId"] == "REC_002_112_001":
+        return "poor_audio", ""
+    return "correct", ""
+
+
+def teacher_sheet(out, path, decision_of=all_correct):
     """A copy of labelling_sheet.csv with every row filled in by the teacher."""
     rows = prepare.read_csv(out / "labelling_sheet.csv")
     for row in rows:
@@ -160,12 +175,13 @@ def test_import_refuses_the_same_word_twice(out, tmp_path):
     assert problems and "appears twice" in problems[0]
 
 
-def labelled(out, tmp_path, decision_of=lambda row: ("correct", ""), only=None):
-    """The teacher's labels for every word (or only for the recordings `only` accepts)."""
+def labelled(out, tmp_path, decision_of=all_correct, only_speakers=None):
+    """The teacher's labels for every word, or only for the recordings of only_speakers."""
     def decide(row):
-        if only and not only(row["recordingId"]):
-            return "", ""
+        if only_speakers and prepare.speaker_of(row["recordingId"]) not in only_speakers:
+            return "", ""  # not labelled yet
         return decision_of(row)
+
     assert prepare.import_labels(out, teacher_sheet(out, tmp_path / "teacher.csv", decide)) == []
 
 
@@ -225,17 +241,16 @@ def test_dev_can_be_evaluated_before_the_test_labels_exist(out, tmp_path):
     fill_speakers(out)
     prepare.split(out, test_count=3, dev_count=2)
     dev = splits_of(out)["dev"]
-    labelled(out, tmp_path, only=lambda rec: prepare.parse_recording_id(rec)[0] in dev)
+    labelled(out, tmp_path, only_speakers=dev)
     gold, _ = evaluation.gold_labels(evaluation.read_jsonl(out / "labels.jsonl"))
-    assert {prepare.parse_recording_id(rec)[0] for rec in gold} == set(dev)
+    assert {prepare.speaker_of(rec) for rec in gold} == set(dev)
     assert not evaluation.check_frozen(out, splits_of(out))  # so a test run is refused
 
 
 def test_labels_imported_after_the_split_update_audio_quality(out, tmp_path):
     fill_speakers(out)
     prepare.split(out, test_count=3, dev_count=2)
-    poor = lambda row: ("poor_audio", "") if row["recordingId"] == "REC_002_112_001" else ("correct", "")  # noqa: E731
-    labelled(out, tmp_path, poor)
+    labelled(out, tmp_path, poor_audio_in_rec_002)
     quality = {r["recordingId"]: r["audioQuality"] for r in evaluation.read_jsonl(out / "recordings.jsonl")}
     assert quality["REC_002_112_001"] == "poor_audio"
     assert quality["REC_001_112_001"] == "ok"
@@ -255,7 +270,7 @@ def test_freeze_refuses_while_test_recordings_are_unlabelled(out, tmp_path):
     fill_speakers(out)
     prepare.split(out, test_count=3, dev_count=2)
     dev = splits_of(out)["dev"]
-    labelled(out, tmp_path, only=lambda rec: prepare.parse_recording_id(rec)[0] in dev)
+    labelled(out, tmp_path, only_speakers=dev)
     problems = prepare.freeze(out)
     assert problems and "test recordings have no labels yet" in problems[0]
     assert "sha256" not in splits_of(out)
