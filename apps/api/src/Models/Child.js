@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { LANGUAGES } from "../constants/index.js";
+import { CHILD_NAME_MAX_LENGTH, LANGUAGES } from "../constants/index.js";
 
 const getAgeBand = (dob) => {
   const now = new Date();
@@ -15,7 +15,7 @@ const getAgeBand = (dob) => {
 
 const childSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true, trim: true, maxlength: 40 },
+    name: { type: String, required: true, trim: true, maxlength: CHILD_NAME_MAX_LENGTH },
 
     dateOfBirth: { type: Date, required: true },
 

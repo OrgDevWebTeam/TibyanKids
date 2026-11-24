@@ -162,6 +162,21 @@ describe("recitation attempts", () => {
     assert.equal(await QuranAttempt.countDocuments(), 1);
   });
 
+  it("two uploads of the same recording at the same moment save one attempt", async () => {
+    const owner = await makeParent("a@test.dev");
+    const child = await makeChild(owner);
+
+    const both = await Promise.all([
+      upload(owner.token, child._id),
+      upload(owner.token, child._id),
+    ]);
+
+    assert.ok(both.every((res) => [200, 201].includes(res.status)));
+    const ids = await Promise.all(both.map(async (res) => (await res.json()).attempt._id));
+    assert.equal(ids[0], ids[1]);
+    assert.equal(await QuranAttempt.countDocuments(), 1);
+  });
+
   it("refuses a clientAttemptId already used for another ayah", async () => {
     const owner = await makeParent("a@test.dev");
     const child = await makeChild(owner);

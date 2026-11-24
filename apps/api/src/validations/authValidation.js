@@ -1,11 +1,12 @@
 import { z } from "zod";
-import { text } from "./helpers.js";
+import { USER_NAME_MAX_LENGTH } from "../constants/index.js";
+import { countryCode, text } from "./helpers.js";
 
 export const registerSchema = z.object({
   name: text("Name")
     .trim()
     .min(1, "Name is required")
-    .max(100, "Name must be at most 100 characters"),
+    .max(USER_NAME_MAX_LENGTH, `Name must be at most ${USER_NAME_MAX_LENGTH} characters`),
   email: text("Email")
     .trim()
     .toLowerCase()
@@ -14,7 +15,7 @@ export const registerSchema = z.object({
   password: text("Password")
     .min(8, "Password must be at least 8 characters")
     .max(72, "Password must be at most 72 characters"),
-  country: text("Country").trim().max(60, "Country must be at most 60 characters").optional(),
+  country: countryCode("Country").optional(),
   policyVersion: text("Policy version")
     .trim()
     .min(1, "You must accept the policies")
