@@ -7,12 +7,12 @@ Status: working. A content admin links a story to its family mission in a packag
 
 Before this, finishing a story gave the family a mission picked by a rule that looks at the child's growth. Nothing said "this story goes with that mission". A **story mission package** adds that link, plus what the story teaches: its learning outcomes, its vocabulary and a decision challenge. It is the CRS "StoryMission" entity.
 
-| CRS requirement | What it says                                                                                                  | Where it is built                                                                               |
-| --------------- | ------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| FR-STORY-001    | A Content Admin converts a story into a mission package. It cannot publish without its mappings and approvals | `StoryMission`, `packageProblems`, `saveDraftPackage`, `publishPackage`                         |
-| FR-STORY-002    | A child finishes a story and receives a real-life mission in one journey                                      | `POST /children/:id/stories/:storyId/complete` (the challenge is not recorded yet, see below)   |
-| FR-FAM-001      | A lesson or story can assign a family mission linked to a competency                                          | `assignLinkedMission` in `missionService.js`, with the rules of `selectMission` as the fallback |
-| API-006         | `/content` and `/stories/{id}/mission`. Published and age-eligible only for the child                         | `GET /stories/:id/mission`, `eligibleForChild`                                                  |
+| CRS requirement | What it says                                                                                                  | Where it is built                                                                                       |
+| --------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| FR-STORY-001    | A Content Admin converts a story into a mission package. It cannot publish without its mappings and approvals | `StoryMission`, `packageProblems`, `saveDraftPackage`, `publishPackage`                                 |
+| FR-STORY-002    | A child finishes a story and receives a real-life mission in one journey                                      | `POST /children/:id/stories/:storyId/complete` (the challenge is not recorded yet, see below)           |
+| FR-FAM-001      | A lesson or story can assign a family mission linked to a competency                                          | `assignLinkedMission` in `missionService.js`, with the rules of `selectMission` as the fallback         |
+| API-006         | `/content` and `/stories/{id}/mission`. Published and age-eligible only for the child                         | `GET /stories/:id/mission`, `GET /content?childId=` and `GET /content/:id?childId=`, `eligibleForChild` |
 
 ## The package
 
@@ -134,6 +134,16 @@ No body. The first call answers 201, and repeating it answers 200 with the same 
 
 `mission` is `null` when no mission could be given, for example when the child already has the most open missions.
 
+### Content for a child: `GET /api/v1/content?childId=...`
+
+The content list was already limited to published content for a parent, but it showed every age band. A parent can now add `?childId=` (a child of their own family) to the list, or to one item (`GET /api/v1/content/:id?childId=...`), and then only gets content of **that child's age band**.
+
+- Without `childId`, nothing changes.
+- It combines with the other filters and with paging. Asking for another `ageBand` as well gives an empty list.
+- For one item, content of another age band, or content that is not published, is a 404, the same as content that does not exist.
+- Another family's child is a 404 and is written to the audit log. A bad id is a 400.
+- The content team cannot use it (400). They filter with `ageBand`, and they see every status.
+
 ### Errors
 
 | Status | When                                                                                                                                                |
@@ -172,9 +182,9 @@ No body. The first call answers 201, and repeating it answers 200 with the same 
 
 ## Files and tests
 
-Files: `src/missions/contentLinking.js`, `src/Models/StoryMission.js`, `src/validations/storyValidation.js`, `src/missions/storyMissionService.js`, `src/controllers/storyController.js`, `src/routes/storyRoutes.js`, `src/utils/findChildInFamily.js`. Changed: `src/missions/missionService.js` (the linked mission and the shared open-missions check), `src/routes/childrenRoutes.js` and `src/app.js` (the new routes).
+Files: `src/missions/contentLinking.js`, `src/Models/StoryMission.js`, `src/validations/storyValidation.js`, `src/missions/storyMissionService.js`, `src/controllers/storyController.js`, `src/routes/storyRoutes.js`, `src/utils/findChildInFamily.js`. Changed: `src/missions/missionService.js` (the linked mission and the shared open-missions check), `src/routes/childrenRoutes.js` and `src/app.js` (the new routes), and `src/controllers/contentController.js`, `src/routes/contentRoutes.js` and `src/validations/contentValidation.js` (`?childId=` on the content list).
 
-Tests: `tests/missions/contentLinking.test.js`, `tests/models/storyMission.test.js`, `tests/validations/stories.test.js`, `tests/missions/storyMissionService.test.js`, `tests/api/stories.test.js`, `tests/missions/storyLinkAssign.test.js`, `tests/api/story-completion.test.js`.
+Tests: `tests/missions/contentLinking.test.js`, `tests/models/storyMission.test.js`, `tests/validations/stories.test.js`, `tests/missions/storyMissionService.test.js`, `tests/api/stories.test.js`, `tests/missions/storyLinkAssign.test.js`, `tests/api/story-completion.test.js`, `tests/api/content-age.test.js`.
 
 ## Not built yet
 
