@@ -1,4 +1,6 @@
 # Where the model files are loaded from (app/model_files.py).
+import json
+
 import pytest
 
 from app import model_files
@@ -37,6 +39,23 @@ def test_no_local_copy_means_the_hugging_face_cache():
 def test_a_copy_of_the_pinned_revision_is_used(models_dir):
     """A copy of the pinned revision is used."""
     folder = make_copy(models_dir, PIN)
+    assert model_files.local_copy(REPO, PIN) == folder
+
+
+@pytest.mark.parametrize("key", sorted(model_files.CODE_LOADING_KEYS))
+def test_a_copy_that_asks_to_load_code_is_refused(models_dir, key):
+    """A config that names code to fetch or run is refused (Dependabot alerts #3 and #8)."""
+    folder = make_copy(models_dir, PIN)
+    config = {"model_type": "whisper", key: "evil/repo"}
+    (folder / "config.json").write_text(json.dumps(config), encoding="utf-8")
+    with pytest.raises(ValueError, match=key):
+        model_files.local_copy(REPO, PIN)
+
+
+def test_json_files_that_are_lists_are_fine(models_dir):
+    """A vocabulary stored as a list has no settings to check."""
+    folder = make_copy(models_dir, PIN)
+    (folder / "vocabulary.json").write_text(json.dumps(["auto_map", "a"]), encoding="utf-8")
     assert model_files.local_copy(REPO, PIN) == folder
 
 
