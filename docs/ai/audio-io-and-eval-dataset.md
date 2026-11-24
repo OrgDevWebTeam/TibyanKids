@@ -302,7 +302,8 @@ so the week 4 numbers carry the labelling errors of one person. The report must 
 
 - Split **by speaker**, never by recording, so one child is never in two parts.
 - Week 4 (17 children, decided by Qussai): **test 11 children** (275 recordings), **dev 6 children**
-  (150 recordings), **train none**. Balanced by age band. A week 6 fine-tune would need new
+  (150 recordings), **train none**. Each age band is split in the same share (test 5/3/3, dev 3/2/1
+  for 12-14 / 9-11 / 6-8). A week 6 fine-tune would need new
   recordings, because the test set is never used for training.
 - The split is decided **before labelling** (`prepare_dataset.py split`, from `speakers.csv`), so
   the teacher labels the dev children first and tuning can start early. The hashes are stored only

@@ -216,27 +216,29 @@ def speaker_info(out):
     return info
 
 
-def speakers_in_turn(speakers_by_band):
-    """All speakers, one from each age band in turn, youngest first."""
-    queues = []
-    for band in AGE_BANDS:
-        if band in speakers_by_band:
-            queues.append(sorted(speakers_by_band[band]))
-    order = []
-    while any(queues):
-        for queue in queues:
-            if queue:
-                order.append(queue.pop(0))
-    return order
+def band_counts(sizes, count):
+    """{band: speakers to take}: the same share of every band, the largest remainders (youngest on ties) +1."""
+    total = sum(sizes.values())
+    if count == 0:
+        return {band: 0 for band in sizes}
+    counts = {band: n * count // total for band, n in sizes.items()}
+    left = count - sum(counts.values())
+    by_remainder = sorted(sizes, key=lambda band: (-(sizes[band] * count % total), AGE_BANDS.index(band)))
+    for band in by_remainder[:left]:
+        counts[band] += 1
+    return counts
 
 
 def assign_splits(speakers_by_band, test_count, dev_count):
-    """{"train": [...], "dev": [...], "test": [...]}: test first, then dev, then the rest."""
-    order = speakers_in_turn(speakers_by_band)
-    test = order[:test_count]
-    dev = order[test_count:test_count + dev_count]
-    train = order[test_count + dev_count:]
-    return {"train": sorted(train), "dev": sorted(dev), "test": sorted(test)}
+    """{"train": [...], "dev": [...], "test": [...]}: test first, then dev, then the rest, per age band."""
+    queues = {band: sorted(speakers) for band, speakers in speakers_by_band.items()}
+    splits = {}
+    for name, count in [("test", test_count), ("dev", dev_count)]:
+        counts = band_counts({band: len(queue) for band, queue in queues.items()}, count)
+        splits[name] = sorted(s for band, queue in queues.items() for s in queue[:counts[band]])
+        queues = {band: queue[counts[band]:] for band, queue in queues.items()}
+    splits["train"] = sorted(s for queue in queues.values() for s in queue)
+    return splits
 
 
 def final_decisions(labels):

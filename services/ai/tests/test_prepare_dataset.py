@@ -210,6 +210,16 @@ def test_split_by_speaker_balanced_by_age_band_before_any_label(out):
     assert "sha256" not in splits
 
 
+def test_split_gives_every_band_the_same_share():
+    """8/5/4 speakers into 11 test and 6 dev: the youngest band is in both splits."""
+    sizes = {"12-14": 8, "9-11": 5, "6-8": 4}
+    speakers_by_band = {band: [f"{band}_{i}" for i in range(n)] for band, n in sizes.items()}
+    splits = prepare.assign_splits(speakers_by_band, test_count=11, dev_count=6)
+    assert prepare.band_counts(sizes, 11) == {"12-14": 5, "9-11": 3, "6-8": 3}
+    assert [len(splits[name]) for name in ["test", "dev", "train"]] == [11, 6, 0]
+    assert sum(s.startswith("6-8") for s in splits["dev"]) == 1
+
+
 def test_split_with_no_train_speakers(out):
     """Split with no train speakers."""
     fill_speakers(out)

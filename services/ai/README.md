@@ -196,7 +196,7 @@ here.
 | `run_models.py` `run_gate()`                                         | The VAD is the slow part, so it runs once and both the gate and its measurements get its answer                                      |
 | `run_models.py` a rejected recording                                 | Never reaches the models, as in the service                                                                                          |
 | `saved_outputs.py`                                                   | A saved output holds numbers and codes only, but it belongs to a child's recording, so it stays in the dataset folder                |
-| `prepare_dataset.py` `AGE_BANDS` order                               | Youngest first: the split takes speakers in this order, so every split is balanced                                                   |
+| `prepare_dataset.py` `band_counts`                                   | Every age band gets the same test and dev share, so dev always has young children to tune on (ties: youngest)                        |
 | `prepare_dataset.py` labels stored as round 1                        | One teacher labels every word, so each label is final (B.6 format)                                                                   |
 | `prepare_dataset.py` `layout`                                        | Nothing is copied until every file is named right                                                                                    |
 | `benchmark_arabic_whisper.py` `MAX_NEW_TOKENS = 10`                  | One Arabic word is a few tokens; more than this is a sentence that is not there                                                      |
