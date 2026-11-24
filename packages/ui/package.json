@@ -20,7 +20,7 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "@eslint/js": "^9.15.0",
+    "@eslint/js": "^10.0.1",
     "@tibyan/config": "workspace:*",
     "@types/node": "catalog:",
     "@types/react": "^19.3.0",
