@@ -169,6 +169,7 @@ here.
 | `audio.py` `MAX_SPEECH_SECONDS = 30`                                 | Whisper's input window. A longer reading would look like skipped words                                                                           |
 | `audio.py` `VAD_THRESHOLD = 0.2`                                     | Silero's default 0.5 misses long madd and ghunna sounds                                                                                          |
 | `audio.py` `MIN_SNR_DB = 10`                                         | At 15 dB the gate rejected 6 children's recordings the teacher judged fine (7.7-14.4 dB) and caught none of the 6 poor ones                      |
+| `audio.py` `MIN_SPEECH_RATIO = 0.30`                                 | The 17 children's lowest ratio over the reading is 0.57, so the floor rejects no child; nothing supports raising it                              |
 | `audio.py` `FRAME_SAMPLES = 320`, `CLIPPED_LEVEL = 0.976`            | 20 ms frames for the signal-to-noise ratio; 0.976 is 32000 / 32768                                                                               |
 | `audio.py` `PADDING_AFTER_SECONDS = 3.0`                             | Silero VAD stops hearing a long final madd early (1:4)                                                                                           |
 | `audio.py` `decode_audio()`, ffmpeg `-t`                             | A tiny file can hold a very long recording, so only a little over the limit is decoded                                                           |

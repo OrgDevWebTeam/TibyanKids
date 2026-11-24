@@ -141,6 +141,11 @@ no wrong answer (`uncertain`, or `accepted` where the teacher found no stopping 
 about 17 dB, and no recording here was really noisy. The other gate values did not reject anything
 and are unchanged.
 
+**Speech ratio floor (open item 8 of the dataset doc).** The floor stays at 0.30. Over the reading,
+the children's speech ratio is at least 0.57 on all 425 recordings (0.72 on dev), the 5th
+percentile 0.91 and the median 1.0, so 0.30 rejects no child. None of the poor-audio recordings has
+a low ratio either, so nothing here supports raising it.
+
 ## 5. Error codes
 
 Word by word on dev (146 recordings):
