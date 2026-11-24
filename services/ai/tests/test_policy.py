@@ -87,18 +87,20 @@ def test_what_stops_each_level(code, level, expected):
 
 def test_advanced_stops_on_a_tajweed_rule_targeted_in_the_lesson():
     """Advanced stops on a tajweed rule targeted in the lesson."""
-    targeted = ("ERR_TAJ_MADD_SHORT",)
-    assert decide([finding("ERR_TAJ_MADD_SHORT")], "advanced", targeted)[0] == "error"
-    assert decide([finding("ERR_TAJ_QALQALA_OMIT")], "advanced", targeted)[0] == "accepted"
+    targeted = ("ERR_TAJ_QALQALA_OMIT",)
+    assert decide([finding("ERR_TAJ_QALQALA_OMIT")], "advanced", targeted)[0] == "error"
+    assert decide([finding("ERR_TAJ_UNMAPPED")], "advanced", targeted)[0] == "uncertain"
 
 
 def test_targeted_tajweed_rules_do_not_stop_lower_levels():
     """Targeted tajweed rules do not stop lower levels."""
-    targeted = ("ERR_TAJ_MADD_SHORT",)
-    assert decide([finding("ERR_TAJ_MADD_SHORT")], "intermediate", targeted)[0] == "accepted"
+    targeted = ("ERR_TAJ_QALQALA_OMIT",)
+    assert decide([finding("ERR_TAJ_QALQALA_OMIT")], "intermediate", targeted)[0] == "accepted"
 
 
-@pytest.mark.parametrize("code", ["ERR_MEM_INSERTION", "ERR_PRON_MADD_ASLI_SHORT", "ERR_TAJ_GHONNA_OMIT"])
+@pytest.mark.parametrize(
+    "code", ["ERR_MEM_INSERTION", "ERR_PRON_MADD_ASLI_SHORT", "ERR_TAJ_GHONNA_OMIT", "ERR_TAJ_MADD_SHORT"]
+)
 def test_proposed_codes_never_stop_a_child(code):
     """Proposed codes never stop a child."""
     assert decide([finding(code)], "advanced", (code,))[0] == "accepted"

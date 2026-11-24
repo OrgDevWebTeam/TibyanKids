@@ -85,8 +85,10 @@ Mapping rules:
 3. **Mushaf settings:** the expected madd lengths are fixed by decision 5.3, set in the AI service
    settings, and logged with every result. The package defaults (4 for munfasil, muttasil and aarid)
    are not our decision.
-4. **Madd accuracy:** madd measurement is tested on our data in week 4 before
-   `ERR_TAJ_MADD_SHORT` stops any child. Until then it is a reminder only.
+4. **Madd accuracy:** tested on the week 4 dev children (decided by Qussai): the teacher marked 1
+   madd word, and quran-muaalem flagged 7, all wrong; Whisper never produces the code. So
+   `ERR_TAJ_MADD_SHORT` is off (`NOT_YET_APPROVED`): a reminder only, never a stop, until a set
+   with many madd-labelled words shows it works.
 5. **Ghunna:** `ERR_TAJ_GHONNA_OMIT` is not switched on before it is tested (it may appear as a
    phoneme substitution rather than a rule). Also, `quran-transcript` 0.6.4 does not tag ghunna at
    all, so with this version the code is never produced: a ghunna error comes out as

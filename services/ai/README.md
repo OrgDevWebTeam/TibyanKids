@@ -178,6 +178,7 @@ here.
 | `main.py` `MAX_AUDIO_BYTES`                                          | The same 5 MB limit as the API (VAL-016)                                                                                             |
 | `policy.py` `DEFAULT_THRESHOLD = 0.70`                               | Provisional until the week 4 benchmark (OD-02)                                                                                       |
 | `policy.py` `STOPS["advanced"]`                                      | Advanced also stops on the tajweed rules targeted in the lesson (`targeted_tajweed_codes`)                                           |
+| `policy.py` `NOT_YET_APPROVED` has `ERR_TAJ_MADD_SHORT`              | Week 4 dev: quran-muaalem flagged 7 madd words, all wrong, against 1 the teacher marked; a reminder only                             |
 | `combine.py` `CODES_MUAALEM_SHOULD_HEAR`                             | A skipped or different word changes the sounds, so muaalem should hear it too; if it did not, the models disagree                    |
 | `evaluation.py` `GUARD`                                              | Unreadable audio and `too_long` are not quality results, so they are left out of the gate's precision and recall                     |
 | `whisper_quran.py` `MAX_NEW_TOKENS = 200`                            | The longest prototype ayah is 75 tokens; past 448 positions the GPU crashes, and noisy audio can loop until then                     |
