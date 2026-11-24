@@ -1,7 +1,7 @@
 # Quran audio input/output and evaluation dataset requirements
 
 - Owners: Qussai (AI 1) + Ismail (AI 2). Jira: KAN-9, KAN-27.
-- Version: v1.4, 2026-11-17 (v1.3 was 2026-11-15, v1.2 was 2026-11-12, v1.1 was 2026-11-10, v1.0 was
+- Version: v1.5, 2026-11-24 (v1.4 was 2026-11-17, v1.3 was 2026-11-15, v1.2 was 2026-11-12, v1.1 was 2026-11-10, v1.0 was
   2026-11-05).
 - Based on: CRS v3.0 (FR-QUR-002..004, VAL-014, VAL-016, SEC-006, SEC-011, SEC-017, SEC-018),
   Architecture v3.0 (§7.3, §8.1–8.7), Roadmap v3.0 (weeks 2–7).
@@ -10,6 +10,15 @@
   `services/ai/app/audio.py` (the gate described in A.3).
 
 > 🔶 = proposal waiting for a decision. Everything else follows the CRS and Architecture.
+
+## What changed in v1.5
+
+| Section    | Change                                                                                       |
+| ---------- | -------------------------------------------------------------------------------------------- |
+| Status     | Week 4: the 17 children's recordings labelled, evaluated and frozen (`week-4-evaluation.md`) |
+| A.3        | SNR limit 10 dB instead of 15 dB                                                             |
+| B.7        | Every age band is split in the same share                                                    |
+| Open items | 2 and 3 done. OD-02 decided in ADR-0011                                                      |
 
 ## What changed in v1.4
 
@@ -392,8 +401,8 @@ recordings after every model change, and `scripts/evaluate.py` on the labelled d
 | #   | Item                                                                                                                             | Who decides                   | Needed by                                |
 | --- | -------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ---------------------------------------- |
 | 1   | ✅ Decided: 30 s, `quality: too_long` in the contract                                                                            | Qussai                        | Done                                     |
-| 2   | Quality gate values (A.3): starting values are in the code, to be tuned                                                          | Qussai, from labels           | Week 4 (needs the children's recordings) |
-| 3   | Split sizes (B.7)                                                                                                                | Qussai + Ismail               | Week 4 (needs the children's recordings) |
+| 2   | ✅ Decided: SNR 10 dB, the other values unchanged (week 4 report §4)                                                             | Qussai                        | Done                                     |
+| 3   | ✅ Decided: test 11, dev 6, train 0, the same share of every age band                                                            | Qussai                        | Done                                     |
 | 4   | Target numbers (B.8)                                                                                                             | Mohammad, from week 4 numbers | Week 4                                   |
 | 5   | Who keeps the id-to-family list (B.3)                                                                                            | Mohammad                      | Week 2, before recordings start          |
 | 6   | Retention of evaluation recordings after the pilot (OD-04)                                                                       | Mohammad                      | Week 4 (carried from week 3)             |
