@@ -13,11 +13,10 @@ from app.adapters import muaalem  # noqa: E402
 from app.audio import SAMPLE_RATE, decode_audio  # noqa: E402
 from app.reference import get_ayah  # noqa: E402
 
-# Chosen by asking whisper-quran to recognise each cut-out word (51 of 97, against 18 before)
-PAUSE_FRAMES = 10  # about 400 ms
-KEEP_FRAMES = 3  # about 120 ms
-BACK_FRAMES = 1  # about 40 ms
-BLANK = 0  # the CTC blank of quran-muaalem's phoneme level ([PAD])
+PAUSE_FRAMES = 10
+KEEP_FRAMES = 3
+BACK_FRAMES = 1
+BLANK = 0
 
 
 def ctc_viterbi(log_probs, labels):

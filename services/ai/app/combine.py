@@ -1,13 +1,7 @@
 # Merges the findings of the two recitation models into one list (taxonomy 1.1 and 4, rule 2).
 from app.policy import CATEGORY_ORDER, make_finding
 
-# A skipped or different word changes the sounds, so muaalem should hear it too
 CODES_MUAALEM_SHOULD_HEAR = {"ERR_MEM_OMISSION", "ERR_MEM_SUBSTITUTION"}
-
-
-def is_more_important(finding, other):
-    """True when finding's category comes before other's (memorization, pronunciation, tajweed)."""
-    return CATEGORY_ORDER.index(finding.category) < CATEGORY_ORDER.index(other.category)
 
 
 def combine_findings(muaalem_findings, whisper_findings):
@@ -21,7 +15,9 @@ def combine_findings(muaalem_findings, whisper_findings):
             combined[word] = make_finding(
                 word, "ERR_TECH_MODELS_DISAGREE", finding.confidence, finding.wordStartMs, finding.wordEndMs
             )
-        elif word not in combined or is_more_important(finding, combined[word]):
+        elif word not in combined:
+            combined[word] = finding
+        elif CATEGORY_ORDER.index(finding.category) < CATEGORY_ORDER.index(combined[word].category):
             combined[word] = finding
 
     return [combined[word] for word in sorted(combined)]

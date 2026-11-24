@@ -14,11 +14,9 @@ from app.schemas import Finding
 
 NAME = "whisper-quran"
 HF_REPO = "tarteel-ai/whisper-base-ar-quran"
-# Change the pin only together with an evaluation run
 HF_REVISION = os.environ.get("WHISPER_QURAN_REVISION", "5c3c53fdf9272c4f6ee0bee09a1e5a4a615ee25c")
 HF_FILES = ["*.json", "*.txt", "pytorch_model.bin"]
 SAMPLE_RATE = 16000
-# Longest prototype ayah: 75 tokens; past 448 positions the GPU crashes (noisy audio can loop until then)
 MAX_NEW_TOKENS = 200
 
 
@@ -26,7 +24,6 @@ class Runaway(Exception):
     """The model kept writing until MAX_NEW_TOKENS without finishing: its text cannot be trusted."""
 
 
-# Harakat and tanween, the dagger alif, Quranic marks and tatweel, dropped before comparing words
 MARKS = re.compile("[ً-ٰٟۖ-ۭـ]")
 SAME_LETTER = {
     "ٱ": "ا",
@@ -47,8 +44,8 @@ def load_model():
     folder = local_copy(HF_REPO, HF_REVISION)
     source, pin = (str(folder), {}) if folder else (HF_REPO, {"revision": HF_REVISION})
     processor = WhisperProcessor.from_pretrained(source, **pin)
-    # use_safetensors=False: otherwise transformers fetches a converted copy that is not part of the pin
-    model = WhisperForConditionalGeneration.from_pretrained(source, **pin, use_safetensors=False).to("cuda").eval()
+    model = WhisperForConditionalGeneration.from_pretrained(source, **pin, use_safetensors=False)
+    model = model.to("cuda").eval()
     if MAX_NEW_TOKENS + 4 > model.config.max_target_positions:
         raise ValueError("MAX_NEW_TOKENS does not fit the model's positions")
     return processor, model
@@ -90,7 +87,6 @@ def transcribe(samples) -> tuple[list[str], list[float]]:
         raise Runaway()
     scores = model.compute_transition_scores(output.sequences, output.scores, normalize_logits=True)[0]
 
-    # Special tokens are forced or always certain, so they would make every word look surer
     generated = output.sequences[0][-len(scores):].tolist()
     special = set(tokenizer.all_special_ids)
     text_ids = [token for token in generated if token not in special]
@@ -130,7 +126,8 @@ def compare_words(reference_words: list[str], said_words: list[str]) -> list[Wor
                 errors.append(WordError(i + 1, "ERR_MEM_OMISSION", around(said_start)))
 
         elif operation == "insert":
-            errors.append(WordError(max(ref_start, 1), "ERR_MEM_INSERTION", tuple(range(said_start, said_end))))
+            said = tuple(range(said_start, said_end))
+            errors.append(WordError(max(ref_start, 1), "ERR_MEM_INSERTION", said))
 
         elif operation == "replace":
             ref_count = ref_end - ref_start

@@ -7,7 +7,7 @@ from pathlib import Path
 from app.policy import CODES, make_finding, stops_child
 
 LEVELS = ["beginner", "intermediate", "advanced"]
-GUARD = "guard"  # unreadable audio or too_long: not part of the gate's precision and recall
+GUARD = "guard"
 
 
 def read_jsonl(path):
@@ -24,7 +24,8 @@ def sha256_of(path):
 def check_frozen(folder, splits):
     """True when recordings.jsonl and labels.jsonl still match the hashes frozen in splits.json."""
     frozen = splits.get("sha256", {})
-    return all(sha256_of(Path(folder) / name) == frozen.get(name) for name in ["recordings.jsonl", "labels.jsonl"])
+    names = ["recordings.jsonl", "labels.jsonl"]
+    return all(sha256_of(Path(folder) / name) == frozen.get(name) for name in names)
 
 
 def gold_labels(labels):
@@ -33,7 +34,8 @@ def gold_labels(labels):
     for label in labels:
         unknown = set(label["errorCodes"]) - set(CODES)
         if unknown:
-            raise ValueError(f"{label['recordingId']} word {label['wordIndex']}: unknown codes {sorted(unknown)}")
+            where = f"{label['recordingId']} word {label['wordIndex']}"
+            raise ValueError(f"{where}: unknown codes {sorted(unknown)}")
         key = (label["recordingId"], label["wordIndex"])
         by_word.setdefault(key, []).append(label)
 
@@ -42,9 +44,11 @@ def gold_labels(labels):
     for (recording_id, word_index), word_labels in by_word.items():
         final = [label for label in word_labels if label["round"] == 2]
         first = [label for label in word_labels if label["round"] == 1]
+        decisions_agree = all(label["teacherDecision"] == first[0]["teacherDecision"] for label in first)
+        codes_agree = all(sorted(label["errorCodes"]) == sorted(first[0]["errorCodes"]) for label in first)
         if final:
             chosen = final[-1]
-        elif first and all(same_label(label, first[0]) for label in first):
+        elif first and decisions_agree and codes_agree:
             chosen = first[0]
         else:
             unresolved.add(recording_id)
@@ -54,11 +58,6 @@ def gold_labels(labels):
     for recording_id in unresolved:
         gold.pop(recording_id, None)
     return gold, unresolved
-
-
-def same_label(a, b):
-    """True when two labels give the same decision and codes."""
-    return a["teacherDecision"] == b["teacherDecision"] and sorted(a["errorCodes"]) == sorted(b["errorCodes"])
 
 
 def gold_stopping_words(word_codes, level):
@@ -117,7 +116,8 @@ def false_accepts_by_category(cases, model, level):
         for category in categories:
             totals[category] = totals.get(category, 0) + 1
             accepted[category] = accepted.get(category, 0) + (decision == "accepted")
-    return {category: {"goldStop": totals[category], "falseAcceptRate": rate(accepted[category], totals[category])}
+    return {category: {"goldStop": totals[category],
+                       "falseAcceptRate": rate(accepted[category], totals[category])}
             for category in sorted(totals)}
 
 
@@ -174,7 +174,10 @@ def summarize(recordings, gold, outputs, models, timed_models):
         ]
         if not labelled:
             continue
-        analysed = [c for c in labelled if c["output"]["quality"] == "ok" and c["recording"]["audioQuality"] == "ok"]
+        analysed = []
+        for case in labelled:
+            if case["output"]["quality"] == "ok" and case["recording"]["audioQuality"] == "ok":
+                analysed.append(case)
         age_bands = sorted({c["recording"].get("ageBand") or "n/a" for c in analysed})
 
         decisions = {}
@@ -185,7 +188,9 @@ def summarize(recordings, gold, outputs, models, timed_models):
                     "overall": decision_metrics(analysed, model, level),
                     "byAgeBand": {
                         band: decision_metrics(
-                            [c for c in analysed if (c["recording"].get("ageBand") or "n/a") == band], model, level
+                            [c for c in analysed if (c["recording"].get("ageBand") or "n/a") == band],
+                            model,
+                            level,
                         )
                         for band in age_bands
                     },

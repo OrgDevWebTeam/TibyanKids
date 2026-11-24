@@ -1,7 +1,7 @@
 # Quran audio input/output and evaluation dataset requirements
 
 - Owners: Qussai (AI 1) + Ismail (AI 2). Jira: KAN-9, KAN-27.
-- Version: v1.4, 2026-11-17 (v1.3 was 2026-11-15, v1.2 was 2026-11-12, v1.1 was 2026-11-10, v1.0 was
+- Version: v1.5, 2026-11-24 (v1.4 was 2026-11-17, v1.3 was 2026-11-15, v1.2 was 2026-11-12, v1.1 was 2026-11-10, v1.0 was
   2026-11-05).
 - Based on: CRS v3.0 (FR-QUR-002..004, VAL-014, VAL-016, SEC-006, SEC-011, SEC-017, SEC-018),
   Architecture v3.0 (§7.3, §8.1–8.7), Roadmap v3.0 (weeks 2–7).
@@ -10,6 +10,15 @@
   `services/ai/app/audio.py` (the gate described in A.3).
 
 > 🔶 = proposal waiting for a decision. Everything else follows the CRS and Architecture.
+
+## What changed in v1.5
+
+| Section    | Change                                                                                       |
+| ---------- | -------------------------------------------------------------------------------------------- |
+| Status     | Week 4: the 17 children's recordings labelled, evaluated and frozen (`week-4-evaluation.md`) |
+| A.3        | SNR limit 10 dB instead of 15 dB                                                             |
+| B.7        | Every age band is split in the same share                                                    |
+| Open items | 2, 3 and 8 done. OD-02 decided in ADR-0011                                                   |
 
 ## What changed in v1.4
 
@@ -43,13 +52,13 @@
 
 ## Status at the end of week 3
 
-| Piece                          | State                                                                                                                   |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| Decode (ffmpeg) and gate       | `app/audio.py`, run by the endpoint (`app/pipeline.py`) with `MOCK_MODE=false`                                          |
-| Endpoints                      | Real models with `MOCK_MODE=false` (#80), also in Docker (`Dockerfile.gpu`, #83). Mock mode stays the laptop default    |
-| Quality values in the contract | `ok`, `silent`, `too_short`, `too_noisy`, `too_long`                                                                    |
-| Word timings                   | Set by hand for the 25 ayat (`reference_word_timings.json`), validator passes. Every finding gets its word's segment    |
-| Evaluation                     | `scripts/evaluate.py` (#86), tried on a smoke dataset made from the reference recitation. Children's recordings: week 4 |
+| Piece                          | State                                                                                                                         |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| Decode (ffmpeg) and gate       | `app/audio.py`, run by the endpoint (`app/pipeline.py`) with `MOCK_MODE=false`                                                |
+| Endpoints                      | Real models with `MOCK_MODE=false` (#80), also in Docker (`Dockerfile.gpu`, #83). Mock mode stays the laptop default          |
+| Quality values in the contract | `ok`, `silent`, `too_short`, `too_noisy`, `too_long`                                                                          |
+| Word timings                   | Set by hand for the 25 ayat (`reference_word_timings.json`), validator passes. Every finding gets its word's segment          |
+| Evaluation                     | `scripts/run_models.py` then `scripts/evaluate.py` and `scripts/sweep_threshold.py`, on the 17 children's recordings (week 4) |
 
 ---
 
@@ -110,10 +119,10 @@ The first match wins.
 4. Clipped ratio above 1% → `too_noisy`.
 5. Speech seconds below 0.3 → `silent`.
 6. Speech dBFS below −50 → `silent`.
-7. SNR below 15 dB → `too_noisy`. Checked after the speech checks: a recording without speech has no
+7. SNR below 10 dB → `too_noisy` (15 dB until week 4). Checked after the speech checks: a recording without speech has no
    contrast either, but it is `silent`, not noisy.
 8. Reading above 30 s → `too_long`.
-9. Speech ratio below 0.30 → `too_noisy`.
+9. Speech ratio below 0.30 → `too_noisy` (kept after week 4: the children's lowest is 0.57).
 10. Otherwise → `ok`. The models get the reading, from 0.25 s before it to 3 s after it.
 
 All values are starting values, named constants at the top of `services/ai/app/audio.py`, tuned
@@ -166,6 +175,11 @@ many readable recordings as the old gate (36 vs 32), but noisy ones instead of c
 child waited; a rejection only asks the child to record again. White noise is only a stand-in: the
 values must be checked again on real children's recordings (week 4). The loudness rule is a
 backstop for near-silence; quiet speech fails because of the background, which the SNR rule catches.
+
+Week 4, real children (decided by Qussai): at 15 dB the gate rejected 6 of 425 recordings, all
+judged fine by the teacher (7.7-14.4 dB), and passed all 6 the teacher marked `poor_audio`
+(17.3-32.2 dB). The limit is now 10 dB, a judgment from 3 dev cases; the other gate values are
+unchanged because none of them rejected anything.
 
 #### Audio errors
 
@@ -242,32 +256,39 @@ covers model use (SEC-017).
 
 ### B.4 Folder layout (on the GPU machine only)
 
+Made by `services/ai/scripts/prepare_dataset.py` from a folder of `SPK_xxx/<surah>_<ayah>.wav`
+recordings (`layout`, `split`, `import-labels`, `freeze`). Recording ids are
+`REC_<speaker>_<surah>_<ayah>`.
+The folder is `datasets/tibyan-eval` in the repository, which `.gitignore` and `.dockerignore` both
+leave out. The script refuses any other folder in the repository.
+
 ```text
 tibyan-eval/                      restricted, access logged
 ├── audio/<recordingId>.<ext>   original upload, never edited
 ├── recordings.jsonl            one line per recording (B.5)
 ├── labels.jsonl                one line per word per teacher (B.6)
 ├── splits.json                 frozen speaker lists for train / dev / test (B.7)
-├── outputs/<date>-<model>/     🔶 per-recording model output for error analysis (may hold phoneme
-│                               text, so it stays here and never goes to logs, git or telemetry)
+├── outputs/<run name>/         what the gate and each model found, per recording, before any
+│                               decision (scripts/run_models.py). Numbers and codes only, but it
+│                               stays here and never goes to logs, git or telemetry
 └── runs/<date>-<model>.json    one file per evaluation run (B.9)
 ```
 
 ### B.5 One recording (`recordings.jsonl`)
 
-| Field           | Example      | Meaning                                                                       |
-| --------------- | ------------ | ----------------------------------------------------------------------------- |
-| `recordingId`   | `REC_0001`   | Anonymous id                                                                  |
-| `speakerId`     | `SPK_017`    | Anonymous speaker, used for the split                                         |
-| `consentId`     | `CON_017`    | The separate model-use consent                                                |
-| `source`        | `child`      | `child` or `seeded_adult`                                                     |
-| `ageBand`       | `9-11`       | `6-8`, `9-11`, `12-14`                                                        |
-| `surah`, `ayah` | `1`, `4`     | Which ayah                                                                    |
-| `device`        | `phone`      | `phone`, `tablet`, `laptop`                                                   |
-| `mimeType`      | `audio/webm` | As uploaded                                                                   |
-| `recordedAt`    | `2026-11-12` | Date only                                                                     |
-| `audioQuality`  | `ok`         | `ok` or `poor_audio`, from the gold labels                                    |
-| `split`         | `test`       | `train`, `dev` or `test`, copied from `splits.json` after the split is frozen |
+| Field           | Example           | Meaning                                                                       |
+| --------------- | ----------------- | ----------------------------------------------------------------------------- |
+| `recordingId`   | `REC_017_001_004` | Anonymous id, `REC_<speaker>_<surah>_<ayah>`                                  |
+| `speakerId`     | `SPK_017`         | Anonymous speaker, used for the split                                         |
+| `consentId`     | `CON_017`         | The separate model-use consent                                                |
+| `source`        | `child`           | `child` or `seeded_adult`                                                     |
+| `ageBand`       | `9-11`            | `6-8`, `9-11`, `12-14`                                                        |
+| `surah`, `ayah` | `1`, `4`          | Which ayah                                                                    |
+| `device`        | `phone`           | `phone`, `tablet`, `laptop`                                                   |
+| `mimeType`      | `audio/webm`      | As uploaded                                                                   |
+| `recordedAt`    | `2026-11-12`      | Date only                                                                     |
+| `audioQuality`  | `ok`              | `ok` or `poor_audio`, from the gold labels                                    |
+| `split`         | `test`            | `train`, `dev` or `test`, copied from `splits.json` after the split is frozen |
 
 ### B.6 One word label (`labels.jsonl`)
 
@@ -275,7 +296,7 @@ Same fields as the annotation guide §4, in camelCase:
 
 | Field             | Example                   | Meaning                                                  |
 | ----------------- | ------------------------- | -------------------------------------------------------- |
-| `recordingId`     | `REC_0001`                |                                                          |
+| `recordingId`     | `REC_017_001_004`         |                                                          |
 | `wordIndex`       | `3`                       | **1 = first word**, same as the contract                 |
 | `annotatorId`     | `TCH_02`                  |                                                          |
 | `round`           | `1`                       | `1` = independent label, `2` = reviewer's final decision |
@@ -286,11 +307,21 @@ Same fields as the annotation guide §4, in camelCase:
 **Gold label for a word:** the two round-1 labels when they agree, otherwise the reviewer's round-2
 label. A recording where the gold label is `poor_audio` is a quality-gate test case only.
 
+**Week 4 dataset: one teacher.** The 17 children's recordings are labelled by a single teacher, so
+each word has one round-1 label, and that label is the gold label (`prepare_dataset.py
+import-labels`, teacher id `TCH_01`). There is no second opinion and no agreement measure (kappa),
+so the week 4 numbers carry the labelling errors of one person. The report must say so.
+
 ### B.7 Split
 
 - Split **by speaker**, never by recording, so one child is never in two parts.
-- 🔶 Test: 10 children (about 250 recordings, balanced by age band). Dev: 5 children. Train: the
-  rest.
+- Week 4 (17 children, decided by Qussai): **test 11 children** (275 recordings), **dev 6 children**
+  (150 recordings), **train none**. Each age band is split in the same share (test 5/3/3, dev 3/2/1
+  for 12-14 / 9-11 / 6-8). A week 6 fine-tune would need new
+  recordings, because the test set is never used for training.
+- The split is decided **before labelling** (`prepare_dataset.py split`, from `speakers.csv`), so
+  the teacher labels the dev children first and tuning can start early. The hashes are stored only
+  when every test recording is labelled (`prepare_dataset.py freeze`).
 - **The train split is consent-gated and unused for now.** A recording can be used for training
   only if its consent covers model use (SEC-017) and a fine-tuning decision has been approved
   (B.1, week 6). Until then recordings are used for evaluation only, and no model is trained on them.
@@ -327,9 +358,20 @@ because the teacher still checks a sample of accepted ayahs (FR-LIVE-005).
 
 ### B.9 One evaluation run (`runs/*.json`)
 
-Made by `services/ai/scripts/evaluate.py <tibyan-eval folder> --split dev|test` (the numbers:
-`services/ai/app/evaluation.py`). A test run is refused when `recordings.jsonl` or `labels.jsonl` no
-longer match the SHA-256 values frozen in `splits.json`.
+Two steps. `services/ai/scripts/run_models.py <tibyan-eval folder>` runs the gate and both models
+once on every recording (the GPU part) and saves what they found in `outputs/<run name>/`
+(`app/saved_outputs.py`). It also saves every gate measurement, even after a failed rule, so the
+gate can be tuned without running it again. Then
+`services/ai/scripts/evaluate.py <tibyan-eval folder> --split dev|test [--outputs <run name>]` works
+out the merge and the decisions from those outputs with today's policy and threshold, in seconds
+(the numbers: `services/ai/app/evaluation.py`). A test run is refused when `recordings.jsonl` or
+`labels.jsonl` no longer match the SHA-256 values frozen in `splits.json`.
+
+**Threshold sweep (OD-02).** `services/ai/scripts/sweep_threshold.py <tibyan-eval folder>` tries
+thresholds 0.50 to 0.95 (step 0.05) on the **dev split only**, and writes
+`runs/<date>-sweep-dev.csv`: per model, level and threshold, the false reject, false accept, false
+accept on memorization errors, word location and uncertain rates. A row is marked when it meets the
+B.8 starting targets; the targets are options of the script, so the approved numbers replace them.
 
 Stores: model names and exact versions, the decision-policy version, threshold, dataset hash from
 `splits.json`, which split was used, every metric from B.8, and the date. A run file holds metrics
@@ -356,16 +398,16 @@ recordings after every model change, and `scripts/evaluate.py` on the labelled d
 
 ## Open items
 
-| #   | Item                                                                                                                             | Who decides                   | Needed by                                |
-| --- | -------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ---------------------------------------- |
-| 1   | ✅ Decided: 30 s, `quality: too_long` in the contract                                                                            | Qussai                        | Done                                     |
-| 2   | Quality gate values (A.3): starting values are in the code, to be tuned                                                          | Qussai, from labels           | Week 4 (needs the children's recordings) |
-| 3   | Split sizes (B.7)                                                                                                                | Qussai + Ismail               | Week 4 (needs the children's recordings) |
-| 4   | Target numbers (B.8)                                                                                                             | Mohammad, from week 4 numbers | Week 4                                   |
-| 5   | Who keeps the id-to-family list (B.3)                                                                                            | Mohammad                      | Week 2, before recordings start          |
-| 6   | Retention of evaluation recordings after the pilot (OD-04)                                                                       | Mohammad                      | Week 4 (carried from week 3)             |
-| 7   | ✅ Done: Silero VAD and a signal-to-noise rule (below 15 dB → `too_noisy`, #54)                                                  | Qussai                        | Done                                     |
-| 8   | Speech ratio floor, from real children (the ratio is measured over the reading since v1.3)                                       | Qussai + Ismail               | Week 4 (needs the children's recordings) |
-| 9   | Browser capture: format and constraints (echo cancellation, noise suppression, gain), from a capture test with adult volunteers  | Osama + Ismail                | Week 4 (carried from week 3)             |
-| 10  | ✅ Done: audio error codes → `400` from the AI service (#80), "record again" from the API (#85). `FEEDBACK_AUDIO_TOO_LONG` (#58) | Ahmad + Qussai + Ismail       | Done                                     |
-| 11  | ✅ Done: `400 AYAH_NOT_SUPPORTED` before the audio is read (#80); the API checks the 25 ayat first (#85)                         | Qussai                        | Done                                     |
+| #   | Item                                                                                                                             | Who decides                   | Needed by                       |
+| --- | -------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ------------------------------- |
+| 1   | ✅ Decided: 30 s, `quality: too_long` in the contract                                                                            | Qussai                        | Done                            |
+| 2   | ✅ Decided: SNR 10 dB, the other values unchanged (week 4 report §4)                                                             | Qussai                        | Done                            |
+| 3   | ✅ Decided: test 11, dev 6, train 0, the same share of every age band                                                            | Qussai                        | Done                            |
+| 4   | Target numbers (B.8)                                                                                                             | Mohammad, from week 4 numbers | Week 4                          |
+| 5   | Who keeps the id-to-family list (B.3)                                                                                            | Mohammad                      | Week 2, before recordings start |
+| 6   | Retention of evaluation recordings after the pilot (OD-04)                                                                       | Mohammad                      | Week 4 (carried from week 3)    |
+| 7   | ✅ Done: Silero VAD and a signal-to-noise rule (below 15 dB → `too_noisy`, #54)                                                  | Qussai                        | Done                            |
+| 8   | ✅ Decided: the floor stays 0.30; the children's lowest ratio is 0.57 (week 4 report §4)                                         | Qussai                        | Done                            |
+| 9   | Browser capture: format and constraints (echo cancellation, noise suppression, gain), from a capture test with adult volunteers  | Osama + Ismail                | Week 4 (carried from week 3)    |
+| 10  | ✅ Done: audio error codes → `400` from the AI service (#80), "record again" from the API (#85). `FEEDBACK_AUDIO_TOO_LONG` (#58) | Ahmad + Qussai + Ismail       | Done                            |
+| 11  | ✅ Done: `400 AYAH_NOT_SUPPORTED` before the audio is read (#80); the API checks the 25 ayat first (#85)                         | Qussai                        | Done                            |

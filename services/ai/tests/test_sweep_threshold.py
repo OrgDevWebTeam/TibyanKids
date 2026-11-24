@@ -1,0 +1,93 @@
+# The threshold sweep and decide()'s threshold argument, on synthetic saved outputs.
+import importlib.util
+from pathlib import Path
+
+from app import saved_outputs
+from app.adapters import muaalem, whisper_quran
+from app.policy import DEFAULT_THRESHOLD, decide, make_finding
+
+SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "sweep_threshold.py"
+spec = importlib.util.spec_from_file_location("sweep_threshold", SCRIPT)
+sweep_threshold = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(sweep_threshold)
+
+TARGETS = {"falseReject": 0.05, "falseAcceptMemorization": 0.15, "uncertain": 0.30}
+
+
+def test_decide_uses_the_threshold_given():
+    """Decide uses the threshold given."""
+    finding = make_finding(1, "ERR_MEM_OMISSION", 0.72, 0, 0)
+    assert decide([finding], "beginner", threshold=0.70)[0] == "error"
+    assert decide([finding], "beginner", threshold=0.75)[0] == "uncertain"
+
+
+def test_decide_without_a_threshold_reads_the_setting(monkeypatch):
+    """Decide without a threshold reads the setting."""
+    finding = make_finding(1, "ERR_MEM_OMISSION", DEFAULT_THRESHOLD, 0, 0)
+    assert decide([finding], "beginner")[0] == "error"
+    monkeypatch.setenv("CONFIDENCE_THRESHOLD", "0.99")
+    assert decide([finding], "beginner")[0] == "uncertain"
+
+
+def test_thresholds_from_050_to_095():
+    """Thresholds from 050 to 095."""
+    expected = [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95]
+    assert sweep_threshold.thresholds(0.5, 0.95, 0.05) == expected
+
+
+def test_meets_needs_all_three_targets():
+    """Meets needs all three targets."""
+    row = {"falseRejectRate": 0.04, "falseAcceptMemorization": 0.10, "uncertainRate": 0.30}
+    assert sweep_threshold.meets(row, TARGETS) == "yes"
+    assert sweep_threshold.meets({**row, "uncertainRate": 0.31}, TARGETS) == "no"
+    assert sweep_threshold.meets({**row, "falseAcceptMemorization": None}, TARGETS) == "unknown"
+
+
+def recording(rec):
+    """One recordings.jsonl row of a child."""
+    return {"recordingId": rec, "source": "child", "ageBand": "9-11", "audioQuality": "ok"}
+
+
+def saved(rec, confidence):
+    """Both models say word 2 of 112:1 was skipped, with this confidence."""
+    skipped = make_finding(2, "ERR_MEM_OMISSION", confidence, 0, 0).model_dump()
+    return {
+        "recordingId": rec, "surah": 112, "ayah": 1, "quality": "ok", "error": None, "gate": {},
+        "seconds": {}, "findings": {muaalem.NAME: [skipped], whisper_quran.NAME: [skipped]},
+        "modelProblems": {},
+    }
+
+
+def labelled_split(recordings, gold, saved_outputs_by_id):
+    """A LabelledSplit with only what the sweep reads."""
+    return saved_outputs.LabelledSplit(
+        recordings=recordings, gold=gold, saved=saved_outputs_by_id, run_name="run", run_folder=Path("run"),
+        splits={}, frozen=False, unresolved=set(),
+    )
+
+
+def test_a_higher_threshold_turns_errors_into_uncertain():
+    """Two recordings where the child really skipped word 2; the models are 72% and 88% sure."""
+    data = labelled_split(
+        [recording("REC_A"), recording("REC_B")],
+        {"REC_A": {2: ["ERR_MEM_OMISSION"]}, "REC_B": {2: ["ERR_MEM_OMISSION"]}},
+        {"REC_A": saved("REC_A", 0.72), "REC_B": saved("REC_B", 0.88)},
+    )
+    rows = sweep_threshold.sweep(data, [0.7, 0.8, 0.9], TARGETS)
+    combined = {}
+    for row in rows:
+        if row["model"] == "combined" and row["level"] == "beginner":
+            combined[row["threshold"]] = row
+    assert [combined[t]["uncertainRate"] for t in [0.7, 0.8, 0.9]] == [0.0, 0.5, 1.0]
+    assert all(combined[t]["falseAcceptMemorization"] == 0.0 for t in combined)
+    assert combined[0.7]["wordLocationAccuracy"] == 1.0
+    assert combined[0.7]["falseRejectRate"] is None
+    assert combined[0.7]["meetsTargets"] == "unknown"
+
+
+def test_every_model_and_level_gets_a_row_per_threshold():
+    """Every model and level gets a row per threshold."""
+    data = labelled_split([recording("REC_A")], {"REC_A": {}}, {"REC_A": saved("REC_A", 0.9)})
+    rows = sweep_threshold.sweep(data, [0.5, 0.6], TARGETS)
+    assert len(rows) == len(saved_outputs.MODELS) * 3 * 2
+    assert set(rows[0]) == set(sweep_threshold.COLUMNS)

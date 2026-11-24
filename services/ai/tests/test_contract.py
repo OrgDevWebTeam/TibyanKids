@@ -24,25 +24,24 @@ FINDING = SCHEMA["$defs"]["finding"]["properties"]
 client = TestClient(app)
 
 
-def values(literal):
-    return list(typing.get_args(literal))
-
-
 def test_pydantic_enums_match_the_schema():
-    assert values(Decision) == SCHEMA["properties"]["decision"]["enum"]
-    assert values(Quality) == SCHEMA["properties"]["quality"]["enum"]
-    assert values(Category) == FINDING["category"]["enum"]
-    assert values(ErrorCode) == FINDING["code"]["enum"]
+    """Pydantic enums match the schema."""
+    assert list(typing.get_args(Decision)) == SCHEMA["properties"]["decision"]["enum"]
+    assert list(typing.get_args(Quality)) == SCHEMA["properties"]["quality"]["enum"]
+    assert list(typing.get_args(Category)) == FINDING["category"]["enum"]
+    assert list(typing.get_args(ErrorCode)) == FINDING["code"]["enum"]
     assert list(CODES) == FINDING["code"]["enum"]
 
 
 def test_every_message_key_exists_in_safe_messages():
+    """Every message key exists in safe messages."""
     for _category, message_key in CODES.values():
         assert message_key in MESSAGES, message_key
 
 
 @pytest.mark.parametrize("ayah, size", [(1, 2000), (3, 2000), (5, 2000), (1, 10)])
 def test_mock_results_pass_the_json_schema(ayah, size):
+    """Mock results pass the json schema."""
     response = client.post(
         "/v1/recitation/analyze",
         files={"audio": ("rec.webm", b"\x00" * size, "audio/webm")},
@@ -53,6 +52,7 @@ def test_mock_results_pass_the_json_schema(ayah, size):
 
 
 def test_examples_in_the_contract_doc_pass_the_json_schema():
+    """Examples in the contract doc pass the json schema."""
     blocks = re.findall(r"```json\n(.*?)```", CONTRACT_DOC.read_text(encoding="utf-8"), re.S)
     results = [json.loads(b) for b in blocks if '"decision"' in b]
     assert len(results) == 5
@@ -61,6 +61,7 @@ def test_examples_in_the_contract_doc_pass_the_json_schema():
 
 
 def test_schema_rejects_word_zero_and_wrong_category():
+    """Schema rejects word zero and wrong category."""
     good = SCHEMA["examples"][0]
     word_zero = json.loads(json.dumps(good))
     word_zero["findings"][0]["wordIndex"] = 0
@@ -71,12 +72,14 @@ def test_schema_rejects_word_zero_and_wrong_category():
 
 
 def test_schema_rejects_a_quality_rejection_with_findings():
+    """Schema rejects a quality rejection with findings."""
     bad = json.loads(json.dumps(SCHEMA["examples"][0]))
     bad["quality"] = "silent"
     assert not VALIDATOR.is_valid(bad)
 
 
 def test_every_message_key_in_the_contract_doc_exists_in_safe_messages():
+    """Every message key in the contract doc exists in safe messages."""
     named = set(re.findall(r"FEEDBACK_[A-Z_]+", CONTRACT_DOC.read_text(encoding="utf-8")))
     assert named, "the contract doc names no message keys"
     assert sorted(named - set(MESSAGES)) == []
@@ -84,6 +87,7 @@ def test_every_message_key_in_the_contract_doc_exists_in_safe_messages():
 
 @pytest.mark.parametrize("key", [k for k in MESSAGES if k != "_meta"])
 def test_every_message_has_arabic_english_and_its_use(key):
+    """Every message has arabic english and its use."""
     message = MESSAGES[key]
     for field in ("ar", "en", "used_for"):
         assert isinstance(message.get(field), str) and message[field].strip(), f"{key}.{field}"
