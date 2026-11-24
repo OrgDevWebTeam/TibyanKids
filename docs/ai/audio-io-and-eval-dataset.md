@@ -18,7 +18,7 @@
 | Status     | Week 4: the 17 children's recordings labelled, evaluated and frozen (`week-4-evaluation.md`) |
 | A.3        | SNR limit 10 dB instead of 15 dB                                                             |
 | B.7        | Every age band is split in the same share                                                    |
-| Open items | 2 and 3 done. OD-02 decided in ADR-0011                                                      |
+| Open items | 2, 3 and 8 done. OD-02 decided in ADR-0011                                                   |
 
 ## What changed in v1.4
 
@@ -122,7 +122,7 @@ The first match wins.
 7. SNR below 10 dB → `too_noisy` (15 dB until week 4). Checked after the speech checks: a recording without speech has no
    contrast either, but it is `silent`, not noisy.
 8. Reading above 30 s → `too_long`.
-9. Speech ratio below 0.30 → `too_noisy`.
+9. Speech ratio below 0.30 → `too_noisy` (kept after week 4: the children's lowest is 0.57).
 10. Otherwise → `ok`. The models get the reading, from 0.25 s before it to 3 s after it.
 
 All values are starting values, named constants at the top of `services/ai/app/audio.py`, tuned
@@ -398,16 +398,16 @@ recordings after every model change, and `scripts/evaluate.py` on the labelled d
 
 ## Open items
 
-| #   | Item                                                                                                                             | Who decides                   | Needed by                                |
-| --- | -------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ---------------------------------------- |
-| 1   | ✅ Decided: 30 s, `quality: too_long` in the contract                                                                            | Qussai                        | Done                                     |
-| 2   | ✅ Decided: SNR 10 dB, the other values unchanged (week 4 report §4)                                                             | Qussai                        | Done                                     |
-| 3   | ✅ Decided: test 11, dev 6, train 0, the same share of every age band                                                            | Qussai                        | Done                                     |
-| 4   | Target numbers (B.8)                                                                                                             | Mohammad, from week 4 numbers | Week 4                                   |
-| 5   | Who keeps the id-to-family list (B.3)                                                                                            | Mohammad                      | Week 2, before recordings start          |
-| 6   | Retention of evaluation recordings after the pilot (OD-04)                                                                       | Mohammad                      | Week 4 (carried from week 3)             |
-| 7   | ✅ Done: Silero VAD and a signal-to-noise rule (below 15 dB → `too_noisy`, #54)                                                  | Qussai                        | Done                                     |
-| 8   | Speech ratio floor, from real children (the ratio is measured over the reading since v1.3)                                       | Qussai + Ismail               | Week 4 (needs the children's recordings) |
-| 9   | Browser capture: format and constraints (echo cancellation, noise suppression, gain), from a capture test with adult volunteers  | Osama + Ismail                | Week 4 (carried from week 3)             |
-| 10  | ✅ Done: audio error codes → `400` from the AI service (#80), "record again" from the API (#85). `FEEDBACK_AUDIO_TOO_LONG` (#58) | Ahmad + Qussai + Ismail       | Done                                     |
-| 11  | ✅ Done: `400 AYAH_NOT_SUPPORTED` before the audio is read (#80); the API checks the 25 ayat first (#85)                         | Qussai                        | Done                                     |
+| #   | Item                                                                                                                             | Who decides                   | Needed by                       |
+| --- | -------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ------------------------------- |
+| 1   | ✅ Decided: 30 s, `quality: too_long` in the contract                                                                            | Qussai                        | Done                            |
+| 2   | ✅ Decided: SNR 10 dB, the other values unchanged (week 4 report §4)                                                             | Qussai                        | Done                            |
+| 3   | ✅ Decided: test 11, dev 6, train 0, the same share of every age band                                                            | Qussai                        | Done                            |
+| 4   | Target numbers (B.8)                                                                                                             | Mohammad, from week 4 numbers | Week 4                          |
+| 5   | Who keeps the id-to-family list (B.3)                                                                                            | Mohammad                      | Week 2, before recordings start |
+| 6   | Retention of evaluation recordings after the pilot (OD-04)                                                                       | Mohammad                      | Week 4 (carried from week 3)    |
+| 7   | ✅ Done: Silero VAD and a signal-to-noise rule (below 15 dB → `too_noisy`, #54)                                                  | Qussai                        | Done                            |
+| 8   | ✅ Decided: the floor stays 0.30; the children's lowest ratio is 0.57 (week 4 report §4)                                         | Qussai                        | Done                            |
+| 9   | Browser capture: format and constraints (echo cancellation, noise suppression, gain), from a capture test with adult volunteers  | Osama + Ismail                | Week 4 (carried from week 3)    |
+| 10  | ✅ Done: audio error codes → `400` from the AI service (#80), "record again" from the API (#85). `FEEDBACK_AUDIO_TOO_LONG` (#58) | Ahmad + Qussai + Ismail       | Done                            |
+| 11  | ✅ Done: `400 AYAH_NOT_SUPPORTED` before the audio is read (#80); the API checks the 25 ayat first (#85)                         | Qussai                        | Done                            |
