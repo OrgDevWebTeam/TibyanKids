@@ -19,7 +19,7 @@ This file explains where secrets live, how they are kept out of source control, 
 | `DATABASE_PASSWORD` | Password of the MongoDB Atlas database user                                            | `src/config/env.js` |
 | `JWT_SECRET`        | Key used to sign login tokens. Anyone who has it can create a valid token for any user | `src/config/env.js` |
 
-Non-secret settings are kept in the same file for convenience: `NODE_ENV`, `PORT`, `CLIENT_ORIGIN`, `JWT_EXPIRES_IN`, `AI_SERVICE_URL`, `AI_TIMEOUT_MS`, `AUTH_RATE_LIMIT` (register and login requests per IP per 15 minutes, default 20), and the `DATABASE` connection string with the `<PASSWORD>` placeholder.
+Non-secret settings are kept in the same file for convenience: `NODE_ENV`, `PORT`, `CLIENT_ORIGIN`, `JWT_EXPIRES_IN`, `AI_SERVICE_URL`, `AI_TIMEOUT_MS`, `AUTH_RATE_LIMIT` (register and login requests per IP per 15 minutes, default 20), `UPLOAD_RATE_LIMIT` (recitation uploads per signed-in account per 15 minutes, default 60), `TRUST_PROXY` (how many proxies sit in front of the API, default 0; set it to the real number behind a load balancer), and the `DATABASE` connection string with the `<PASSWORD>` placeholder.
 
 The AI service (`services/ai`) has no secret: it runs on our own machine and only the API can reach it.
 
