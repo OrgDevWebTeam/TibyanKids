@@ -12,7 +12,7 @@ over HTTP; browsers never do. It is Python, so it is not part of the pnpm worksp
 - With `MOCK_MODE=true` (the default) the endpoint returns **mock** results, so nobody needs a GPU
   to build features.
 - With `MOCK_MODE=false` (the GPU machine) it runs the real pipeline (`app/pipeline.py`): quality
-  gate, both models, merged findings with word segments, one decision. It runs the same way in
+  gate, both models, Whisper's findings with word segments, one decision (OD-02). It runs the same way in
   Docker (`Dockerfile.gpu`).
 - The API sends each recorded ayah here and saves the result (`apps/api`,
   `POST /api/v1/children/:id/recitation-attempts`).
@@ -58,9 +58,9 @@ One request checks **one recorded ayah**. The recording goes through four steps:
           one finding = a word number + an error code + the model's confidence (0-1)
       │
       ▼
-    MERGE                        app/combine.py  combine_findings()
-    at most one finding per word; whisper says "wrong word" but muaalem heard it fine
-    ──► ERR_TECH_MODELS_DISAGREE (the teacher checks it)
+    WHISPER DECIDES (OD-02)      app/pipeline.py  check_recording()
+    whisper-quran's findings go on; muaalem's findings only go to the log line
+    (the evaluation scripts still merge both: app/combine.py  combine_findings())
     then each finding gets its word's segment of the reference audio, to replay
                                  app/reference.py  add_word_segments()
       │
@@ -88,7 +88,7 @@ silero-vad, faster-whisper) are installed everywhere, including CI and the lapto
 3. `app/mock.py`: the same rules with fake findings. Good for seeing a whole result.
 4. `app/audio.py`: decoding and the quality gate.
 5. `app/adapters/whisper_quran.py`, then `app/adapters/muaalem.py`: the models.
-6. `app/combine.py`: how the two models' findings become one list.
+6. `app/combine.py`: how the evaluation merges the two models' findings into one list.
 7. `app/pipeline.py`: everything together, as the endpoint runs it.
 
 ### File map
@@ -96,8 +96,8 @@ silero-vad, faster-whisper) are installed everywhere, including CI and the lapto
 | File                                                   | What it does                                                                                     |
 | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
 | `app/main.py`                                          | The HTTP endpoints (`/health`, `/v1/recitation/analyze`): mock or real, and the error answers    |
-| `app/pipeline.py`                                      | The real check: decode, gate, both models, merge, word segments, decision, one log line          |
-| `app/combine.py`                                       | Merges the two models' findings (one per word; models disagree → teacher)                        |
+| `app/pipeline.py`                                      | The real check: decode, gate, both models, word segments, Whisper's decision, one log line       |
+| `app/combine.py`                                       | Merges the two models' findings for the evaluation (one per word; models disagree → teacher)     |
 | `app/schemas.py`                                       | The result format (Pydantic), kept in line with the contract's JSON Schema                       |
 | `app/policy.py`                                        | Error codes → category and child message; findings → decision for a level                        |
 | `app/mock.py`                                          | Fake but rule-following results for `MOCK_MODE` (real word segments), so nobody needs a GPU      |
@@ -149,7 +149,7 @@ over HTTP.
 | finding                 | One problem in one word: word number, error code, confidence. Defined in `schemas.py`                                                                                        |
 | decision                | `accepted`, `error` or `uncertain` for the whole ayah. Made by `policy.py`                                                                                                   |
 | level                   | `beginner`, `intermediate` or `advanced`: decides which kinds of error stop the child                                                                                        |
-| confidence threshold    | Below it (0.70 for now) a finding is not trusted and a teacher checks the ayah                                                                                               |
+| confidence threshold    | Below it (0.95, OD-02) a finding is not trusted and a teacher checks the ayah                                                                                                |
 | reference recitation    | A correct recording of each ayah by an adult reciter, used for word replay and checks                                                                                        |
 | phoneme                 | One speech sound. quran-muaalem predicts the phonemes it hears                                                                                                               |
 | CTC                     | How quran-muaalem outputs sounds: one prediction every ~40 ms, which can also be lined up with a known text                                                                  |
@@ -176,7 +176,8 @@ here.
 | `pipeline.py` advanced level                                         | No targeted tajweed rules per lesson yet (taxonomy §2.1), so advanced stops like intermediate                                        |
 | `main.py` `analyze_recitation()` is not `async`                      | FastAPI runs it in a thread, so `/health` answers while a request waits for the GPU                                                  |
 | `main.py` `MAX_AUDIO_BYTES`                                          | The same 5 MB limit as the API (VAL-016)                                                                                             |
-| `policy.py` `DEFAULT_THRESHOLD = 0.70`                               | Provisional until the week 4 benchmark (OD-02)                                                                                       |
+| `policy.py` `DEFAULT_THRESHOLD = 0.95`                               | Week 4 dev sweep (OD-02): closest to the B.8 targets for Whisper; 0.95-0.97 give the same numbers                                    |
+| `pipeline.py` Whisper alone decides                                  | OD-02: combined was 64% uncertain on dev; muaalem's findings are logged for later evaluations                                        |
 | `policy.py` `STOPS["advanced"]`                                      | Advanced also stops on the tajweed rules targeted in the lesson (`targeted_tajweed_codes`)                                           |
 | `policy.py` `NOT_YET_APPROVED` has `ERR_TAJ_MADD_SHORT`              | Week 4 dev: quran-muaalem flagged 7 madd words, all wrong, against 1 the teacher marked; a reminder only                             |
 | `combine.py` `CODES_MUAALEM_SHOULD_HEAR`                             | A skipped or different word changes the sounds, so muaalem should hear it too; if it did not, the models disagree                    |
@@ -282,7 +283,7 @@ from inside the repository.
 | Variable                 | Default              | Meaning                                                                                                                                    |
 | ------------------------ | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | `MOCK_MODE`              | `true`               | Fake results from the endpoint. `false` loads the real models at startup (`false` in `Dockerfile.gpu`)                                     |
-| `CONFIDENCE_THRESHOLD`   | `0.70`               | Below this a finding makes the ayah `uncertain`. Provisional until week 4 (OD-02)                                                          |
+| `CONFIDENCE_THRESHOLD`   | `0.95`               | Below this a finding makes the ayah `uncertain`. Chosen in week 4 (OD-02)                                                                  |
 | `REFERENCE_DATA_DIR`     | repo                 | Folder with `reference_quran_text.json`. The repo's `packages/contracts/data` when unset; `/data/reference` in Docker (mounted by Compose) |
 | `MODELS_DIR`             | `services/ai/models` | Local model files (not in git), filled by `scripts/download_models.py`. Without them the Hugging Face cache is used                        |
 | `MUAALEM_REVISION`       | `01a1ef9f…`          | Exact Hugging Face commit of `obadx/muaalem-model-v3_2` (full 40 characters). Change only with an evaluation run                           |

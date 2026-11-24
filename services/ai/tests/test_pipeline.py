@@ -51,15 +51,15 @@ def test_no_findings_is_accepted_with_both_model_versions(monkeypatch):
     result = pipeline.analyze_recording(b"audio", 1, 1, "beginner", ATTEMPT)
 
     assert (result.decision, result.quality, result.findings) == ("accepted", "ok", [])
-    assert result.model == "combined"
+    assert result.model == "whisper-quran"
     assert result.modelVersion == "quran-muaalem v1 + whisper-quran v1"
     assert result.attemptId == ATTEMPT
 
 
 def test_a_wrong_word_is_an_error_with_the_segment_of_that_word(monkeypatch):
     """A wrong word is an error with the segment of that word."""
-    whisper = fake_model("whisper-quran", [make_finding(2, "ERR_MEM_SUBSTITUTION", 0.9, 0, 0)])
-    muaalem = fake_model("quran-muaalem", [make_finding(2, "ERR_PRON_LETTER_SUB", 0.9, 0, 0)])
+    whisper = fake_model("whisper-quran", [make_finding(2, "ERR_MEM_SUBSTITUTION", 0.99, 0, 0)])
+    muaalem = fake_model("quran-muaalem", [make_finding(2, "ERR_PRON_LETTER_SUB", 0.99, 0, 0)])
     use_models(monkeypatch, muaalem, whisper)
 
     result = pipeline.analyze_recording(b"audio", 1, 1, "beginner", ATTEMPT)
@@ -72,10 +72,23 @@ def test_a_wrong_word_is_an_error_with_the_segment_of_that_word(monkeypatch):
 
 def test_the_level_decides_what_stops_the_child(monkeypatch):
     """The level decides what stops the child."""
-    use_models(monkeypatch, fake_model("quran-muaalem", [make_finding(3, "ERR_PRON_HARAKA", 0.9, 0, 0)]))
+    whisper = fake_model("whisper-quran", [make_finding(3, "ERR_PRON_HARAKA", 0.99, 0, 0)])
+    use_models(monkeypatch, whisper_model=whisper)
 
     assert pipeline.analyze_recording(b"audio", 1, 1, "beginner", ATTEMPT).decision == "accepted"
     assert pipeline.analyze_recording(b"audio", 1, 1, "intermediate", ATTEMPT).decision == "error"
+
+
+def test_only_whisper_decides_and_muaalem_is_only_logged(monkeypatch, caplog):
+    """A muaalem finding alone never changes the decision (OD-02); it goes to the log line."""
+    use_models(monkeypatch, fake_model("quran-muaalem", [make_finding(3, "ERR_MEM_OMISSION", 0.99, 0, 0)]))
+
+    with caplog.at_level(logging.INFO, logger="tibyan.ai"):
+        result = pipeline.analyze_recording(b"audio", 1, 1, "beginner", ATTEMPT)
+
+    assert (result.decision, result.findings) == ("accepted", [])
+    entry = json.loads(caplog.records[0].getMessage())
+    assert entry["muaalemFindings"] == [{"code": "ERR_MEM_OMISSION", "wordIndex": 3, "confidence": 0.99}]
 
 
 def test_a_gate_rejection_never_reaches_the_models(monkeypatch):
@@ -163,6 +176,7 @@ def test_one_json_log_line_with_numbers_and_codes_only(monkeypatch, caplog):
     assert set(entry["ms"]) == {"decode", "gate", "quran-muaalem", "whisper-quran", "total"}
     assert entry["decision"] == "uncertain"
     assert entry["findings"] == [{"code": "ERR_MEM_OMISSION", "wordIndex": 4, "confidence": 0.3}]
+    assert entry["muaalemFindings"] == [{"code": "ERR_PRON_LETTER_SUB", "wordIndex": 4, "confidence": 0.0}]
 
 
 def test_a_failed_request_is_logged_too(monkeypatch, caplog):

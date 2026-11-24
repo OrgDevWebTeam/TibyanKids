@@ -27,11 +27,11 @@ def fake_transcript(monkeypatch):
 
 def test_one_finding_per_word_with_that_word_s_confidence(fake_transcript):
     """One finding per word with that word s confidence."""
-    fake_transcript([1.0, 0.92, 0.5, 1.0, 1.0])
+    fake_transcript([1.0, 0.97, 0.5, 1.0, 1.0])
 
     findings = whisper_quran.find_errors(None, IKHLAS_1)
 
-    assert [(f.wordIndex, f.code, f.confidence) for f in findings] == [(2, SUBSTITUTION, 0.92)]
+    assert [(f.wordIndex, f.code, f.confidence) for f in findings] == [(2, SUBSTITUTION, 0.97)]
     assert decide(findings, "beginner")[0] == "error"
 
 

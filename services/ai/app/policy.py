@@ -4,7 +4,7 @@ import os
 from app.schemas import Finding
 
 POLICY_VERSION = "v0"
-DEFAULT_THRESHOLD = 0.70
+DEFAULT_THRESHOLD = 0.95
 
 CODES = {
     "ERR_MEM_OMISSION": ("memorization", "FEEDBACK_WORD_MISSED"),

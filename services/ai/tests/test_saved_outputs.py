@@ -22,7 +22,7 @@ spec.loader.exec_module(run_models)
 REC = "REC_001_112_001"
 
 
-def finding(word, code, confidence=0.9):
+def finding(word, code, confidence=0.99):
     """A finding as a saved output stores it."""
     return make_finding(word, code, confidence, 0, 0).model_dump()
 

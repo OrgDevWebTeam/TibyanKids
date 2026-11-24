@@ -25,7 +25,7 @@ def test_decide_without_a_threshold_reads_the_setting(monkeypatch):
     """Decide without a threshold reads the setting."""
     finding = make_finding(1, "ERR_MEM_OMISSION", DEFAULT_THRESHOLD, 0, 0)
     assert decide([finding], "beginner")[0] == "error"
-    monkeypatch.setenv("CONFIDENCE_THRESHOLD", "0.9")
+    monkeypatch.setenv("CONFIDENCE_THRESHOLD", "0.99")
     assert decide([finding], "beginner")[0] == "uncertain"
 
 

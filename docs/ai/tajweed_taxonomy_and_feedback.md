@@ -180,10 +180,11 @@ Every message will later need an audio file id, in Arabic and in English, in the
 
 1. **Low confidence:** a result below `CONFIDENCE_THRESHOLD` → `decision = uncertain` (the ayah
    goes to the teacher), and the child **moves on** (FR-QUR-006, VAL-006).
-   - The current value, **0.70, is provisional and adjustable**. It is measured in week 4 (O-02),
-     fixed in week 7, and may differ by category and level.
+   - The current value is **0.95**, chosen in week 4 on the dev children (OD-02). It is fixed in week
+     7 and may differ by category and level.
 2. **The two models disagree:** muaalem's result differs from whisper-quran's word comparison →
-   `uncertain`, sent to the teacher (Architecture §8.4).
+   `uncertain`, sent to the teacher (Architecture §8.4). Since week 4 (OD-02) the service decides on
+   whisper-quran alone and logs muaalem's findings, so this rule is used only in the evaluation.
 3. **Time is up (10 minutes):** the session is `INCOMPLETE`, the parent is told, a note is created
    for the teacher, and the next session resumes from the same ayah (FR-QUR-007).
 4. **The AI is down, slow, or switched off:** the attempt is saved, the ayah is marked `uncertain`,

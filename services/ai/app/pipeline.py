@@ -1,4 +1,4 @@
-# The real check of one recorded ayah: decode, gate, both models, merge, word segments, decision.
+# The real check of one recorded ayah: decode, gate, both models, word segments, Whisper's decision (OD-02).
 import json
 import logging
 import threading
@@ -6,12 +6,9 @@ import time
 
 from app.adapters import muaalem, whisper_quran
 from app.audio import AudioError, check_quality, decode_audio
-from app.combine import combine_findings
 from app.policy import decide
 from app.reference import add_word_segments, get_ayah, get_word_timings
 from app.schemas import AnalysisResult
-
-COMBINED_MODEL = "combined"
 
 log = logging.getLogger("tibyan.ai")
 
@@ -66,13 +63,21 @@ def analyze_recording(audio_bytes, surah, ayah, level, attempt_id):
 
     return AnalysisResult(
         attemptId=attempt_id,
-        model=COMBINED_MODEL,
+        model=whisper_quran.NAME,
         modelVersion=" + ".join(f"{model['name']} {model['version']}" for model in model_versions()),
         decision=decision,
         quality=quality,
         findings=findings,
         processingMs=int((time.perf_counter() - started) * 1000),
     )
+
+
+def logged_findings(findings):
+    """Code, word and confidence of each finding, for the log line."""
+    return [
+        {"code": finding.code, "wordIndex": finding.wordIndex, "confidence": finding.confidence}
+        for finding in findings
+    ]
 
 
 def check_recording(audio_bytes, surah, ayah, level, log_entry):
@@ -116,13 +121,10 @@ def check_recording(audio_bytes, surah, ayah, level, log_entry):
         log_entry["ms"][whisper_quran.NAME] = int((time.perf_counter() - stage_started) * 1000)
         log_entry["models"][whisper_quran.NAME] = "ok"
 
-    findings = combine_findings(muaalem_findings, whisper_findings)
-    findings = add_word_segments(findings, get_word_timings(surah, ayah))
+    findings = add_word_segments(whisper_findings, get_word_timings(surah, ayah))
     decision, findings = decide(findings, level)
 
     log_entry["decision"] = decision
-    log_entry["findings"] = [
-        {"code": finding.code, "wordIndex": finding.wordIndex, "confidence": finding.confidence}
-        for finding in findings
-    ]
+    log_entry["findings"] = logged_findings(findings)
+    log_entry["muaalemFindings"] = logged_findings(muaalem_findings)
     return quality, decision, findings
