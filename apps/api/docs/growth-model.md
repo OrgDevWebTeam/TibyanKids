@@ -17,6 +17,7 @@ Files: `src/Models/EvidenceEvent.js`, `src/Models/GrowthState.js`, `src/growth/g
 ## How evidence is created
 
 - **A completed activity.** When a `Progress` record becomes `completed`, each active competency of its `Content` gets one piece of evidence (source `activity`). The score decides the result: 70 or more is `met`, 40 to 69 is `partly_met`, below 40 is `not_met`. No score means only that the child took part, so `partly_met`.
+- **A completed story** (FR-STORY-002). A parent completes a story for a child with `POST /children/:id/stories/:storyId/complete`. It is a `Progress` record with no score, so it counts as an activity with `partly_met`: only taking part is proven. See `story-missions.md`.
 - **A completed assessment.** When an `Assessment` becomes `completed`, each active competency of its domain gets one piece of evidence (source `assessment`). Its level decides the result: 4 or 5 is `met`, 2 or 3 is `partly_met`, 0 or 1 is `not_met`.
 - **Once only.** The same source counts once for a competency (a unique index), so saving a record twice does not add evidence.
 - **Never blocks the child.** If the Growth Map fails, the progress or assessment is still saved and the failure is logged with ids only.
