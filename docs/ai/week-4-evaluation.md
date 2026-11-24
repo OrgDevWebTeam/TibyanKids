@@ -84,6 +84,30 @@ The false accepts at intermediate are pronunciation errors: whisper-quran writes
 wrong vowel or letter is caught only when it changes the word. On dev 7 of 28 recordings with a
 pronunciation error were accepted (0.25), on test 3 of 10 (0.30).
 
+### How sure these numbers are
+
+Each rate with its 95% range (Wilson score interval): with this few recordings, the true rate could
+be anywhere in the range. The ranges are wider than the gaps to the targets, so neither "meets the
+target" nor "just misses it" can be read from one number.
+
+| Rate (whisper-quran at 0.95) | Dev: count, rate, range      | Test: count, rate, range     | Target |
+| ---------------------------- | ---------------------------- | ---------------------------- | ------ |
+| False reject, beginner       | 8 of 135, 0.059, 0.030-0.113 | 2 of 267, 0.007, 0.002-0.027 | ≤ 0.05 |
+| False reject, intermediate   | 5 of 111, 0.045, 0.019-0.101 | 1 of 257, 0.004, 0.001-0.022 | ≤ 0.05 |
+| False accept, memorization   | 0 of 11, 0.0, 0.0-0.259      | 0 of 5, 0.0, 0.0-0.434       | ≤ 0.15 |
+| False accept, intermediate   | 7 of 35, 0.20, 0.100-0.359   | 3 of 15, 0.20, 0.070-0.452   | -      |
+| False accept, pronunciation  | 7 of 28, 0.25, 0.127-0.434   | 3 of 10, 0.30, 0.108-0.603   | -      |
+| Uncertain                    | 62 of 146, 0.42, 0.347-0.506 | 77 of 272, 0.28, 0.233-0.339 | ≤ 0.30 |
+| Uncertain, age 6-8           | 22 of 24, 0.92, 0.742-0.977  | 39 of 73, 0.53, 0.421-0.644  | -      |
+
+- **No memorization error was let through, but that is weak evidence:** 0 of 16 on dev and test
+  together still fits a true rate up to 0.19, above the 0.15 target. "Not seen to fail" is what
+  can be said, not "meets the target".
+- **False reject** is low on both splits; on dev the range runs from well under to about twice the
+  target.
+- **Uncertain** on dev is above the target over its whole range: the teacher reviewing about 4 ayat
+  in 10 (between about 3.5 and 5) is the expected workload, and the most certain finding here.
+
 ### By age band (whisper-quran at 0.95)
 
 | Split | Age band | Analysed | FR beginner | FR intermediate | FA intermediate | Uncertain |
@@ -151,7 +175,8 @@ later evaluations.
 - **One teacher.** Every label is one person's judgment, with no second labeller and no review
   round, so the numbers carry that teacher's labelling errors (B.6).
 - **A small sample.** 17 children, 6 in dev and 11 in test. Many rates rest on fewer than 20
-  recordings (in brackets above). A week 7 re-check needs more children, above all aged 6-8.
+  recordings (in brackets above), and their 95% ranges are wide (§3, "How sure these numbers
+  are"). A week 7 re-check needs more children, above all aged 6-8.
 - **Test is easier than dev** (§3): fewer errors per child.
 - **The targets are not approved.** The B.8 starting targets were used; Mohammad decides the real
   ones.

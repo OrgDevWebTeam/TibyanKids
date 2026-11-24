@@ -34,10 +34,12 @@ starting targets (false reject ≤ 0.05, false accept on memorization ≤ 0.15, 
 
 - whisper-quran at 0.95 is closest to all three targets, and 0.95-0.97 give the same numbers, so
   the choice is not on a knife edge.
-- It never let a memorization error through, on dev or test.
+- It never let a memorization error through, on dev or test. That is 0 of 16 recordings, which
+  still fits a true rate up to 0.19 (95% range): not seen to fail, not shown to meet the target.
 - The one test run (11 children, 272 recordings, frozen set) met all three starting targets:
   false reject 0.0075 / 0.0039, false accept on memorization 0.0, uncertain 0.28. Test had few
-  errors (5 and 15 recordings), so the dev numbers are the better guide.
+  errors (5 and 15 recordings), so the dev numbers are the better guide. The 95% ranges of every
+  rate are in the report (§3, "How sure these numbers are").
 
 ## Consequences
 
