@@ -10,7 +10,8 @@
   },
   "pnpm": {
     "overrides": {
-      "vite": "^7.1.0"
+      "vite": "^7.1.0",
+      "minimatch@>=7.0.0 <11.0.1": "^11.0.1"
     }
   },
   "scripts": {
