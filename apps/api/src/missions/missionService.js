@@ -10,15 +10,19 @@ import Content from "../Models/Content.js";
 import GrowthState from "../Models/GrowthState.js";
 import MissionAssignment from "../Models/MissionAssignment.js";
 import ParentObservation from "../Models/ParentObservation.js";
+import StoryMission from "../Models/StoryMission.js";
 import { recordObservationEvidence } from "../growth/growthService.js";
 import {
   FAMILY_LOOP_RULES,
   assignmentStatus,
   competencyStatusFromGrowth,
 } from "./familyLoopRules.js";
+import { eligibleForChild } from "./contentLinking.js";
 import { selectMission, toMissionInput } from "./selectMission.js";
 
 const RECENT_MISSIONS_LOOKED_AT = 20;
+// The reason written on a mission that a story's package linked, instead of a rule's choice
+export const STORY_LINK_REASON = "RULE_STORY_LINK";
 
 const inSession = (query, session) => (session ? query.session(session) : query);
 
@@ -34,14 +38,8 @@ async function findAssignment(child, assignmentId) {
   return assignment;
 }
 
-/**
- * Gives the child a new mission, chosen by selectMission. Returns the assignment, or null when
- * there is nothing to give: too many open missions, no suitable published mission, or this
- * source (a completed lesson) already led to one.
- */
-export async function assignMission(child, { sourceProgressId, session } = {}) {
-  if (!child.ageBand) return null;
-
+// A child never has more open missions than the rules allow
+async function hasRoomForAnotherMission(child, session) {
   const open = await inSession(
     MissionAssignment.countDocuments({
       childId: child._id,
@@ -50,7 +48,18 @@ export async function assignMission(child, { sourceProgressId, session } = {}) {
     }),
     session,
   );
-  if (open >= FAMILY_LOOP_RULES.MAX_PENDING_ASSIGNMENTS) return null;
+  return open < FAMILY_LOOP_RULES.MAX_PENDING_ASSIGNMENTS;
+}
+
+/**
+ * Gives the child a new mission, chosen by selectMission. Returns the assignment, or null when
+ * there is nothing to give: too many open missions, no suitable published mission, or this
+ * source (a completed lesson) already led to one.
+ */
+export async function assignMission(child, { sourceProgressId, session } = {}) {
+  if (!child.ageBand) return null;
+
+  if (!(await hasRoomForAnotherMission(child, session))) return null;
 
   const missions = await inSession(
     Content.find({ type: "mission", status: "published", ageBand: child.ageBand }).lean(),
@@ -117,12 +126,67 @@ export async function assignMission(child, { sourceProgressId, session } = {}) {
 }
 
 /**
- * A completed lesson or story can lead to a home mission (FR-FAM-001). Returns the assignment, or
- * null when this progress should not lead to one. It checks first, instead of relying on the unique
- * index, so that a repeat never causes an error inside a caller's transaction.
+ * The mission that a published package links to a story (FR-FAM-001, FR-STORY-001). Returns the
+ * assignment, or null when there is no usable link: no published package, a mission that does not
+ * suit the child, a mission the child already has open, or no room for another mission. The caller
+ * then lets the rules choose a mission instead.
+ */
+async function assignLinkedMission(child, story, { sourceProgressId, session }) {
+  const link = await inSession(
+    StoryMission.findOne({ storyId: story._id, status: "published" }).lean(),
+    session,
+  );
+  if (!link) return null;
+
+  const mission = await inSession(Content.findById(link.missionId).lean(), session);
+  if (mission?.type !== "mission") return null;
+  if (!eligibleForChild(mission, child) || !eligibleForChild(story, child)) return null;
+  if (!(await hasRoomForAnotherMission(child, session))) return null;
+
+  // The same mission is not given twice while the child still has it open
+  const alreadyOpen = await inSession(
+    MissionAssignment.exists({
+      childId: child._id,
+      missionId: mission._id,
+      completedAt: null,
+      expiresAt: { $gt: new Date() },
+    }),
+    session,
+  );
+  if (alreadyOpen) return null;
+
+  try {
+    const [assignment] = await MissionAssignment.create(
+      [
+        {
+          familyId: child.familyId,
+          childId: child._id,
+          missionId: mission._id,
+          sourceProgressId,
+          reasonRule: STORY_LINK_REASON,
+        },
+      ],
+      { session },
+    );
+    return assignment;
+  } catch (error) {
+    if (error.code === 11000) return null; // this source already led to a mission
+    throw error;
+  }
+}
+
+/**
+ * A completed lesson or story can lead to a home mission (FR-FAM-001). A story whose package is
+ * published gives the mission that package links to; anything else gets the mission the rules
+ * choose. Returns the assignment, or null when this progress should not lead to one. It checks
+ * first, instead of relying on the unique index, so that a repeat never causes an error inside a
+ * caller's transaction.
  */
 export async function assignMissionForProgress(progress, { session } = {}) {
-  const content = await inSession(Content.findById(progress.contentId).select("type"), session);
+  const content = await inSession(
+    Content.findById(progress.contentId).select("type status ageBand"),
+    session,
+  );
   if (!content || !FAMILY_LOOP_RULES.SOURCE_CONTENT_TYPES.includes(content.type)) return null;
 
   const already = await inSession(
@@ -133,6 +197,14 @@ export async function assignMissionForProgress(progress, { session } = {}) {
 
   const child = await inSession(Child.findById(progress.childId), session);
   if (!child || child.status !== "active") return null;
+
+  if (content.type === "story") {
+    const linked = await assignLinkedMission(child, content, {
+      sourceProgressId: progress._id,
+      session,
+    });
+    if (linked) return linked;
+  }
 
   return assignMission(child, { sourceProgressId: progress._id, session });
 }

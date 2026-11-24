@@ -1,0 +1,218 @@
+// Tibyan Kids database (MongoDB). Paste this file into https://dbdiagram.io to see and edit the diagram.
+// Source: the Mongoose models in apps/api/src/Models. Every table that holds a child's data also has
+// familyId (a reference to Family._id); those references are left out of the Ref lines to keep the picture readable.
+
+Table "User" {
+  "_id" ObjectId [pk]
+  "name" String
+  "email" String [unique]
+  "role" String [note: 'parent, teacher, content_admin, reviewer, platform_admin']
+  "status" String [note: 'active or suspended']
+  "emailVerifiedAt" Date
+  "country" String
+}
+
+Table "Family" {
+  "_id" ObjectId [pk]
+  "parentId" ObjectId [unique]
+  "name" String
+  "locale" String
+  "status" String
+}
+
+Table "Child" {
+  "_id" ObjectId [pk]
+  "familyId" ObjectId
+  "name" String
+  "dateOfBirth" Date [note: 'gives the age band']
+  "homeLanguage" String
+  "arabicLevel" Number
+  "quranLevel" Number
+  "status" String [note: 'pending_consent, active, archived']
+}
+
+Table "ConsentRecord" {
+  "_id" ObjectId [pk]
+  "guardianId" ObjectId
+  "childId" ObjectId
+  "familyId" ObjectId
+  "status" String [note: 'granted or withdrawn']
+  "policyVersion" String
+  "method" String
+}
+
+Table "TeacherAssignment" {
+  "_id" ObjectId [pk]
+  "teacherId" ObjectId
+  "childId" ObjectId
+  "familyId" ObjectId
+  "assignedBy" ObjectId
+  "status" String
+}
+
+Table "AuditEvent" {
+  "_id" ObjectId [pk]
+  "actorId" ObjectId
+  "actorRole" String
+  "action" String
+  "result" String
+  "targetType" String [note: 'no foreign key: can point at any record']
+  "targetId" ObjectId [note: 'no foreign key: can point at any record']
+}
+
+Table "Content" {
+  "_id" ObjectId [pk]
+  "title" String
+  "type" String [note: 'lesson, story, activity, quran_task, mission']
+  "ageBand" String
+  "language" String
+  "domain" String
+  "level" Number
+  "status" String [note: 'draft, in_review, published, archived']
+  "version" Number
+  "rootId" ObjectId [note: 'the first version of this content']
+  "previousVersion" ObjectId
+  "createdBy" ObjectId
+  "reviewedBy" ObjectId
+  "competencies" ObjectId [note: 'a list of Competency ids']
+}
+
+Table "Competency" {
+  "_id" ObjectId [pk]
+  "code" String [unique]
+  "domain" String
+  "name" Object
+  "active" Boolean
+}
+
+Table "Progress" {
+  "_id" ObjectId [pk]
+  "familyId" ObjectId
+  "childId" ObjectId
+  "contentId" ObjectId
+  "status" String
+  "score" Number
+  "completedAt" Date
+}
+
+Table "Assessment" {
+  "_id" ObjectId [pk]
+  "familyId" ObjectId
+  "childId" ObjectId
+  "domain" String
+  "kind" String
+  "status" String
+  "level" Number
+  "items" Array [note: 'embedded answers']
+}
+
+Table "QuranAttempt" {
+  "_id" ObjectId [pk]
+  "familyId" ObjectId
+  "childId" ObjectId
+  "clientAttemptId" String
+  "surah" Number
+  "ayah" Number
+  "result" Object [note: 'embedded AI result, never the audio']
+  "aiFailure" String
+}
+
+Table "EvidenceEvent" {
+  "_id" ObjectId [pk]
+  "familyId" ObjectId
+  "childId" ObjectId
+  "competencyId" ObjectId
+  "sourceType" String [note: 'assessment, activity or observation']
+  "sourceId" ObjectId [note: 'points at an Assessment, Progress or ParentObservation, depending on sourceType']
+  "weight" Number
+  "result" String [note: 'met, partly_met, not_met']
+  "occurredAt" Date
+}
+
+Table "GrowthState" {
+  "_id" ObjectId [pk]
+  "familyId" ObjectId
+  "childId" ObjectId
+  "competencyId" ObjectId
+  "nextGoal" ObjectId
+  "status" String [note: 'not_assessed or assessed']
+  "level" Number
+  "confidence" String
+  "evidenceCount" Number
+}
+
+Table "MissionAssignment" {
+  "_id" ObjectId [pk]
+  "familyId" ObjectId
+  "childId" ObjectId
+  "missionId" ObjectId [note: 'a Content of type mission']
+  "sourceProgressId" ObjectId
+  "reasonRule" String
+  "assignedAt" Date
+  "expiresAt" Date
+  "completedAt" Date
+}
+
+Table "ParentObservation" {
+  "_id" ObjectId [pk]
+  "familyId" ObjectId
+  "childId" ObjectId
+  "assignmentId" ObjectId [unique]
+  "observedBy" ObjectId
+  "status" String [note: 'independent, reminder, not_observed']
+  "note" String
+  "clientObservationId" String
+}
+
+Table "StoryMission" {
+  "_id" ObjectId [pk]
+  "storyId" ObjectId [unique, note: 'one package per story']
+  "missionId" ObjectId [note: 'a Content of type mission']
+  "outcomes" Array
+  "vocabulary" Array
+  "challenge" Object [note: 'a question and its choices, never a correct answer']
+  "status" String [note: 'draft, published or archived']
+  "createdBy" ObjectId
+  "publishedBy" ObjectId
+  "publishedAt" Date
+}
+
+Table "ChildReflection" {
+  "_id" ObjectId [pk]
+  "familyId" ObjectId
+  "childId" ObjectId
+  "assignmentId" ObjectId [unique]
+  "choice" String
+}
+
+Ref: "Family"."parentId" - "User"."_id"
+Ref: "Child"."familyId" > "Family"."_id"
+Ref: "ConsentRecord"."guardianId" > "User"."_id"
+Ref: "ConsentRecord"."childId" > "Child"."_id"
+Ref: "TeacherAssignment"."teacherId" > "User"."_id"
+Ref: "TeacherAssignment"."assignedBy" > "User"."_id"
+Ref: "TeacherAssignment"."childId" > "Child"."_id"
+Ref: "AuditEvent"."actorId" > "User"."_id"
+Ref: "Content"."createdBy" > "User"."_id"
+Ref: "Content"."reviewedBy" > "User"."_id"
+Ref: "Content"."previousVersion" > "Content"."_id"
+Ref: "Content"."competencies" <> "Competency"."_id"
+Ref: "Progress"."childId" > "Child"."_id"
+Ref: "Progress"."contentId" > "Content"."_id"
+Ref: "Assessment"."childId" > "Child"."_id"
+Ref: "QuranAttempt"."childId" > "Child"."_id"
+Ref: "EvidenceEvent"."childId" > "Child"."_id"
+Ref: "EvidenceEvent"."competencyId" > "Competency"."_id"
+Ref: "GrowthState"."childId" > "Child"."_id"
+Ref: "GrowthState"."competencyId" > "Competency"."_id"
+Ref: "GrowthState"."nextGoal" > "Competency"."_id"
+Ref: "MissionAssignment"."childId" > "Child"."_id"
+Ref: "MissionAssignment"."missionId" > "Content"."_id"
+Ref: "MissionAssignment"."sourceProgressId" - "Progress"."_id"
+Ref: "ParentObservation"."assignmentId" - "MissionAssignment"."_id"
+Ref: "ParentObservation"."observedBy" > "User"."_id"
+Ref: "ChildReflection"."assignmentId" - "MissionAssignment"."_id"
+Ref: "StoryMission"."storyId" - "Content"."_id"
+Ref: "StoryMission"."missionId" > "Content"."_id"
+Ref: "StoryMission"."createdBy" > "User"."_id"
+Ref: "StoryMission"."publishedBy" > "User"."_id"

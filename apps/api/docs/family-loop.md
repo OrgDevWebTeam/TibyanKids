@@ -27,9 +27,9 @@ There is no stored status on an assignment. It is worked out from its dates: **c
 
 ## How it works
 
-1. A `Progress` record for a lesson or story becomes `completed`.
+1. A `Progress` record for a lesson or story becomes `completed`. A parent completes a story with `POST /children/:id/stories/:storyId/complete` (see `story-missions.md`).
 2. The hook records the growth evidence first (FR-GRW-002), then asks the mission service for a mission. The mission is chosen after the evidence, so it can use the updated Growth Map.
-3. `selectMission` (ADR-0008) picks the mission from the published, age-eligible ones, and says why (`reasonRule`).
+3. A story whose package is published gives the mission that package links to, with the reason `RULE_STORY_LINK` (see `story-missions.md`). Anything else, or a link that cannot be used, gets the mission that `selectMission` (ADR-0008) chooses from the published, age-eligible ones, with its own `reasonRule`.
 4. The parent sees the mission with `GET /children/:id/missions` and later submits an observation.
 5. The observation, the completed date and the evidence are saved **in one transaction**: all of it, or none of it.
 6. The child can then pick a reflection.
@@ -38,16 +38,17 @@ There is no stored status on an assignment. It is worked out from its dates: **c
 
 All numbers are in `FAMILY_LOOP_RULES` in `src/missions/familyLoopRules.js`. The CRS gives no numbers, so these are the project's chosen starting rules.
 
-| Rule                           | Value                                                                                 |
-| ------------------------------ | ------------------------------------------------------------------------------------- |
-| Mission lifetime               | 7 days from the day it is assigned                                                    |
-| Open missions per child        | At most 3 (a fourth is not assigned until one is done or expired)                     |
-| Note length                    | At most 500 characters                                                                |
-| Content that triggers one      | Lessons and stories only                                                              |
-| Observation to evidence        | `independent` is `met`. `reminder` is `partly_met`. `not_observed` is **no evidence** |
-| Evidence weight                | 0.3, the lightest source (assessment 0.8, activity 0.5)                               |
-| Growth level to mission status | Level 4 or 5 is `achieved`, level 3 `practising`, below that `needs_practice`         |
-| Reflection choices             | `enjoyed_it`, `proud`, `want_more`, `was_hard`, `not_sure`                            |
+| Rule                           | Value                                                                                                                            |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| Mission lifetime               | 7 days from the day it is assigned                                                                                               |
+| Open missions per child        | At most 3 (a fourth is not assigned until one is done or expired)                                                                |
+| Note length                    | At most 500 characters                                                                                                           |
+| Content that triggers one      | Lessons and stories only                                                                                                         |
+| Mission from a story           | A story with a published package gives its own mission (`RULE_STORY_LINK`). The same mission is not given twice while it is open |
+| Observation to evidence        | `independent` is `met`. `reminder` is `partly_met`. `not_observed` is **no evidence**                                            |
+| Evidence weight                | 0.3, the lightest source (assessment 0.8, activity 0.5)                                                                          |
+| Growth level to mission status | Level 4 or 5 is `achieved`, level 3 `practising`, below that `needs_practice`                                                    |
+| Reflection choices             | `enjoyed_it`, `proud`, `want_more`, `was_hard`, `not_sure`                                                                       |
 
 "Not observed" is deliberately not evidence. A parent who could not watch has not shown that the child failed.
 
@@ -141,6 +142,8 @@ The CRS paths (`/missions`, `/missions/{id}/observe`, `/missions/{id}/reflect`) 
 Files: `src/missions/familyLoopRules.js`, `src/missions/missionService.js`, `src/Models/MissionAssignment.js`, `src/Models/ParentObservation.js`, `src/Models/ChildReflection.js`, `src/validations/missionValidation.js`, `src/controllers/missionController.js`, `src/routes/missionRoutes.js`, `src/utils/inTransaction.js`, and the evidence function `recordObservationEvidence` in `src/growth/growthService.js`.
 
 Tests: `tests/missions/familyLoopRules.test.js`, `tests/missions/missionService.test.js`, `tests/missions/autoAssign.test.js`, `tests/models/familyLoop.test.js`, `tests/models/observationEvidence.test.js`, `tests/validations/missions.test.js`, `tests/api/missions.test.js`, `tests/api/missions-crs-paths.test.js`.
+
+The story packages that link a story to its mission, and the endpoint that completes a story, are described in `story-missions.md`.
 
 ## Not built yet
 

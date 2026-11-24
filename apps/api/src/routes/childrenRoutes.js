@@ -23,6 +23,8 @@ import {
   reflectChildMission,
 } from "../controllers/missionController.js";
 import { observeMissionSchema, reflectMissionSchema } from "../validations/missionValidation.js";
+import { completeChildStory } from "../controllers/storyController.js";
+import { completeStorySchema } from "../validations/storyValidation.js";
 
 const router = Router();
 router.use(apiLimiter);
@@ -48,6 +50,8 @@ router.post(
   validate(reflectMissionSchema),
   reflectChildMission,
 );
+// A child finishes a story and receives its mission (FR-STORY-002)
+router.post("/:id/stories/:storyId/complete", validate(completeStorySchema), completeChildStory);
 // One recorded ayah (multipart: audio, clientAttemptId, surah, ayah, level)
 router.post(
   "/:id/recitation-attempts",
