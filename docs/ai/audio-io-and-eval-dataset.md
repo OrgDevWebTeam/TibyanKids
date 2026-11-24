@@ -110,7 +110,7 @@ The first match wins.
 4. Clipped ratio above 1% → `too_noisy`.
 5. Speech seconds below 0.3 → `silent`.
 6. Speech dBFS below −50 → `silent`.
-7. SNR below 15 dB → `too_noisy`. Checked after the speech checks: a recording without speech has no
+7. SNR below 10 dB → `too_noisy` (15 dB until week 4). Checked after the speech checks: a recording without speech has no
    contrast either, but it is `silent`, not noisy.
 8. Reading above 30 s → `too_long`.
 9. Speech ratio below 0.30 → `too_noisy`.
@@ -166,6 +166,11 @@ many readable recordings as the old gate (36 vs 32), but noisy ones instead of c
 child waited; a rejection only asks the child to record again. White noise is only a stand-in: the
 values must be checked again on real children's recordings (week 4). The loudness rule is a
 backstop for near-silence; quiet speech fails because of the background, which the SNR rule catches.
+
+Week 4, real children (decided by Qussai): at 15 dB the gate rejected 6 of 425 recordings, all
+judged fine by the teacher (7.7-14.4 dB), and passed all 6 the teacher marked `poor_audio`
+(17.3-32.2 dB). The limit is now 10 dB, a judgment from 3 dev cases; the other gate values are
+unchanged because none of them rejected anything.
 
 #### Audio errors
 
