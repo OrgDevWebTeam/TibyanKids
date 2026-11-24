@@ -103,6 +103,10 @@ camelCase, like the result contract v3.0. The full file formats are in
 
 ## 5. Double annotation and resolving disagreements
 
+> **Week 4:** one teacher labels the 17 children's recordings, so this section does not apply yet.
+> The teacher fills in `labelling_sheet.csv` (`teacherDecision`, `errorCodes`, `notes`), and each
+> label is final. It applies again once a second teacher joins.
+
 - Every recording is annotated by **two teachers independently**, neither seeing the other's
   judgement.
 - **Full agreement** (same judgement and same codes): accepted as is.

@@ -14,7 +14,7 @@ from app.mock import MOCK_MODEL, MOCK_VERSION, mock_recitation
 from app.reference import get_ayah
 from app.schemas import AnalysisResult, Level
 
-MAX_AUDIO_BYTES = 5 * 1024 * 1024  # same limit as the API (VAL-016)
+MAX_AUDIO_BYTES = 5 * 1024 * 1024
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
@@ -32,7 +32,7 @@ async def lifespan(app):
     yield
 
 
-app = FastAPI(title="Tibyan Kids AI service", lifespan=lifespan)
+app = FastAPI(title="Tibyan Kids AI service (Adeeb)", lifespan=lifespan)
 
 
 def error_response(status, code, message):
@@ -64,7 +64,6 @@ def health():
     return {"status": "ok", "mockMode": is_mock_mode(), "models": models}
 
 
-# Not async: FastAPI runs it in a thread, so /health answers while a request waits for the GPU
 @app.post("/v1/recitation/analyze", response_model=AnalysisResult)
 def analyze_recitation(
     audio: UploadFile = File(...),

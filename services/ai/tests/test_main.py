@@ -11,6 +11,7 @@ client = TestClient(app)
 
 
 def post(surah=1, ayah=1, audio=b"\x00" * 2000):
+    """Posts one recording to the analyze endpoint."""
     return client.post(
         "/v1/recitation/analyze",
         files={"audio": ("rec.webm", audio, "audio/webm")},
@@ -20,10 +21,12 @@ def post(surah=1, ayah=1, audio=b"\x00" * 2000):
 
 @pytest.fixture
 def real_mode(monkeypatch):
+    """The service with MOCK_MODE=false."""
     monkeypatch.setenv("MOCK_MODE", "false")
 
 
 def test_an_ayah_outside_the_prototype_is_rejected_in_mock_mode():
+    """An ayah outside the prototype is rejected in mock mode."""
     response = post(surah=2, ayah=255)
 
     assert response.status_code == 400
@@ -31,6 +34,7 @@ def test_an_ayah_outside_the_prototype_is_rejected_in_mock_mode():
 
 
 def test_an_ayah_outside_the_prototype_is_rejected_in_real_mode(real_mode):
+    """An ayah outside the prototype is rejected in real mode."""
     response = post(surah=2, ayah=255)
 
     assert response.status_code == 400
@@ -38,6 +42,7 @@ def test_an_ayah_outside_the_prototype_is_rejected_in_real_mode(real_mode):
 
 
 def test_a_file_over_5_mb_is_rejected():
+    """A file over 5 mb is rejected."""
     response = post(audio=b"\x00" * (MAX_AUDIO_BYTES + 1))
 
     assert response.status_code == 400
@@ -45,6 +50,7 @@ def test_a_file_over_5_mb_is_rejected():
 
 
 def test_the_mock_uses_the_real_segment_of_word_1():
+    """The mock uses the real segment of word 1."""
     response = post(surah=1, ayah=3)
 
     finding = response.json()["findings"][0]
@@ -52,6 +58,7 @@ def test_the_mock_uses_the_real_segment_of_word_1():
 
 
 def test_real_mode_returns_the_pipeline_result(real_mode, monkeypatch):
+    """Real mode returns the pipeline result."""
     result = mock_recitation("attempt-1", 2000, 1, 1)
     monkeypatch.setattr(pipeline, "analyze_recording", lambda *args: result)
 
@@ -62,7 +69,9 @@ def test_real_mode_returns_the_pipeline_result(real_mode, monkeypatch):
 
 
 def test_unreadable_audio_is_a_400_with_its_code(real_mode, monkeypatch):
+    """Unreadable audio is a 400 with its code."""
     def broken(*args):
+        """Unreadable audio."""
         raise AudioError("DECODE_FAILED", "The file is not readable audio")
 
     monkeypatch.setattr(pipeline, "analyze_recording", broken)
@@ -70,11 +79,14 @@ def test_unreadable_audio_is_a_400_with_its_code(real_mode, monkeypatch):
     response = post()
 
     assert response.status_code == 400
-    assert response.json() == {"error": {"code": "DECODE_FAILED", "message": "The file is not readable audio"}}
+    expected = {"error": {"code": "DECODE_FAILED", "message": "The file is not readable audio"}}
+    assert response.json() == expected
 
 
 def test_a_model_crash_is_a_500_model_failed(real_mode, monkeypatch):
+    """A model crash is a 500 model failed."""
     def broken(*args):
+        """A model that fails."""
         raise pipeline.ModelFailed("whisper-quran")
 
     monkeypatch.setattr(pipeline, "analyze_recording", broken)
@@ -86,7 +98,9 @@ def test_a_model_crash_is_a_500_model_failed(real_mode, monkeypatch):
 
 
 def test_any_other_error_is_a_500_in_the_same_error_shape(real_mode, monkeypatch):
+    """Any other error is a 500 in the same error shape."""
     def broken(*args):
+        """A bug in the pipeline."""
         raise ValueError("No word timings for 1:1")
 
     monkeypatch.setattr(pipeline, "analyze_recording", broken)
@@ -97,10 +111,12 @@ def test_any_other_error_is_a_500_in_the_same_error_shape(real_mode, monkeypatch
     )
 
     assert response.status_code == 500
-    assert response.json() == {"error": {"code": "INTERNAL_ERROR", "message": "Unexpected error in the AI service"}}
+    expected = {"error": {"code": "INTERNAL_ERROR", "message": "Unexpected error in the AI service"}}
+    assert response.json() == expected
 
 
 def test_health_in_real_mode_lists_the_loaded_models(real_mode, monkeypatch):
+    """Health in real mode lists the loaded models."""
     monkeypatch.setattr(pipeline, "model_versions", lambda: [{"name": "quran-muaalem", "version": "v1"}])
 
     body = client.get("/health").json()

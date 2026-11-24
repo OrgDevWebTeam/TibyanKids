@@ -4,7 +4,7 @@ import os
 from app.schemas import Finding
 
 POLICY_VERSION = "v0"
-DEFAULT_THRESHOLD = 0.70  # provisional until the week 4 benchmark (OD-02)
+DEFAULT_THRESHOLD = 0.95
 
 CODES = {
     "ERR_MEM_OMISSION": ("memorization", "FEEDBACK_WORD_MISSED"),
@@ -22,9 +22,8 @@ CODES = {
 
 CATEGORY_ORDER = ["memorization", "pronunciation", "tajweed", "technical"]
 ALWAYS_UNCERTAIN = {"ERR_TAJ_UNMAPPED", "ERR_TECH_MODELS_DISAGREE"}
-NOT_YET_APPROVED = {"ERR_MEM_INSERTION", "ERR_PRON_MADD_ASLI_SHORT", "ERR_TAJ_GHONNA_OMIT"}
+NOT_YET_APPROVED = {"ERR_MEM_INSERTION", "ERR_PRON_MADD_ASLI_SHORT", "ERR_TAJ_GHONNA_OMIT", "ERR_TAJ_MADD_SHORT"}
 
-# Advanced also stops on the tajweed rules targeted in the lesson (targeted_tajweed_codes)
 STOPS = {
     "beginner": {"memorization"},
     "intermediate": {"memorization", "pronunciation"},
@@ -60,9 +59,10 @@ def stops_child(finding, level, targeted_tajweed_codes=()):
     return level == "advanced" and finding.code in targeted_tajweed_codes
 
 
-def decide(findings, level, targeted_tajweed_codes=()):
-    """(decision, findings); when uncertain, every finding gets the teacher message."""
-    threshold = confidence_threshold()
+def decide(findings, level, targeted_tajweed_codes=(), threshold=None):
+    """(decision, findings) at this level; threshold None means CONFIDENCE_THRESHOLD."""
+    if threshold is None:
+        threshold = confidence_threshold()
     unsure = [f for f in findings if f.confidence < threshold or f.code in ALWAYS_UNCERTAIN]
 
     if unsure:

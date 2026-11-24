@@ -2,8 +2,7 @@
 
 - **Project:** Tibyan Kids
 - **Owner:** Ismail (AI 2: data, tajweed and evaluation)
-- **Version:** v1.3, 2026-11-15 (English version of v1.2: week 1, after the review of PR #12 and the
-  quran-muaalem mapping)
+- **Version:** v1.4, 2026-11-23 (§4.2: the teacher's review labels, from the practice-flow doc)
 - **Scope:** the five prototype surahs (Al-Fatiha, Al-Ikhlas, Al-Falaq, An-Nas, Al-Kawthar)
 - **Based on:** CRS v3.0 (§5.3 and §5.4, FR-QUR-003..008, VAL-006, VAL-013, VAL-014) and
   Architecture v3.0 (§8.3 and §8.4)
@@ -86,8 +85,10 @@ Mapping rules:
 3. **Mushaf settings:** the expected madd lengths are fixed by decision 5.3, set in the AI service
    settings, and logged with every result. The package defaults (4 for munfasil, muttasil and aarid)
    are not our decision.
-4. **Madd accuracy:** madd measurement is tested on our data in week 4 before
-   `ERR_TAJ_MADD_SHORT` stops any child. Until then it is a reminder only.
+4. **Madd accuracy:** tested on the week 4 dev children (decided by Qussai): the teacher marked 1
+   madd word, and quran-muaalem flagged 7, all wrong; Whisper never produces the code. So
+   `ERR_TAJ_MADD_SHORT` is off (`NOT_YET_APPROVED`): a reminder only, never a stop, until a set
+   with many madd-labelled words shows it works.
 5. **Ghunna:** `ERR_TAJ_GHONNA_OMIT` is not switched on before it is tested (it may appear as a
    phoneme substitution rather than a rule). Also, `quran-transcript` 0.6.4 does not tag ghunna at
    all, so with this version the code is never produced: a ghunna error comes out as
@@ -179,10 +180,11 @@ Every message will later need an audio file id, in Arabic and in English, in the
 
 1. **Low confidence:** a result below `CONFIDENCE_THRESHOLD` → `decision = uncertain` (the ayah
    goes to the teacher), and the child **moves on** (FR-QUR-006, VAL-006).
-   - The current value, **0.70, is provisional and adjustable**. It is measured in week 4 (O-02),
-     fixed in week 7, and may differ by category and level.
+   - The current value is **0.95**, chosen in week 4 on the dev children (OD-02). It is fixed in week
+     7 and may differ by category and level.
 2. **The two models disagree:** muaalem's result differs from whisper-quran's word comparison →
-   `uncertain`, sent to the teacher (Architecture §8.4).
+   `uncertain`, sent to the teacher (Architecture §8.4). Since week 4 (OD-02) the service decides on
+   whisper-quran alone and logs muaalem's findings, so this rule is used only in the evaluation.
 3. **Time is up (10 minutes):** the session is `INCOMPLETE`, the parent is told, a note is created
    for the teacher, and the next session resumes from the same ayah (FR-QUR-007).
 4. **The AI is down, slow, or switched off:** the attempt is saved, the ayah is marked `uncertain`,
@@ -201,6 +203,20 @@ success, the ayah is marked `uncertain` for the teacher and the child moves on w
 `FEEDBACK_RETRY_LIMIT_MOVE_ON`, so the child is never stuck. The value of `N` (proposed: 2) is set
 on approval. The session engine in the API (Ahmad) counts the attempts, not the result contract.
 Not switched on before the CRS and Ahmad's state machine change.
+
+### 4.2 The teacher's review labels
+
+An `uncertain` ayah, or a tajweed case the teacher should see, goes to the teacher review screen
+(SCR-T02, weeks 5–6). The teacher gives it one of the labels of the annotation guide
+(`docs/ai/teacher_annotation_guide.md` §2):
+
+| Label            | When                                                              | What it means for the child                             |
+| ---------------- | ----------------------------------------------------------------- | ------------------------------------------------------- |
+| `correct`        | The reading was right (the model was unsure or wrong)             | The ayah counts as done                                 |
+| `needs_practice` | A real skipped word, pronunciation slip or targeted tajweed error | The word is practised again in the next session         |
+| `poor_audio`     | Noise, clipping or a distant voice got past the quality gate      | The child records again; it does not count against them |
+
+(Moved here from `practice-flow-rules-and-review-labels.md` v1.0, KAN-28, which repeated §2 and §4.)
 
 ---
 

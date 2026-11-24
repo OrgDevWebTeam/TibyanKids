@@ -1,8 +1,8 @@
 # Docker image for the AI service with the real models (the GPU machine only). Owner: Qussai.
 # Laptops use ./Dockerfile (mock mode). Start this one with docker-compose.gpu.yml (repository root).
 #
-# Same setup as the GPU machine where the week 1-3 numbers were measured: Python 3.12 and
-# torch 2.14.1 for CUDA 13. The torch wheel brings its own CUDA libraries, so the host only needs
+# Same setup as the GPU machine: Python 3.12 and torch 2.14.1 for CUDA 12.6 (faster-whisper uses
+# the same CUDA 12 libraries). The torch wheel brings its own CUDA libraries, so the host only needs
 # the NVIDIA driver and the NVIDIA container toolkit (Docker Desktop on Windows: WSL 2 backend).
 #
 # Not in the image: the model files (mounted from services/ai/models, see models/README.md) and
@@ -19,7 +19,7 @@ RUN apt-get update \
 
 WORKDIR /app
 
-# requirements-gpu.txt points pip at the CUDA 13 index for torch
+# requirements-gpu.txt points pip at the CUDA 12.6 index for torch
 COPY requirements.txt requirements-gpu.txt ./
 RUN pip install --no-cache-dir -r requirements.txt -r requirements-gpu.txt
 

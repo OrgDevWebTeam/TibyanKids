@@ -21,7 +21,6 @@ from app.schemas import Finding
 
 NAME = "quran-muaalem"
 HF_REPO = "obadx/muaalem-model-v3_2"
-# Change the pin only together with an evaluation run
 HF_REVISION = os.environ.get("MUAALEM_REVISION", "01a1ef9fbe40d144ef845101e89ff924aed3fef5")
 HF_FILES = ["*.json", "*.safetensors"]
 SAMPLE_RATE = 16000
@@ -59,7 +58,7 @@ def word_index(uthmani_text: str, char_position: int) -> int:
 
 
 def predicted_positions(ref_phonemes: str, predicted_phonemes: str) -> dict:
-    """For each reference phoneme group, (start, "insert" or "other") -> the predicted phonemes aligned with it."""
+    """For each reference phoneme group, (start, "insert" or "other") -> the predicted phonemes."""
     ref_groups = chunck_phonemes(ref_phonemes)
     predicted_groups = chunck_phonemes(predicted_phonemes)
     positions = {}
@@ -99,7 +98,6 @@ def error_code(error) -> str | None:
 
     if isinstance(rule, Qalqalah):
         return "ERR_TAJ_QALQALA_OMIT"
-    # Before the madd check: MoshaddadOrModghamNoonRule (ghunna) is a subclass of MaddRule
     if isinstance(rule, (Ghonnah, MoshaddadOrModghamNoonRule)):
         return "ERR_TAJ_GHONNA_OMIT"
     if isinstance(rule, MaddRule):

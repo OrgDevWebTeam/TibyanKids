@@ -131,7 +131,9 @@ before the extra word.
   `FEEDBACK_AUDIO_TOO_LONG` instead (text to be written by Ismail).
 - **Decision policy** (Architecture §8.4):
   1. Any finding with `confidence` below `CONFIDENCE_THRESHOLD` → `uncertain`.
-  2. Any `ERR_TAJ_UNMAPPED` or `ERR_TECH_MODELS_DISAGREE` finding → `uncertain`.
+  2. Any `ERR_TAJ_UNMAPPED` or `ERR_TECH_MODELS_DISAGREE` finding → `uncertain`. Since week 4
+     (OD-02) the service sends `model: whisper-quran` and decides on its findings alone, so
+     `ERR_TECH_MODELS_DISAGREE` comes only from the evaluation.
   3. Otherwise, a finding whose category stops the child's level → `error`.
   4. Otherwise → `accepted`. Findings that do not stop the level are kept as notes.
 - **What stops each level** (CRS §5.4): beginner = memorization; intermediate = memorization +

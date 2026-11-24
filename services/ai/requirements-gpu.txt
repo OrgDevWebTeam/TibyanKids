@@ -1,9 +1,13 @@
-# The model packages, installed everywhere (GPU machine, CI, both Docker images), CUDA 13 build of torch.
---extra-index-url https://download.pytorch.org/whl/cu130
-torch==2.14.1
+# The model packages, installed everywhere (GPU machine, CI, both Docker images).
+# torch for CUDA 12.6: faster-whisper's engine (CTranslate2) is built for CUDA 12 and uses the CUDA
+# libraries torch brings, so the whole service runs on one CUDA version.
+--extra-index-url https://download.pytorch.org/whl/cu126
+torch==2.14.1+cu126
 numpy>=2.2.6
 # quran-muaalem does not work with transformers 5
 transformers==4.57.6
 quran-muaalem==0.3.0
 quran-transcript==0.6.4
 silero-vad==6.2.3
+# Arabic words stage (FR-ARB-002, OD-03): speech-to-text with an open Whisper model
+faster-whisper==1.2.1

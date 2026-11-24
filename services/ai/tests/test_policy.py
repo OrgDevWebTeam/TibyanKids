@@ -8,16 +8,19 @@ UNSURE = 0.40
 
 
 def finding(code, confidence=SURE, word=1):
+    """A finding of this code."""
     return make_finding(word, code, confidence, 0, 600)
 
 
 @pytest.fixture(autouse=True)
 def default_threshold(monkeypatch):
+    """CONFIDENCE_THRESHOLD not set."""
     monkeypatch.delenv("CONFIDENCE_THRESHOLD", raising=False)
 
 
 @pytest.mark.parametrize("code", list(CODES))
 def test_make_finding_takes_category_and_message_from_the_code(code):
+    """Make finding takes category and message from the code."""
     category, message_key = CODES[code]
     made = finding(code)
     assert made.category == category
@@ -25,20 +28,24 @@ def test_make_finding_takes_category_and_message_from_the_code(code):
 
 
 def test_no_findings_is_accepted():
+    """No findings is accepted."""
     assert decide([], "beginner") == ("accepted", [])
 
 
 def test_a_finding_below_the_threshold_makes_the_ayah_uncertain():
+    """A finding below the threshold makes the ayah uncertain."""
     decision, _ = decide([finding("ERR_MEM_OMISSION", UNSURE)], "beginner")
     assert decision == "uncertain"
 
 
 def test_a_finding_exactly_at_the_threshold_is_trusted():
+    """A finding exactly at the threshold is trusted."""
     decision, _ = decide([finding("ERR_MEM_OMISSION", DEFAULT_THRESHOLD)], "beginner")
     assert decision == "error"
 
 
 def test_uncertain_gives_every_finding_the_teacher_message():
+    """Uncertain gives every finding the teacher message."""
     findings = [finding("ERR_MEM_OMISSION", UNSURE, word=1), finding("ERR_MEM_SUBSTITUTION", SURE, word=2)]
     decision, result = decide(findings, "beginner")
     assert decision == "uncertain"
@@ -49,6 +56,7 @@ def test_uncertain_gives_every_finding_the_teacher_message():
 @pytest.mark.parametrize("code", ["ERR_TAJ_UNMAPPED", "ERR_TECH_MODELS_DISAGREE"])
 @pytest.mark.parametrize("level", ["beginner", "intermediate", "advanced"])
 def test_some_codes_always_go_to_the_teacher(code, level):
+    """Some codes always go to the teacher."""
     decision, _ = decide([finding(code, SURE)], level)
     assert decision == "uncertain"
 
@@ -72,33 +80,41 @@ def test_some_codes_always_go_to_the_teacher(code, level):
     ],
 )
 def test_what_stops_each_level(code, level, expected):
+    """What stops each level."""
     decision, _ = decide([finding(code)], level)
     assert decision == expected
 
 
 def test_advanced_stops_on_a_tajweed_rule_targeted_in_the_lesson():
-    targeted = ("ERR_TAJ_MADD_SHORT",)
-    assert decide([finding("ERR_TAJ_MADD_SHORT")], "advanced", targeted)[0] == "error"
-    assert decide([finding("ERR_TAJ_QALQALA_OMIT")], "advanced", targeted)[0] == "accepted"
+    """Advanced stops on a tajweed rule targeted in the lesson."""
+    targeted = ("ERR_TAJ_QALQALA_OMIT",)
+    assert decide([finding("ERR_TAJ_QALQALA_OMIT")], "advanced", targeted)[0] == "error"
+    assert decide([finding("ERR_TAJ_UNMAPPED")], "advanced", targeted)[0] == "uncertain"
 
 
 def test_targeted_tajweed_rules_do_not_stop_lower_levels():
-    targeted = ("ERR_TAJ_MADD_SHORT",)
-    assert decide([finding("ERR_TAJ_MADD_SHORT")], "intermediate", targeted)[0] == "accepted"
+    """Targeted tajweed rules do not stop lower levels."""
+    targeted = ("ERR_TAJ_QALQALA_OMIT",)
+    assert decide([finding("ERR_TAJ_QALQALA_OMIT")], "intermediate", targeted)[0] == "accepted"
 
 
-@pytest.mark.parametrize("code", ["ERR_MEM_INSERTION", "ERR_PRON_MADD_ASLI_SHORT", "ERR_TAJ_GHONNA_OMIT"])
+@pytest.mark.parametrize(
+    "code", ["ERR_MEM_INSERTION", "ERR_PRON_MADD_ASLI_SHORT", "ERR_TAJ_GHONNA_OMIT", "ERR_TAJ_MADD_SHORT"]
+)
 def test_proposed_codes_never_stop_a_child(code):
+    """Proposed codes never stop a child."""
     assert decide([finding(code)], "advanced", (code,))[0] == "accepted"
 
 
 def test_accepted_keeps_findings_as_notes_with_their_own_message():
+    """Accepted keeps findings as notes with their own message."""
     decision, result = decide([finding("ERR_TAJ_MADD_SHORT")], "beginner")
     assert decision == "accepted"
     assert [f.messageKey for f in result] == ["FEEDBACK_MADD_REMINDER"]
 
 
 def test_the_threshold_comes_from_the_setting(monkeypatch):
+    """The threshold comes from the setting."""
     monkeypatch.setenv("CONFIDENCE_THRESHOLD", "0.30")
     assert decide([finding("ERR_MEM_OMISSION", UNSURE)], "beginner")[0] == "error"
     monkeypatch.setenv("CONFIDENCE_THRESHOLD", "0.99")

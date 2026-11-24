@@ -9,18 +9,22 @@ from app.policy import make_finding
 
 @pytest.fixture(autouse=True)
 def fresh_cache(monkeypatch):
+    """The reference data loaded again from the repository."""
     monkeypatch.setattr(reference, "ayat", {})
     monkeypatch.setattr(reference, "timings", {})
     monkeypatch.delenv("REFERENCE_DATA_DIR", raising=False)
 
 
 def test_without_the_setting_the_repository_data_is_used():
+    """Without the setting the repository data is used."""
     ayah = reference.get_ayah(112, 1)
     assert [word["position"] for word in ayah["words"]] == [1, 2, 3, 4]
 
 
 def test_the_setting_chooses_the_folder(tmp_path, monkeypatch):
-    surahs = [{"surah_id": 1, "ayahs": [{"ayah_id": 1, "text_uthmani": "x", "words": [{"position": 1, "text": "x"}]}]}]
+    """The setting chooses the folder."""
+    ayah = {"ayah_id": 1, "text_uthmani": "x", "words": [{"position": 1, "text": "x"}]}
+    surahs = [{"surah_id": 1, "ayahs": [ayah]}]
     (tmp_path / reference.TEXT_FILE_NAME).write_text(json.dumps(surahs), encoding="utf-8")
     monkeypatch.setenv("REFERENCE_DATA_DIR", str(tmp_path))
 
@@ -29,10 +33,12 @@ def test_the_setting_chooses_the_folder(tmp_path, monkeypatch):
 
 
 def test_an_ayah_outside_the_prototype_is_none():
+    """An ayah outside the prototype is none."""
     assert reference.get_ayah(2, 255) is None
 
 
 def test_every_word_of_every_prototype_ayah_has_a_timing():
+    """Every word of every prototype ayah has a timing."""
     reference.load_ayat()
     for (surah, ayah), text in reference.ayat.items():
         positions = [word["position"] for word in text["words"]]
@@ -40,15 +46,18 @@ def test_every_word_of_every_prototype_ayah_has_a_timing():
 
 
 def test_the_timings_of_an_ayah_are_read_by_word_position():
+    """The timings of an ayah are read by word position."""
     assert reference.get_word_timings(1, 1)[2] == (520, 1240)
 
 
 def test_an_ayah_without_timings_raises():
+    """An ayah without timings raises."""
     with pytest.raises(ValueError):
         reference.get_word_timings(2, 255)
 
 
 def test_each_finding_gets_the_segment_of_its_word():
+    """Each finding gets the segment of its word."""
     findings = [
         make_finding(1, "ERR_MEM_OMISSION", 0.9, 0, 0),
         make_finding(3, "ERR_PRON_HARAKA", 0.8, 0, 0),
@@ -61,5 +70,6 @@ def test_each_finding_gets_the_segment_of_its_word():
 
 
 def test_a_finding_on_a_word_without_a_timing_raises():
+    """A finding on a word without a timing raises."""
     with pytest.raises(ValueError):
         reference.add_word_segments([make_finding(5, "ERR_MEM_OMISSION", 0.9, 0, 0)], {1: (0, 520)})

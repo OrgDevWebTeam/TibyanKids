@@ -1,4 +1,4 @@
-# The real check of one recorded ayah: decode, gate, both models, merge, word segments, decision.
+# The real check of one recorded ayah: decode, gate, both models, word segments, Whisper's decision (OD-02).
 import json
 import logging
 import threading
@@ -6,16 +6,12 @@ import time
 
 from app.adapters import muaalem, whisper_quran
 from app.audio import AudioError, check_quality, decode_audio
-from app.combine import combine_findings
 from app.policy import decide
 from app.reference import add_word_segments, get_ayah, get_word_timings
 from app.schemas import AnalysisResult
 
-COMBINED_MODEL = "combined"
-
 log = logging.getLogger("tibyan.ai")
 
-# One recording at a time, the gate included: two requests at once corrupted Silero VAD and crashed the service
 MODELS_LOCK = threading.Lock()
 
 models_loaded = False
@@ -48,20 +44,11 @@ def model_versions():
     ]
 
 
-def combined_version():
-    """Both exact model versions joined with " + " (OPS-008)."""
-    return " + ".join(f"{model['name']} {model['version']}" for model in model_versions())
-
-
-def elapsed_ms(started):
-    """Milliseconds since started (a time.perf_counter() value)."""
-    return int((time.perf_counter() - started) * 1000)
-
-
 def analyze_recording(audio_bytes, surah, ayah, level, attempt_id):
     """One AnalysisResult for a prototype ayah; raises AudioError or ModelFailed; logs one JSON line."""
     started = time.perf_counter()
-    log_entry = {"attemptId": attempt_id, "surah": surah, "ayah": ayah, "level": level, "ms": {}, "models": {}}
+    log_entry = {"attemptId": attempt_id, "surah": surah, "ayah": ayah, "level": level}
+    log_entry.update({"ms": {}, "models": {}})
     try:
         quality, decision, findings = check_recording(audio_bytes, surah, ayah, level, log_entry)
     except AudioError as error:
@@ -71,18 +58,26 @@ def analyze_recording(audio_bytes, surah, ayah, level, attempt_id):
         log_entry["error"] = "MODEL_FAILED"
         raise
     finally:
-        log_entry["ms"]["total"] = elapsed_ms(started)
+        log_entry["ms"]["total"] = int((time.perf_counter() - started) * 1000)
         log.info(json.dumps(log_entry))
 
     return AnalysisResult(
         attemptId=attempt_id,
-        model=COMBINED_MODEL,
-        modelVersion=combined_version(),
+        model=whisper_quran.NAME,
+        modelVersion=" + ".join(f"{model['name']} {model['version']}" for model in model_versions()),
         decision=decision,
         quality=quality,
         findings=findings,
-        processingMs=elapsed_ms(started),
+        processingMs=int((time.perf_counter() - started) * 1000),
     )
+
+
+def logged_findings(findings):
+    """Code, word and confidence of each finding, for the log line."""
+    return [
+        {"code": finding.code, "wordIndex": finding.wordIndex, "confidence": finding.confidence}
+        for finding in findings
+    ]
 
 
 def check_recording(audio_bytes, surah, ayah, level, log_entry):
@@ -91,12 +86,12 @@ def check_recording(audio_bytes, surah, ayah, level, log_entry):
 
     stage_started = time.perf_counter()
     samples = decode_audio(audio_bytes)
-    log_entry["ms"]["decode"] = elapsed_ms(stage_started)
+    log_entry["ms"]["decode"] = int((time.perf_counter() - stage_started) * 1000)
 
     with MODELS_LOCK:
         stage_started = time.perf_counter()
         quality, report, clip = check_quality(samples)
-        log_entry["ms"]["gate"] = elapsed_ms(stage_started)
+        log_entry["ms"]["gate"] = int((time.perf_counter() - stage_started) * 1000)
         log_entry["quality"] = quality
         log_entry["gate"] = report
         if quality != "ok":
@@ -109,7 +104,7 @@ def check_recording(audio_bytes, surah, ayah, level, log_entry):
         except Exception as error:
             log_entry["models"][muaalem.NAME] = "error"
             raise ModelFailed(muaalem.NAME) from error
-        log_entry["ms"][muaalem.NAME] = elapsed_ms(stage_started)
+        log_entry["ms"][muaalem.NAME] = int((time.perf_counter() - stage_started) * 1000)
         log_entry["models"][muaalem.NAME] = "ok"
 
         stage_started = time.perf_counter()
@@ -123,17 +118,13 @@ def check_recording(audio_bytes, surah, ayah, level, log_entry):
         except Exception as error:
             log_entry["models"][whisper_quran.NAME] = "error"
             raise ModelFailed(whisper_quran.NAME) from error
-        log_entry["ms"][whisper_quran.NAME] = elapsed_ms(stage_started)
+        log_entry["ms"][whisper_quran.NAME] = int((time.perf_counter() - stage_started) * 1000)
         log_entry["models"][whisper_quran.NAME] = "ok"
 
-    # No targeted tajweed rules per lesson yet (taxonomy 2.1): advanced stops like intermediate
-    findings = combine_findings(muaalem_findings, whisper_findings)
-    findings = add_word_segments(findings, get_word_timings(surah, ayah))
+    findings = add_word_segments(whisper_findings, get_word_timings(surah, ayah))
     decision, findings = decide(findings, level)
 
     log_entry["decision"] = decision
-    log_entry["findings"] = [
-        {"code": finding.code, "wordIndex": finding.wordIndex, "confidence": finding.confidence}
-        for finding in findings
-    ]
+    log_entry["findings"] = logged_findings(findings)
+    log_entry["muaalemFindings"] = logged_findings(muaalem_findings)
     return quality, decision, findings
