@@ -40,6 +40,16 @@ describe("apiRequest", () => {
     expect(init.headers).toEqual({ Authorization: "Bearer test-token" });
   });
 
+  it("sends no Authorization header without a token, for login and register", async () => {
+    const fetchMock = respond(200, { token: "t" });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await apiRequest("/api/v1/auth/login", { method: "POST", body: { email: "a@b.test" } });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(init.headers).toEqual({ "Content-Type": "application/json" });
+  });
+
   it("sends a JSON body on POST", async () => {
     const fetchMock = respond(201, { child: { id: "c1" } });
     vi.stubGlobal("fetch", fetchMock);

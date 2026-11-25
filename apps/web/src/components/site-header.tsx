@@ -1,26 +1,84 @@
-import { Link } from "react-router";
-import logoUrl from "@/assets/tibyan-logo.svg";
+import { buttonClasses, CloseIcon, MenuIcon } from "@tibyan/ui";
+import { useEffect, useId, useState } from "react";
+import { Link, useLocation } from "react-router";
+import logoArUrl from "@/assets/tibyan-logo-ar.svg";
+import logoEnUrl from "@/assets/tibyan-logo.svg";
+import { type Locale } from "@/i18n/config";
 import { useI18n } from "@/i18n/locale-data";
+import { useSession } from "@/lib/session/session-store";
 import { LanguageSwitcher } from "./language-switcher";
 
-/** Top bar on every page: the logo as a home link, and the language switcher (X01). */
+// The design system's logo in each language (Logo page: tibyan-final-logo 8 and 9), with its
+// width at the header's 40px height.
+const LOGOS: Record<Locale, { src: string; width: number }> = {
+  ar: { src: logoArUrl, width: 173 },
+  en: { src: logoEnUrl, width: 210 },
+};
+
+/**
+ * Top bar on every page (Navigation/Website header): the logo as a home link, the language
+ * switcher (X01) and, for a visitor without a session, "Log in" and "Start free". On phones the
+ * switcher and the actions sit behind a menu button. The design's page links (Programs, How it
+ * works, Pricing, About) come with their pages.
+ */
 export function SiteHeader() {
   const { dict, locale } = useI18n();
+  const session = useSession();
+  const { pathname } = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuId = useId();
+  const logo = LOGOS[locale];
+
+  // A new page closes the phone menu.
+  useEffect(() => setMenuOpen(false), [pathname]);
+
+  const switcher = <LanguageSwitcher current={locale} label={dict.languageSwitcher.label} />;
+  const actions = session.status !== "signed-in" && (
+    <>
+      <Link to={`/${locale}/sign-in`} className={buttonClasses("ghost")}>
+        {dict.header.logIn}
+      </Link>
+      <Link to={`/${locale}/sign-up`} className={buttonClasses("primary")}>
+        {dict.header.startFree}
+      </Link>
+    </>
+  );
 
   return (
-    <header className="border-b border-line">
-      <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-        {/* The logo from the design system; the product name is its text for screen readers. */}
+    <header className="border-b border-line bg-surface">
+      <div className="mx-auto flex w-full max-w-[73.75rem] items-center justify-between gap-4 px-4 py-3 sm:px-6">
+        {/* The product name is the logo's text for screen readers. */}
         <Link to={`/${locale}`} className="inline-flex">
           <img
-            src={logoUrl}
+            src={logo.src}
             alt={dict.meta.title}
-            width={138}
+            width={logo.width}
             height={40}
             className="h-10 w-auto"
           />
         </Link>
-        <LanguageSwitcher current={locale} label={dict.languageSwitcher.label} />
+        <div className="hidden items-center gap-4 md:flex">
+          {switcher}
+          {actions}
+        </div>
+        <button
+          type="button"
+          aria-expanded={menuOpen}
+          aria-controls={menuId}
+          aria-label={menuOpen ? dict.header.closeMenu : dict.header.openMenu}
+          onClick={() => setMenuOpen((open) => !open)}
+          className="grid size-11 place-items-center rounded-control text-on-secondary hover:bg-background focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus md:hidden"
+        >
+          {menuOpen ? <CloseIcon className="size-6" /> : <MenuIcon className="size-6" />}
+        </button>
+      </div>
+      <div
+        id={menuId}
+        hidden={!menuOpen}
+        className="flex flex-col gap-3 border-t border-line px-4 py-4 md:hidden"
+      >
+        {switcher}
+        {actions}
       </div>
     </header>
   );

@@ -19,13 +19,13 @@
   --font-ui: "Baloo Bhaijaan 2 Variable";
 }
 
-/* Body text from the design system: Medium, 16/24 in English and 21/38 in Arabic. */
+/* Body text from the design system: Medium, 16/24 in English and 16/28 in Arabic. */
 :root {
   --leading-ui: 1.5;
 }
 
 :root[lang="ar"] {
-  --leading-ui: 1.81;
+  --leading-ui: 1.75;
 }
 
 body {

@@ -23,13 +23,16 @@ export type ApiResult<T> = { ok: true; data: T } | { ok: false; error: ApiError 
 
 /** What `apiRequest` sends besides the path. */
 export type ApiRequestOptions = {
-  method?: "GET" | "POST";
-  /** The signed-in account's bearer token. Every API route except health needs one (ADR-0006). */
-  token: string;
+  method?: "GET" | "POST" | "PATCH";
+  /**
+   * The signed-in account's bearer token. Every API route needs one (ADR-0006), except health,
+   * register, login and verify-email.
+   */
+  token?: string;
   body?: unknown;
 };
 
-// Empty means same origin: the Vite dev server proxies /v1 to the API.
+// Empty means same origin: the Vite dev server proxies /api to the API.
 const API_BASE_URL = String(import.meta.env.VITE_API_BASE_URL ?? "");
 
 const KIND_BY_STATUS: Partial<Record<number, ApiErrorKind>> = {
@@ -74,7 +77,7 @@ export async function apiRequest<T>(
     response = await fetch(`${API_BASE_URL}${path}`, {
       method,
       headers: {
-        Authorization: `Bearer ${token}`,
+        ...(token === undefined ? {} : { Authorization: `Bearer ${token}` }),
         ...(body === undefined ? {} : { "Content-Type": "application/json" }),
       },
       body: body === undefined ? undefined : JSON.stringify(body),

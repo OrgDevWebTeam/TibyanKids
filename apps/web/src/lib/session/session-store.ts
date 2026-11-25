@@ -1,7 +1,7 @@
 import { type Role } from "@tibyan/contracts/roles";
 import { useSyncExternalStore } from "react";
 
-/** The signed-in account, as GET /v1/me returns it. */
+/** The signed-in account, from the API's login or register answer. */
 export type Account = { userId: string; roles: Role[]; familyId: string | null };
 
 /** The child using the app after a correct PIN on G08. Only what the screens show. */
@@ -12,6 +12,8 @@ export type SignedInSession = {
   status: "signed-in";
   token: string;
   account: Account;
+  /** The parent's name from the API, for the dashboard's greeting and menu. */
+  name?: string;
   activeChild?: ActiveChild;
 };
 
@@ -43,8 +45,8 @@ export function getSession(): Session {
 }
 
 /** Starts a session after sign-in. It replaces any previous session, active child included. */
-export function signIn(token: string, account: Account) {
-  update({ status: "signed-in", token, account });
+export function signIn(token: string, account: Account, name?: string) {
+  update({ status: "signed-in", token, account, name });
 }
 
 /** Ends the session and forgets the token and the active child. */
@@ -61,7 +63,12 @@ export function setActiveChild(child: ActiveChild) {
 /** Leaves child mode (X05). */
 export function clearActiveChild() {
   if (current.status !== "signed-in" || !current.activeChild) return;
-  update({ status: "signed-in", token: current.token, account: current.account });
+  update({
+    status: "signed-in",
+    token: current.token,
+    account: current.account,
+    name: current.name,
+  });
 }
 
 /** The current session; the component re-renders when it changes. */

@@ -4,13 +4,168 @@
     "description": "A personalized growth platform for Muslim children."
   },
   "landing": {
-    "title": "Tibyan Kids",
-    "subtitle": "A personalized growth platform for Muslim children."
+    "skip": "Skip to content",
+    "navLabel": "Main",
+    "menu": "Menu",
+    "nav": {
+      "worlds": "Worlds",
+      "preview": "Child's view",
+      "how": "How it works"
+    },
+    "start": "Get started",
+    "signup": "Sign up",
+    "characters": {
+      "asia": "Asia",
+      "sham": "Sham"
+    },
+    "hero": {
+      "titleStart": "Help your child ",
+      "titleEm": "fall in love",
+      "titleEnd": " with Arabic and the Quran",
+      "sub": "Start at your child's level, then guide them word by word through short challenges, with stories for each child and a pet who loves to see them learn.",
+      "seeHow": "See how it works",
+      "altAsia": "{asia}, wearing glasses, a navy hijab and a space suit, standing beside {sham} on the moon",
+      "altSham": "{sham}, wearing a lavender hijab and space suit, standing on the moon"
+    },
+    "worlds": {
+      "titleStart": "Everything Your Child Learns,",
+      "titleLine": "in ",
+      "titleEm": "Five Connected Worlds",
+      "label": "Five learning worlds",
+      "role": "carousel",
+      "roleSlide": "slide",
+      "slide": "{n} of {t}: {name}",
+      "prev": "Previous world",
+      "next": "Next world",
+      "goto": "Show world {n} of {t}: {name}",
+      "status": "World {n} of {t}: {name}",
+      "quran": {
+        "subject": "Quran",
+        "name": "Moonlight Observatory",
+        "desc": "A calm, focused space for recitation, memorisation and understanding, guided by a teacher.",
+        "b1": "Correct recitation (tajweed), step by step",
+        "b2": "Memorisation at your child's pace",
+        "b3": "Simple meanings and stories"
+      },
+      "arabic": {
+        "subject": "Arabic language",
+        "name": "Letter Galaxy",
+        "desc": "From first letters to confident reading, writing and speaking, through stories, songs and games.",
+        "b1": "Letters, sounds and handwriting",
+        "b2": "Reading and vocabulary that grow with age",
+        "b3": "Speaking with confidence"
+      },
+      "akhlaq": {
+        "subject": "Character (Akhlaq)",
+        "name": "Coral Sunrise",
+        "desc": "Kindness, honesty, gratitude and respect, practised through real-life missions.",
+        "b1": "Everyday manners and kindness",
+        "b2": "Stories of the Prophets and Companions",
+        "b3": "Missions to try at home with family"
+      },
+      "faith": {
+        "subject": "Faith (Iman)",
+        "name": "Faith Nebula",
+        "desc": "The foundations of belief, explained gently and with love, so children understand what they believe and why.",
+        "b1": "The pillars of Islam and iman, made simple",
+        "b2": "Wudu, salah and daily duas, step by step",
+        "b3": "Stories from the life of the Prophet ﷺ"
+      },
+      "future": {
+        "subject": "Future skills",
+        "name": "Star Quest",
+        "desc": "Thinking, creating and working together: practical skills for a changing world, taught with the same values.",
+        "b1": "Problem solving and logic puzzles",
+        "b2": "Digital safety and healthy screen habits",
+        "b3": "Teamwork, presenting and creative projects, in Arabic and English"
+      }
+    },
+    "preview": {
+      "title": "Step inside your child's universe",
+      "sub": "The app grows with your child. Choose an age band to see what they see at each stage.",
+      "caption": "This is what your child sees.",
+      "agesLabel": "Age band",
+      "range": "Ages {range}",
+      "changes": "What changes at this stage",
+      "explorer": {
+        "name": "Little Explorer",
+        "text": "Bright, playful and picture-led. Short lessons, big star rewards and plenty of encouragement for every small win.",
+        "b1": "Letters and sounds through songs and games",
+        "b2": "Short surahs with gentle repetition",
+        "b3": "Mostly icons, so very little reading is needed",
+        "aria": "App preview for ages {range}: big planets, star rewards and a meter showing how many meals their pet has had today."
+      },
+      "navigator": {
+        "name": "Star Navigator",
+        "text": "More reading and more independence. Streaks, constellation maps and team challenges add a sense of strategy.",
+        "b1": "Reading fluency and new vocabulary",
+        "b2": "Steady memorisation with tajweed basics",
+        "b3": "Daily streaks and a friendly team league",
+        "aria": "App preview for ages {range}: a constellation map of lessons, a daily streak and a team league table."
+      },
+      "captain": {
+        "name": "Space Captain",
+        "text": "Feels like a premium app, never babyish. A calmer design, deeper content and progress shown as goals and charts.",
+        "b1": "Writing, grammar and expressive speaking",
+        "b2": "Deeper understanding of meanings",
+        "b3": "Self-set goals and mastery tracking",
+        "aria": "App preview for ages {range}: a weekly focus-time goal, a progress chart and mastery bars for each subject."
+      }
+    },
+    "mock": {
+      "level": "Level {n}",
+      "locked": "Locked",
+      "pet": "Pet's meals",
+      "meals": "{a} / {b}",
+      "streak": "{n}-day streak",
+      "map": "Constellation map",
+      "league": "Team league",
+      "team1": "Comet Crew",
+      "team2": "Nova Team",
+      "team3": "Orbit Owls",
+      "goals": "Weekly goals",
+      "week": "This week",
+      "hours": "{a} / {b} h",
+      "focus": "Focus time",
+      "trend": "Last {n} days",
+      "mastery": "Mastery"
+    },
+    "how": {
+      "eyebrow": "How it works",
+      "title": "Getting started takes a few minutes",
+      "s1": "Create your account",
+      "s1t": "Sign up as a parent in a few minutes and add your child.",
+      "s2": "Take a short assessment",
+      "s2t": "A short, child-friendly assessment helps us find the right starting level for your child.",
+      "s3": "Explore the worlds",
+      "s3t": "Your child joins live classes and practises between them in the app.",
+      "s4": "Feed their pet",
+      "s4t": "Every challenge your child finishes feeds their pet and keeps it healthy."
+    },
+    "pet": {
+      "eyebrow": "Their learning pet",
+      "title": "Every challenge is a meal",
+      "text": "Each stage your child completes feeds their space pet. Keep learning and it stays healthy, happy and by their side. Stop for too long and it gets hungry.",
+      "meter": "{a} of {b} meals today",
+      "meterAria": "Pet meter: {a} of {b} meals today"
+    },
+    "final": {
+      "title": "Ready for lift-off?",
+      "sub": "Join the crew and watch your child light up. Creating your parent account takes a few minutes."
+    },
+    "footer": {
+      "tag": "Arabic, Quran, character, faith and future skills for children aged {range}.",
+      "explore": "Explore",
+      "note": "Child safety and privacy: we never show ads or sell personal data. Children's accounts are created and managed by parents.",
+      "copy": "© {year} Tibyan Kids. All rights reserved."
+    }
   },
   "screens": {
     "profiles": "Choose a profile",
     "addChild": "Add a child",
-    "today": "Today"
+    "today": "Today",
+    "dashboard": "Parent dashboard",
+    "childProfile": "Child profile"
   },
   "common": {
     "retry": "Try again",
@@ -18,6 +173,12 @@
   },
   "languageSwitcher": {
     "label": "Language"
+  },
+  "header": {
+    "logIn": "Log in",
+    "startFree": "Start free",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu"
   },
   "profiles": {
     "title": "Who is learning today?",
@@ -33,27 +194,57 @@
     "chooseAnother": "Choose another profile"
   },
   "addChild": {
-    "intro": "Children need only a name or nickname and a birth year. No email or phone number.",
-    "nameLabel": "Name or nickname",
-    "nameHint": "Shown in the app. A nickname is fine.",
-    "birthYearLabel": "Birth year",
-    "birthYearPrompt": "Choose a year",
-    "pinLabel": "Child's PIN",
-    "pinHint": "4 digits. Your child uses it to open their profile.",
-    "pinConfirmLabel": "Type the PIN again",
-    "submit": "Save",
+    "intro": "About a minute. You can edit everything later.",
+    "details": "Child details",
+    "nameLabel": "Name",
+    "nameHint": "Shown on the star map.",
+    "dateOfBirthLabel": "Date of birth",
+    "dateOfBirthHint": "Shown on the star map.",
+    "ageLabel": "Age",
+    "ageValue": {
+      "one": "{count} year · calculated",
+      "few": "{count} years · calculated",
+      "other": "{count} years · calculated"
+    },
+    "ageHint": "Updates automatically on birthdays",
+    "homeLanguageLabel": "Home language",
+    "homeLanguageHint": "Used for stories, voice and instructions",
+    "languages": {
+      "ar": "Arabic",
+      "en": "English"
+    },
+    "interests": {
+      "heading": "Interests",
+      "intro": "Pick a few or add your own — we’ll shape stories around them.",
+      "picked": "Picked",
+      "suggestions": "Suggestions",
+      "suggested": [
+        "Space",
+        "Animals",
+        "Stories",
+        "Horse riding",
+        "Drawing",
+        "Football",
+        "Science",
+        "Nature",
+        "Building"
+      ],
+      "ownLabel": "Add your own interest",
+      "ownPlaceholder": "e.g. Cooking",
+      "ownHint": "Shown on the star map.",
+      "ownButton": "Add interest",
+      "add": "Add {name}",
+      "remove": "Remove {name}"
+    },
+    "submit": "Add child",
     "errors": {
       "required": "Please fill in this field.",
       "tooLong": "Use 50 characters or fewer.",
-      "pinFormat": "Use exactly 4 digits.",
-      "pinMismatch": "The two PINs do not match."
+      "ageRange": "Tibyan Kids is for children aged 6 to 14.",
+      "interestTooLong": "Keep each interest to 50 characters or fewer.",
+      "tooManyInterests": "Add up to 20 interests."
     },
-    "saveFailed": "We could not save. What you typed is still here; please try again.",
-    "pinFailed": "The child was added, but the PIN was not saved. Please try again.",
-    "savedTitle": "Child added",
-    "savedBody": "You can add another child or continue to the next step.",
-    "addAnother": "Add another child",
-    "continue": "Continue"
+    "saveFailed": "We could not save. What you typed is still here; please try again."
   },
   "today": {
     "emptyTitle": "Nothing is planned for today",
@@ -76,7 +267,175 @@
     "title": "We will be back soon",
     "body": "Tibyan Kids is being updated. Please try again a little later."
   },
+  "familyTasks": {
+    "title": "Family tasks",
+    "subtitle": "Small things to do together at home. Tell us how each one went.",
+    "sectionOpen": "To do",
+    "sectionPast": "Earlier",
+    "status": {
+      "pending": "Open now",
+      "completed": "Done",
+      "expired": "Ended"
+    },
+    "minutes": "About {minutes} min",
+    "howDidItGo": "How did it go?",
+    "oneTap": "One tap",
+    "choices": {
+      "independent": "On their own",
+      "reminder": "After a reminder",
+      "not_observed": "Not yet"
+    },
+    "chooseFirst": "Choose how it went first.",
+    "addNote": "Add a note (optional)",
+    "noteLabel": "Note (optional)",
+    "notePlaceholder": "Anything you want to remember",
+    "noteTooLong": "Use 500 characters or fewer.",
+    "yourNote": "Your note",
+    "confirm": "Confirm mission",
+    "saving": "Saving…",
+    "saved": "Saved. Thank you!",
+    "saveFailed": "We couldn't save it. Your answer is still here, try again.",
+    "endedBody": "This task has ended.",
+    "emptyTitle": "No family tasks yet",
+    "emptyBody": "A task appears here after your child finishes a lesson."
+  },
+  "dashboard": {
+    "accountMenu": "Account menu",
+    "logOut": "Log out",
+    "children": "Children",
+    "byAge": "By age",
+    "childrenLabel": "Your children",
+    "age": {
+      "few": "Age {count}",
+      "other": "Age {count}"
+    },
+    "selected": "selected",
+    "viewProfile": "View child profile",
+    "addChild": "Add child",
+    "back": "Back to dashboard",
+    "tabsLabel": "Child pages",
+    "tabs": {
+      "home": "Dashboard",
+      "tasks": "Family tasks"
+    },
+    "greeting": {
+      "morning": "Good morning, {name}",
+      "afternoon": "Good afternoon, {name}",
+      "evening": "Good evening, {name}"
+    },
+    "greetingNoName": {
+      "morning": "Good morning",
+      "afternoon": "Good afternoon",
+      "evening": "Good evening"
+    },
+    "intro": "Here's what matters for {child} today — about 30 seconds.",
+    "priorities": "Today's priorities",
+    "todayTasks": "Today's tasks",
+    "todayTasksSub": "Real-life missions, spread through the day",
+    "allTasks": "All tasks",
+    "allCaughtUp": "Nothing is waiting for you right now.",
+    "profile": {
+      "info": "Profile information",
+      "edit": "Edit profile information",
+      "saved": "Changes saved",
+      "name": "Name",
+      "dateOfBirth": "Date of birth",
+      "age": "Age (calculated)",
+      "years": {
+        "one": "{count} year",
+        "few": "{count} years",
+        "other": "{count} years"
+      },
+      "homeLanguage": "Home language",
+      "interests": "Interests",
+      "noInterests": "None added yet",
+      "save": "Save changes",
+      "saving": "Saving…",
+      "cancel": "Cancel"
+    }
+  },
   "agent": {
     "name": "Adeeb"
+  },
+  "auth": {
+    "heading": "Tibyan Kids account",
+    "welcomeLoginTitle": "Welcome Back!",
+    "welcomeLoginBody": "Log in to see how your child is doing.",
+    "welcomeSignupTitle": "Get Started with Tibyan Kids",
+    "welcomeSignupBody": "Create your account to follow your child's learning journey.",
+    "salam": "As-salamu alaykum!",
+    "peek": "I'm not peeking!",
+    "hooray": "Hooray!",
+    "letsGo": "Let's go!",
+    "mute": "Mute voice",
+    "unmute": "Turn voice on",
+    "loginTitle": "Log in",
+    "chooseAccount": "Choose an account to continue.",
+    "useAnother": "Use another account",
+    "accountTile": "Log in as {name}, {email}",
+    "forgetAccount": "Forget {name} on this device",
+    "forgotten": "{name} was removed from this device.",
+    "change": "Change",
+    "changeLabel": "Choose a different account",
+    "selectedAccount": "Selected account",
+    "savedLink": "Choose a saved account",
+    "name": "Name",
+    "namePlaceholder": "Your name",
+    "email": "Email",
+    "emailPlaceholder": "name@example.com",
+    "password": "Password",
+    "passwordPlaceholder": "At least 8 characters",
+    "confirm": "Confirm password",
+    "confirmPlaceholder": "Type it again",
+    "country": "Country (optional)",
+    "countryPlaceholder": "Choose your country",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "rememberMe": "Remember me",
+    "loginButton": "Log in",
+    "loggingIn": "Logging in…",
+    "signupTitle": "Create your account",
+    "signupSub": "For parents and guardians.",
+    "signupButton": "Sign up",
+    "signingUp": "Creating your account…",
+    "policy": "I'm a parent or guardian, and I agree to the Terms of Use and Privacy Policy.",
+    "haveAccount": "Already have an account?",
+    "noAccount": "Don't have an account?",
+    "signupLink": "Sign up",
+    "loginLink": "Log in",
+    "errors": {
+      "nameRequired": "Enter your name.",
+      "nameTooLong": "Use 80 characters or fewer.",
+      "emailRequired": "Enter your email.",
+      "emailInvalid": "Enter a valid email, like name@example.com.",
+      "passwordRequired": "Enter your password.",
+      "passwordTooShort": "Use at least 8 characters.",
+      "confirmRequired": "Type your password again.",
+      "confirmMismatch": "Passwords don't match.",
+      "policyRequired": "Please tick the box to continue."
+    },
+    "fixErrors": "Please check the fields marked with an error.",
+    "wrongCredentials": "The email or password is not correct.",
+    "emailTaken": "This email already has an account. Log in instead.",
+    "serverError": "We could not reach Tibyan Kids. Please try again.",
+    "emailOk": "Looks good",
+    "confirmOk": "Passwords match",
+    "strength": "Strength: {level}",
+    "strengthLevels": {
+      "1": "too short",
+      "2": "okay",
+      "3": "strong"
+    },
+    "strengthTip": "Tip: mix letters, numbers and a symbol.",
+    "done": "Done!",
+    "successLogin": "Welcome Back, {name}!",
+    "successSignup": "Welcome Aboard, {name}!",
+    "successBody": "Step into your dashboard to follow your child's progress.",
+    "continue": "Continue",
+    "opening": "Opening your dashboard…",
+    "announceAccounts": "Saved accounts. Choose one to log in.",
+    "announceLogin": "Log in form.",
+    "announcePassword": "Enter the password for {name}.",
+    "announceSignup": "Sign up form."
   }
 }

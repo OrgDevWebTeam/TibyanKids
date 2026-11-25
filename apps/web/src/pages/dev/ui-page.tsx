@@ -44,6 +44,7 @@ const SAMPLES = {
       body: "سيُطلب منك رمز ولي الأمر.",
       confirm: "متابعة",
       cancel: "إلغاء",
+      close: "إغلاق",
     },
     pin: {
       pad: "أدخل الرمز السري",
@@ -79,6 +80,7 @@ const SAMPLES = {
       body: "You will be asked for the parent PIN.",
       confirm: "Continue",
       cancel: "Cancel",
+      close: "Close",
     },
     pin: {
       pad: "Enter your PIN",

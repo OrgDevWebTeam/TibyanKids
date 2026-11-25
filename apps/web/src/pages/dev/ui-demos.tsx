@@ -7,6 +7,7 @@ type DialogDemoLabels = {
   body: string;
   confirm: string;
   cancel: string;
+  close: string;
 };
 
 export function DialogDemo({ labels }: { labels: DialogDemoLabels }) {
@@ -21,6 +22,7 @@ export function DialogDemo({ labels }: { labels: DialogDemoLabels }) {
         open={open}
         onClose={() => setOpen(false)}
         title={labels.title}
+        closeLabel={labels.close}
         actions={
           <>
             <Button variant="ghost" onClick={() => setOpen(false)}>

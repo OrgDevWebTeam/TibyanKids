@@ -1,3 +1,4 @@
+import { LanguagesIcon } from "@tibyan/ui";
 import { Link, useLocation } from "react-router";
 import { LOCALES, LOCALE_NAMES, textDirection, type Locale } from "@/i18n/config";
 import { localizedPath } from "@/i18n/paths";
@@ -9,7 +10,10 @@ type LanguageSwitcherProps = {
   label: string;
 };
 
-/** X01 — opens the same page in the other language and remembers the choice. */
+/**
+ * X01: opens the same page in the other language and remembers the choice. As in the design
+ * system's website header, it shows the other language in its own script with the languages icon.
+ */
 export function LanguageSwitcher({ current, label }: LanguageSwitcherProps) {
   const { pathname, search } = useLocation();
   const others = LOCALES.filter((locale) => locale !== current);
@@ -24,9 +28,12 @@ export function LanguageSwitcher({ current, label }: LanguageSwitcherProps) {
               hrefLang={locale}
               lang={locale}
               dir={textDirection(locale)}
+              // The same page in the other language: keep the scroll position.
+              preventScrollReset
               onClick={() => rememberLocale(locale)}
-              className="rounded-md px-2 py-1 text-sm font-medium underline-offset-4 hover:underline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus"
+              className="inline-flex min-h-11 items-center gap-2 rounded-md px-2 font-medium underline-offset-4 hover:underline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus"
             >
+              <LanguagesIcon className="size-5" />
               {LOCALE_NAMES[locale]}
             </Link>
           </li>
