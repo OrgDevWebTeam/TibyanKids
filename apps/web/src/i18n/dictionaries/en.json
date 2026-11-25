@@ -78,7 +78,8 @@
         "b1": "Problem solving and logic puzzles",
         "b2": "Digital safety and healthy screen habits",
         "b3": "Teamwork, presenting and creative projects, in Arabic and English"
-      }
+      },
+      "keys": "Learning worlds. Use the left and right arrow keys to move between worlds."
     },
     "preview": {
       "title": "Step inside your child's universe",
@@ -158,7 +159,21 @@
       "explore": "Explore",
       "note": "Child safety and privacy: we never show ads or sell personal data. Children's accounts are created and managed by parents.",
       "copy": "© {year} Tibyan Kids. All rights reserved."
-    }
+    },
+    "rangeFormat": {
+      "few": "{min}–{max}",
+      "other": "{min}–{max}"
+    },
+    "rail": {
+      "label": "Page sections",
+      "hero": "Welcome"
+    },
+    "langShort": "ع",
+    "langAria": "العربية · Switch to Arabic",
+    "themeAria": "Dark theme",
+    "metaTitle": "{brand} — Arabic, Quran & character for kids {range}",
+    "metaDesc": "Joyful lessons in Arabic and English, Quran, character, faith and future skills for children aged {range}, in a safe, ad-free world of planets and stars. Parents follow every step.",
+    "petAlt": "Their learning pet, a small purple space creature, happy and well fed"
   },
   "screens": {
     "profiles": "Choose a profile",
@@ -269,9 +284,7 @@
   },
   "familyTasks": {
     "title": "Family tasks",
-    "subtitle": "Small things to do together at home. Tell us how each one went.",
-    "sectionOpen": "To do",
-    "sectionPast": "Earlier",
+    "subtitle": "Real-life missions linked to a value — never homework.",
     "status": {
       "pending": "Open now",
       "completed": "Done",
@@ -297,11 +310,45 @@
     "saveFailed": "We couldn't save it. Your answer is still here, try again.",
     "endedBody": "This task has ended.",
     "emptyTitle": "No family tasks yet",
-    "emptyBody": "A task appears here after your child finishes a lesson."
+    "emptyBody": "A task appears here after your child finishes a lesson.",
+    "parentTip": "Parent tip",
+    "now": "Now",
+    "tip": "Tip: {tip}",
+    "answered": {
+      "independent": "on their own",
+      "reminder": "after a reminder",
+      "not_observed": "not yet"
+    },
+    "domains": {
+      "faith": "Faith",
+      "quran": "Quran",
+      "arabic": "Arabic",
+      "character": "Manners",
+      "future_skills": "Future skills"
+    },
+    "loop": {
+      "title": "How a family task works",
+      "story": "Watch a story",
+      "decision": "Decision challenge",
+      "concept": "Learn the concept",
+      "mission": "Real-life mission"
+    },
+    "dayProgress": {
+      "zero": "{done} of {total} missions done today",
+      "one": "{done} of {total} missions done today",
+      "two": "{done} of {total} missions done today",
+      "few": "{done} of {total} missions done today",
+      "many": "{done} of {total} missions done today",
+      "other": "{done} of {total} missions done today"
+    },
+    "todayHeading": "Today's tasks",
+    "pendingTitle": "Pending observations",
+    "pendingSub": "From yesterday — still counts toward growth"
   },
   "dashboard": {
     "accountMenu": "Account menu",
     "logOut": "Log out",
+    "darkMode": "Dark mode",
     "children": "Children",
     "byAge": "By age",
     "childrenLabel": "Your children",
@@ -330,6 +377,7 @@
     },
     "intro": "Here's what matters for {child} today — about 30 seconds.",
     "priorities": "Today's priorities",
+    "progress": "{done} of {total} done · one tap each",
     "todayTasks": "Today's tasks",
     "todayTasksSub": "Real-life missions, spread through the day",
     "allTasks": "All tasks",
@@ -436,6 +484,8 @@
     "announceAccounts": "Saved accounts. Choose one to log in.",
     "announceLogin": "Log in form.",
     "announcePassword": "Enter the password for {name}.",
-    "announceSignup": "Sign up form."
+    "announceSignup": "Sign up form.",
+    "langAria": "التبديل إلى العربية · Switch to Arabic",
+    "langChanged": "Language changed to English."
   }
 }

@@ -11,6 +11,7 @@ const base: FamilyMission = {
   title: "Set the table together",
   description: "Let them choose where each plate goes.",
   estimatedMinutes: 10,
+  assignedAt: "2026-11-25T08:00:00.000Z",
 };
 const render = (mission: FamilyMission) =>
   renderToStaticMarkup(

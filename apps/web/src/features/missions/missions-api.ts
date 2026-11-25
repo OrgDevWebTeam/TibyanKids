@@ -13,6 +13,9 @@ export const NOTE_MAX_LENGTH = 500;
 /** open (waiting for the parent), done (observed) or ended (not observed in time). */
 export type MissionStatus = "pending" | "completed" | "expired";
 
+/** The growth domains a mission belongs to, as the API names them. */
+export type MissionDomain = "faith" | "quran" | "arabic" | "character" | "future_skills";
+
 export type FamilyMission = {
   /** The assignment's id: the parent observes this. */
   id: string;
@@ -20,13 +23,25 @@ export type FamilyMission = {
   title: string;
   description: string;
   estimatedMinutes?: number;
+  domain?: MissionDomain;
+  /** When the mission was given (ISO time). */
+  assignedAt: string;
+  /** When the parent answered (ISO time), if they did. */
+  completedAt?: string;
   observation?: { status: Observation; note?: string };
 };
 
 type ApiMission = {
   id: string;
   status: MissionStatus;
-  mission: { title: string; description?: string; estimatedMinutes?: number } | null;
+  assignedAt: string;
+  completedAt: string | null;
+  mission: {
+    title: string;
+    description?: string;
+    estimatedMinutes?: number;
+    domain?: MissionDomain;
+  } | null;
   observation: { status: Observation; note?: string } | null;
 };
 
@@ -37,6 +52,9 @@ function toFamilyMission(item: ApiMission): FamilyMission {
     title: item.mission?.title ?? "",
     description: item.mission?.description ?? "",
     estimatedMinutes: item.mission?.estimatedMinutes,
+    domain: item.mission?.domain,
+    assignedAt: item.assignedAt,
+    completedAt: item.completedAt ?? undefined,
     observation: item.observation ?? undefined,
   };
 }

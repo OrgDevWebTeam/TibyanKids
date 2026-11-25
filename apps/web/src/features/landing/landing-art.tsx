@@ -57,6 +57,67 @@ export const GlobeIcon = ({ className }: IconProps) => (
   </Icon>
 );
 
+export const MoonIcon = ({ className }: IconProps) => (
+  <Icon className={className}>
+    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+  </Icon>
+);
+
+export const SunIcon = ({ className }: IconProps) => (
+  <Icon className={className}>
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+  </Icon>
+);
+
+/** The journey rail's rocket, from the designer's file. It points the way the page scrolls. */
+export const Rocket = () => (
+  <svg
+    className="lp-rail-rocket"
+    width="24"
+    height="44"
+    viewBox="0 0 48 96"
+    aria-hidden="true"
+    focusable="false"
+  >
+    <path
+      d="M15 47 5 68l11-5m17-16 10 21-11-5"
+      fill="var(--lp-violet-400)"
+      stroke="var(--lp-violet-200)"
+      strokeWidth="2"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M24 4C14 16 12 31 13 51l3 17h16l3-17C36 31 34 16 24 4Z"
+      fill="#fff"
+      stroke="var(--lp-violet-400)"
+      strokeWidth="2.5"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M19 18c-3 9-4 19-3 27"
+      fill="none"
+      stroke="#e9e4ff"
+      strokeWidth="3"
+      strokeLinecap="round"
+    />
+    <circle
+      cx="24"
+      cy="35"
+      r="6"
+      fill="var(--lp-violet-500)"
+      stroke="var(--lp-violet-200)"
+      strokeWidth="2"
+    />
+    <path d="M18 59h12l-2 8h-8Z" fill="var(--lp-violet-200)" />
+    <rect x="18" y="69" width="12" height="5" rx="2.5" fill="var(--lp-mint-500)" />
+    <g className="lp-rail-flame">
+      <path d="M17.5 76.5q6.5 21 13 0z" fill="var(--lp-mint-500)" opacity=".9" />
+      <path d="M21 76.5q3 11 6 0z" fill="#e3faf0" opacity=".85" />
+    </g>
+  </svg>
+);
+
 export const LockIcon = ({ className }: IconProps) => (
   <Icon className={className}>
     <rect x="5" y="10" width="14" height="10" rx="3" />

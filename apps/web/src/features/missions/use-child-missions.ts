@@ -48,6 +48,7 @@ export function useChildMissions(childId: string, savedText: string) {
                   ? {
                       ...item,
                       status: "completed",
+                      completedAt: new Date().toISOString(),
                       observation: { status: answer.status, note: answer.note },
                     }
                   : item,

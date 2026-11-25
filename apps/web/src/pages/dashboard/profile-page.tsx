@@ -81,7 +81,7 @@ function Profile({ child }: { child: ChildDetails }) {
       </Link>
 
       <header className={`flex flex-wrap items-center gap-4 ${CARD}`}>
-        <Avatar name={child.name} size="xl" />
+        <Avatar name={child.name} size="profile" />
         <div className="flex min-w-0 flex-col gap-1">
           <h1 className="text-3xl leading-10 font-bold text-ink">
             <bdi>{child.name}</bdi>

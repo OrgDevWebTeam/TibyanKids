@@ -1,21 +1,23 @@
 import { Skeleton } from "@tibyan/ui";
-import { useState } from "react";
+import { useEffect, useId, useState } from "react";
 import {
   Outlet,
   redirect,
   useLoaderData,
+  useLocation,
   useNavigation,
   type LoaderFunctionArgs,
 } from "react-router";
 import { LoadFailed } from "@/components/load-failed";
 import { type ChildDetails, listChildDetails } from "@/features/children/children-api";
 import { childAge, sortByAge } from "@/features/children/child-profile";
-import { ParentSidebar, ParentTopBar } from "@/features/dashboard/parent-frame";
+import { ParentSidebar, ParentTopBar, SidebarDrawer } from "@/features/dashboard/parent-frame";
 import { plural } from "@/i18n/format";
 import { useI18n } from "@/i18n/locale-data";
 import { type ApiResult } from "@/lib/api/client";
 import { areaRedirect } from "@/lib/session/area-access";
 import { getSession, useSession } from "@/lib/session/session-store";
+import { useTheme } from "@/lib/theme";
 import { type DashboardContext } from "./dashboard-context";
 
 // The parent dashboard's frame (Figma "Parent Dashboard"): top bar, the children in the sidebar,
@@ -62,18 +64,57 @@ export function Component() {
     return { id: kid.id, name: kid.name, details };
   });
 
+  const [theme, changeTheme] = useTheme();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuId = useId();
+  const { pathname } = useLocation();
+
+  // A new page closes the phone menu.
+  useEffect(() => setMenuOpen(false), [pathname]);
+
+  function choose(childId: string) {
+    setSelectedId(childId);
+    setMenuOpen(false);
+  }
+
+  const sidebar = kids.length > 0 && (
+    <ParentSidebar kids={sidebarKids} selectedId={child?.id} onSelect={choose} />
+  );
+
   return (
-    <div className="flex min-h-dvh flex-col bg-background">
-      <ParentTopBar parentName={parentName} />
-      <div className="mx-auto flex w-full max-w-[90rem] flex-1 flex-col gap-6 px-4 py-6 lg:flex-row lg:gap-8 lg:px-8">
-        {kids.length > 0 && (
-          <aside className="lg:w-72 lg:shrink-0">
-            <div className="rounded-button border border-line bg-surface p-4 lg:sticky lg:top-6">
-              <ParentSidebar kids={sidebarKids} selectedId={child?.id} onSelect={setSelectedId} />
-            </div>
+    // Every dashboard screen has a light and a dark version in the design.
+    <div
+      data-theme={theme === "dark" ? "dark" : undefined}
+      className="flex min-h-dvh flex-col bg-background text-ink"
+    >
+      <ParentTopBar
+        parentName={parentName}
+        theme={theme}
+        onThemeChange={changeTheme}
+        onOpenMenu={() => setMenuOpen(true)}
+        menuId={menuId}
+      />
+      <SidebarDrawer
+        id={menuId}
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        theme={theme}
+        onThemeChange={changeTheme}
+      >
+        {sidebar}
+      </SidebarDrawer>
+      <div className="flex flex-1">
+        {/* PD/Sidebar: 264px, full height, border/subtle at its end. */}
+        {sidebar && (
+          <aside className="hidden w-66 shrink-0 border-e border-line bg-surface px-4 py-6 lg:block">
+            <div className="sticky top-24">{sidebar}</div>
           </aside>
         )}
-        <main aria-busy={isLoading} className="flex min-w-0 flex-1 flex-col gap-6">
+        {/* Main: 32px around (48px below), 32px between blocks. */}
+        <main
+          aria-busy={isLoading}
+          className="flex min-w-0 flex-1 flex-col gap-8 px-4 pt-6 pb-12 lg:px-8 lg:pt-8"
+        >
           {!data.children.ok && <LoadFailed />}
           {data.children.ok &&
             (isLoading ? (

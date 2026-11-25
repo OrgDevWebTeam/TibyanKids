@@ -23,7 +23,6 @@ import planetFutureUrl from "@/assets/landing/planet-future.webp";
 import planetYellowUrl from "@/assets/landing/planet-quran.webp";
 import shamHeroUrl from "@/assets/landing/sham-hero.webp";
 import shamSmallUrl from "@/assets/landing/sham-300.webp";
-import { PageTitle } from "@/components/page-title";
 import { fill } from "@/features/auth/auth-rules";
 import { NightSky } from "@/features/auth/night-sky";
 import {
@@ -34,19 +33,22 @@ import {
   EyeIcon,
   FlameIcon,
   Glint,
-  GlobeIcon,
   HeartIcon,
   LockIcon,
+  MoonIcon,
   MenuIcon,
   NextIcon,
   Pet,
   PrevIcon,
   ShieldIcon,
+  Rocket,
+  SunIcon,
 } from "@/features/landing/landing-art";
-import { LOCALES, LOCALE_NAMES } from "@/i18n/config";
+import { LOCALES, LOCALE_NAMES, type Locale } from "@/i18n/config";
 import { formatTemplate } from "@/i18n/format";
 import { rememberLocale } from "@/i18n/preferred-locale";
 import { type Dictionary, useI18n } from "@/i18n/locale-data";
+import { type Theme, useTheme } from "@/lib/theme";
 
 // G01, the public landing page, from the designer's file "landing page" (24/11). Not built from
 // it, on purpose: the Basmala in the Quran world (no Quran text in this app's screens), the
@@ -55,12 +57,18 @@ import { type Dictionary, useI18n } from "@/i18n/locale-data";
 type Text = Dictionary["landing"];
 
 /** The ages the platform serves, and each band's range. */
-const AGE_RANGE = "6–14";
+const AGES = { min: 6, max: 14 };
 const BANDS = [
-  { id: "explorer", range: "6–8" },
-  { id: "navigator", range: "9–11" },
-  { id: "captain", range: "12–14" },
+  { id: "explorer", min: 6, max: 8 },
+  { id: "navigator", min: 9, max: 11 },
+  { id: "captain", min: 12, max: 14 },
 ] as const;
+
+/** An age range as the design writes it: "6–8", and in Arabic "من 6 إلى 8 سنوات". */
+function ageRange(locale: Locale, t: Text, min: number, max: number): string {
+  const form = new Intl.PluralRules(locale).select(max) === "few" ? "few" : "other";
+  return formatTemplate(locale, t.rangeFormat[form], { min, max });
+}
 type BandId = (typeof BANDS)[number]["id"];
 
 // The five worlds in the slider's order, each with its colour from the design system's ramps.
@@ -79,9 +87,6 @@ const prefersReducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)"
 function scrollToTop() {
   window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? "auto" : "smooth" });
 }
-
-/** Keeps an age range ("6–8") left to right inside Arabic text, so it never reads "8–6". */
-const ltr = (text: string) => `\u2066${text}\u2069`;
 
 /** Sections and cards rise in as they scroll into view (at once with reduced motion). */
 function useReveal(root: RefObject<HTMLElement | null>) {
@@ -106,51 +111,99 @@ function useReveal(root: RefObject<HTMLElement | null>) {
   }, [root]);
 }
 
-function Header({ t }: { t: Text }) {
-  const { locale } = useI18n();
+/** The page's sections, in order: the header's links and the journey rail follow them. */
+const SECTIONS = ["lp-hero", "lp-worlds", "lp-preview", "lp-how", "lp-start"] as const;
+type SectionId = (typeof SECTIONS)[number];
+
+type HeaderProps = {
+  t: Text;
+  theme: Theme;
+  onThemeChange: (theme: Theme) => void;
+  current?: SectionId;
+};
+
+/**
+ * The header: over the hero it is clear, on the night sky; past the hero it turns solid in the
+ * page's mode, and the logo follows (the design's is-solid header). The language switch shows "ع"
+ * or "EN" on narrow screens and the full name from 640px.
+ */
+function Header({ t, theme, onThemeChange, current }: HeaderProps) {
+  const { dict, locale } = useI18n();
   const [open, setOpen] = useState(false);
+  const [pastHero, setPastHero] = useState(false);
+  const menuButton = useRef<HTMLButtonElement>(null);
+  const header = useRef<HTMLElement>(null);
   const other = LOCALES.find((candidate) => candidate !== locale) ?? locale;
-  const logo = locale === "ar" ? logoArDarkUrl : logoEnDarkUrl;
+  const solid = pastHero || open;
+  const dark = theme === "dark" || !solid;
+  const logo = dark
+    ? { src: locale === "ar" ? logoArDarkUrl : logoEnDarkUrl }
+    : { src: locale === "ar" ? logoArLightUrl : logoEnLightUrl };
+
+  useEffect(() => {
+    const update = () => {
+      const hero = document.getElementById("lp-hero");
+      const height = header.current?.offsetHeight ?? 0;
+      setPastHero(hero ? window.scrollY > hero.offsetHeight - height : false);
+    };
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, []);
 
   useEffect(() => {
     if (!open) return;
-    const close = (event: globalThis.KeyboardEvent) => event.key === "Escape" && setOpen(false);
-    window.addEventListener("keydown", close);
-    return () => window.removeEventListener("keydown", close);
+    const onKey = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setOpen(false);
+      menuButton.current?.focus();
+    };
+    // The menu belongs to narrow screens: it closes when the full navigation shows.
+    const wide = matchMedia("(min-width: 1100px)");
+    const onWide = (event: MediaQueryListEvent) => event.matches && setOpen(false);
+    window.addEventListener("keydown", onKey);
+    wide.addEventListener("change", onWide);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      wide.removeEventListener("change", onWide);
+    };
   }, [open]);
 
-  const links = (
-    <>
-      <a href="#lp-worlds" onClick={() => setOpen(false)}>
-        {t.nav.worlds}
-      </a>
-      <a href="#lp-preview" onClick={() => setOpen(false)}>
-        {t.nav.preview}
-      </a>
-      <a href="#lp-how" onClick={() => setOpen(false)}>
-        {t.nav.how}
-      </a>
-    </>
+  const navLink = (id: SectionId, label: string) => (
+    <a
+      href={`#${id}`}
+      aria-current={current === id ? "true" : "false"}
+      onClick={() => setOpen(false)}
+    >
+      {label}
+    </a>
   );
 
   return (
-    <header className="lp-header" data-theme="dark">
+    <header
+      ref={header}
+      className={solid ? "lp-header lp-is-solid" : "lp-header"}
+      data-theme={dark ? "dark" : undefined}
+    >
       <div className="lp-wrap lp-header-in">
         {/* Home: on this page it goes back to the top. */}
         <Link className="lp-logo" to={`/${locale}`} onClick={scrollToTop}>
-          <img src={logo} width={locale === "ar" ? 833 : 1001} height={192} alt="Tibyan Kids" />
+          <img
+            src={logo.src}
+            width={locale === "ar" ? 833 : 1001}
+            height={192}
+            alt={dict.meta.title}
+          />
         </Link>
         <nav className="lp-nav" aria-label={t.navLabel}>
           <ul>
-            <li>
-              <a href="#lp-worlds">{t.nav.worlds}</a>
-            </li>
-            <li>
-              <a href="#lp-preview">{t.nav.preview}</a>
-            </li>
-            <li>
-              <a href="#lp-how">{t.nav.how}</a>
-            </li>
+            <li>{navLink("lp-worlds", t.nav.worlds)}</li>
+            <li>{navLink("lp-preview", t.nav.preview)}</li>
+            <li>{navLink("lp-how", t.nav.how)}</li>
           </ul>
         </nav>
         <div className="lp-actions">
@@ -160,29 +213,56 @@ function Header({ t }: { t: Text }) {
             to={`/${other}`}
             lang={other}
             hrefLang={other}
+            aria-label={t.langAria}
             preventScrollReset
             onClick={() => rememberLocale(other)}
           >
-            <GlobeIcon />
-            {LOCALE_NAMES[other]}
+            <span className="lp-lang-short" aria-hidden="true">
+              {t.langShort}
+            </span>
+            <span className="lp-lang-long" aria-hidden="true">
+              {LOCALE_NAMES[other]}
+            </span>
           </Link>
+          <button
+            type="button"
+            className="lp-icon-btn"
+            aria-pressed={theme === "dark"}
+            aria-label={t.themeAria}
+            onClick={() => onThemeChange(theme === "dark" ? "light" : "dark")}
+          >
+            {theme === "dark" ? <SunIcon /> : <MoonIcon />}
+          </button>
           <Link className="lp-btn lp-btn-fun lp-header-cta" to={`/${locale}/sign-up`}>
             {t.start}
           </Link>
           <button
+            ref={menuButton}
             type="button"
             className="lp-icon-btn lp-menu-btn"
             aria-expanded={open}
             aria-controls="lp-mobile-nav"
             aria-label={t.menu}
-            onClick={() => setOpen((current) => !current)}
+            onClick={() => setOpen((value) => !value)}
           >
             {open ? <CloseIcon /> : <MenuIcon />}
           </button>
         </div>
       </div>
-      <nav id="lp-mobile-nav" className="lp-mobile-nav" aria-label={t.navLabel} hidden={!open}>
-        {links}
+      <nav
+        id="lp-mobile-nav"
+        className={open ? "lp-mobile-nav lp-open" : "lp-mobile-nav"}
+        aria-label={t.navLabel}
+      >
+        <a href="#lp-worlds" onClick={() => setOpen(false)}>
+          {t.nav.worlds}
+        </a>
+        <a href="#lp-preview" onClick={() => setOpen(false)}>
+          {t.nav.preview}
+        </a>
+        <a href="#lp-how" onClick={() => setOpen(false)}>
+          {t.nav.how}
+        </a>
         <Link className="lp-btn lp-btn-fun" to={`/${locale}/sign-up`}>
           {t.start}
         </Link>
@@ -191,11 +271,154 @@ function Header({ t }: { t: Text }) {
   );
 }
 
+/**
+ * How far down the page the visitor is (0 to 1), as --lp-progress on the page, for the progress
+ * bar and the rail; the direction of the last scroll; and the section in the middle of the screen.
+ * Written straight to the style, so scrolling never re-renders the page.
+ */
+function useScrollState(root: RefObject<HTMLElement | null>) {
+  const [current, setCurrent] = useState<SectionId>();
+  const [goingUp, setGoingUp] = useState(false);
+  const [scrolling, setScrolling] = useState(false);
+
+  useEffect(() => {
+    let frame = 0;
+    let lastY = window.scrollY;
+    let rest = 0;
+    const onFrame = () => {
+      frame = 0;
+      const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+      const progress = Math.min(1, Math.max(0, window.scrollY / max));
+      root.current?.style.setProperty("--lp-progress", progress.toFixed(4));
+      if (Math.abs(window.scrollY - lastY) > 2) {
+        setGoingUp(window.scrollY < lastY);
+        lastY = window.scrollY;
+      }
+      setScrolling(true);
+      window.clearTimeout(rest);
+      rest = window.setTimeout(() => setScrolling(false), 180);
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(onFrame);
+    };
+    onFrame();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.clearTimeout(rest);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, [root]);
+
+  // The section crossing the middle of the screen is the current one.
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) setCurrent(entry.target.id as SectionId);
+        }
+      },
+      { rootMargin: "-45% 0px -50% 0px" },
+    );
+    for (const id of SECTIONS) {
+      const section = document.getElementById(id);
+      if (section) observer.observe(section);
+    }
+    return () => observer.disconnect();
+  }, []);
+
+  return { current, goingUp, scrolling };
+}
+
+/**
+ * The journey rail (from 1240px wide): a glass line with a dot per section and a rocket that
+ * travels down the page with the visitor. Each dot sits where its section reaches the top.
+ */
+function Rail({
+  t,
+  current,
+  goingUp,
+  scrolling,
+}: {
+  t: Text;
+  current?: SectionId;
+  goingUp: boolean;
+  scrolling: boolean;
+}) {
+  const rail = useRef<HTMLElement>(null);
+  const [positions, setPositions] = useState<number[]>([]);
+  const labels: Record<SectionId, string> = {
+    "lp-hero": t.rail.hero,
+    "lp-worlds": t.nav.worlds,
+    "lp-preview": t.nav.preview,
+    "lp-how": t.nav.how,
+    "lp-start": t.start,
+  };
+
+  useEffect(() => {
+    const layout = () => {
+      const element = rail.current;
+      if (!element || window.innerWidth < 1240) return;
+      const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+      const header = document.querySelector<HTMLElement>(".lp-header")?.offsetHeight ?? 0;
+      const height = element.clientHeight;
+      const pixels = SECTIONS.map((id) => {
+        const section = document.getElementById(id);
+        const top = section ? section.getBoundingClientRect().top + window.scrollY - header : 0;
+        return Math.min(1, Math.max(0, top / max)) * height;
+      });
+      // Keep the dots at least one touch target apart.
+      if (height >= (pixels.length - 1) * 44) {
+        for (let i = 1; i < pixels.length; i++)
+          pixels[i] = Math.max(pixels[i]!, pixels[i - 1]! + 44);
+        pixels[pixels.length - 1] = Math.min(height, pixels[pixels.length - 1]!);
+        for (let i = pixels.length - 2; i >= 0; i--)
+          pixels[i] = Math.min(pixels[i]!, pixels[i + 1]! - 44);
+      }
+      setPositions(pixels.map((pixel) => pixel / height));
+    };
+    layout();
+    const observer = new ResizeObserver(layout);
+    observer.observe(document.body);
+    return () => observer.disconnect();
+  }, []);
+
+  const classes = ["lp-rail", goingUp ? "lp-up" : "", scrolling ? "lp-is-scrolling" : ""];
+
+  return (
+    <nav ref={rail} className={classes.join(" ")} aria-label={t.rail.label}>
+      <div className="lp-rail-line" aria-hidden="true" />
+      <div className="lp-rail-track" aria-hidden="true">
+        <span className="lp-rail-trail" />
+        <span className="lp-rail-vehicle">
+          <Rocket />
+        </span>
+      </div>
+      <ol>
+        {SECTIONS.map((id, index) => (
+          <li key={id} style={{ "--pos": positions[index] ?? 0 } as CSSProperties}>
+            <a href={`#${id}`} aria-current={current === id ? "true" : "false"}>
+              <span className="lp-rail-tip">{labels[id]}</span>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </nav>
+  );
+}
+
 function Hero({ t }: { t: Text }) {
   const { locale } = useI18n();
   const names = { asia: t.characters.asia, sham: t.characters.sham };
   return (
-    <section className="lp-night lp-hero" data-theme="dark" aria-labelledby="lp-hero-title">
+    <section
+      id="lp-hero"
+      className="lp-night lp-hero"
+      data-theme="dark"
+      aria-labelledby="lp-hero-title"
+    >
       <NightSky />
       <div className="lp-wrap">
         <div className="lp-hero-grid">
@@ -250,21 +473,59 @@ function Hero({ t }: { t: Text }) {
   );
 }
 
-/** The five learning worlds: a swipeable row with buttons, dots and arrow keys. */
+/**
+ * The five learning worlds: a swipeable row with buttons, dots, arrow keys and mouse drag. As in
+ * the design, once the row is on screen it moves on by itself every 2 seconds and lifts the world
+ * it reaches; hovering, focus, a drag, a hidden tab or reduced motion pause it, and "Next" stops it
+ * until the page is opened again. Screen readers hear the world only when the visitor moves it.
+ */
+const AUTO_MS = 2000;
+const SCROLL_MS = 600;
+const WRAP_SCROLL_MS = 750;
+const PULSE_MS = 500;
+const AUTO_START_RATIO = 0.35;
+
 function Worlds({ t }: { t: Text }) {
+  const { locale } = useI18n();
   const trackRef = useRef<HTMLDivElement>(null);
+  const sliderRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
+  const [announcement, setAnnouncement] = useState("");
+  const [lifted, setLifted] = useState<number>();
+  const activeRef = useRef(0);
   const total = WORLDS.length;
   const nameOf = (index: number) => t.worlds[WORLDS[index]!.id].name;
+  const values = (index: number) => ({
+    n: formatTemplate(locale, "{n}", { n: index + 1 }),
+    t: formatTemplate(locale, "{n}", { n: total }),
+    name: nameOf(index),
+  });
 
-  const goTo = useCallback((index: number) => {
-    const slide = trackRef.current?.children[index] as HTMLElement | undefined;
-    slide?.scrollIntoView({
-      behavior: prefersReducedMotion() ? "auto" : "smooth",
-      inline: "center",
-      block: "nearest",
-    });
+  // The slide's offset from the middle of the row.
+  const offsetOf = (index: number) => {
+    const track = trackRef.current;
+    const slide = track?.children[index] as HTMLElement | undefined;
+    if (!track || !slide) return 0;
+    const row = track.getBoundingClientRect();
+    const box = slide.getBoundingClientRect();
+    return box.left + box.width / 2 - (row.left + row.width / 2);
+  };
+
+  const choose = useCallback((index: number) => {
+    activeRef.current = index;
+    setActive(index);
   }, []);
+
+  /** A move the visitor asked for: scroll there and say which world it is. */
+  const goTo = (index: number) => {
+    const next = Math.max(0, Math.min(total - 1, index));
+    trackRef.current?.scrollBy({
+      left: offsetOf(next),
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+    });
+    choose(next);
+    setAnnouncement(fill(t.worlds.status, values(next)));
+  };
 
   // The active world is the one nearest the middle of the row, in both directions.
   useEffect(() => {
@@ -274,8 +535,8 @@ function Worlds({ t }: { t: Text }) {
     const update = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
-        const middle = track.getBoundingClientRect();
-        const centre = middle.left + middle.width / 2;
+        const row = track.getBoundingClientRect();
+        const centre = row.left + row.width / 2;
         let nearest = 0;
         let distance = Infinity;
         Array.from(track.children).forEach((child, index) => {
@@ -286,7 +547,7 @@ function Worlds({ t }: { t: Text }) {
             nearest = index;
           }
         });
-        setActive(nearest);
+        choose(nearest);
       });
     };
     track.addEventListener("scroll", update, { passive: true });
@@ -294,13 +555,199 @@ function Worlds({ t }: { t: Text }) {
       cancelAnimationFrame(frame);
       track.removeEventListener("scroll", update);
     };
+  }, [choose]);
+
+  // The automatic tour of the worlds.
+  const stopped = useRef(false);
+  useEffect(() => {
+    const track = trackRef.current;
+    const slider = sliderRef.current;
+    if (!track || !slider) return;
+    let visible = false;
+    let hovered = false;
+    let focused = false;
+    let pressed = false;
+    let timer = 0;
+    let pulse = 0;
+    let pulseEnd = 0;
+    let animation = 0;
+
+    const canMove = () =>
+      visible &&
+      !stopped.current &&
+      !hovered &&
+      !focused &&
+      !pressed &&
+      !document.hidden &&
+      !prefersReducedMotion();
+
+    const stop = () => {
+      window.clearTimeout(timer);
+      window.clearTimeout(pulse);
+      window.clearTimeout(pulseEnd);
+      cancelAnimationFrame(animation);
+      track.removeAttribute("data-auto");
+      setLifted(undefined);
+    };
+
+    const lift = (index: number) => {
+      setLifted(index);
+      pulseEnd = window.setTimeout(() => setLifted(undefined), PULSE_MS + 20);
+    };
+
+    // A move with a set duration (the browser's smooth scroll has none).
+    const slide = (index: number, ms: number) => {
+      const from = track.scrollLeft;
+      const delta = offsetOf(index);
+      choose(index);
+      if (Math.abs(delta) < 1) return;
+      track.setAttribute("data-auto", "");
+      const startTime = performance.now();
+      const step = (now: number) => {
+        const p = Math.min(1, (now - startTime) / ms);
+        track.scrollLeft = from + delta * (1 - Math.pow(1 - p, 3));
+        if (p < 1) animation = requestAnimationFrame(step);
+        else track.removeAttribute("data-auto");
+      };
+      animation = requestAnimationFrame(step);
+    };
+
+    const advance = () => {
+      if (!canMove()) return;
+      const next = (activeRef.current + 1) % total;
+      const ms = next === 0 ? WRAP_SCROLL_MS : SCROLL_MS;
+      slide(next, ms);
+      pulse = window.setTimeout(() => canMove() && lift(next), ms - 40);
+      timer = window.setTimeout(advance, AUTO_MS);
+    };
+
+    // On reaching the row the first move starts at once; after a pause, lift now and move in 2s.
+    const schedule = (now = false) => {
+      stop();
+      if (!canMove()) return;
+      if (now) return advance();
+      lift(activeRef.current);
+      timer = window.setTimeout(advance, AUTO_MS);
+    };
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        const seen = !!entry && entry.isIntersecting && entry.intersectionRatio >= AUTO_START_RATIO;
+        if (seen !== visible) {
+          visible = seen;
+          schedule(seen);
+        }
+      },
+      { threshold: [0, AUTO_START_RATIO] },
+    );
+    observer.observe(slider);
+
+    const onEnter = (event: PointerEvent) => {
+      if (event.pointerType !== "mouse") return;
+      hovered = true;
+      stop();
+    };
+    const onLeave = (event: PointerEvent) => {
+      if (event.pointerType !== "mouse") return;
+      hovered = false;
+      schedule();
+    };
+    const onFocusIn = () => {
+      focused = true;
+      stop();
+    };
+    const onFocusOut = (event: FocusEvent) => {
+      if (slider.contains(event.relatedTarget as Node | null)) return;
+      focused = false;
+      schedule();
+    };
+    const onDown = () => {
+      pressed = true;
+      stop();
+    };
+    const onUp = () => {
+      if (!pressed) return;
+      pressed = false;
+      schedule();
+    };
+    const onVisibility = () => schedule();
+
+    slider.addEventListener("pointerenter", onEnter);
+    slider.addEventListener("pointerleave", onLeave);
+    slider.addEventListener("focusin", onFocusIn);
+    slider.addEventListener("focusout", onFocusOut);
+    slider.addEventListener("pointerdown", onDown, { passive: true });
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      stop();
+      observer.disconnect();
+      slider.removeEventListener("pointerenter", onEnter);
+      slider.removeEventListener("pointerleave", onLeave);
+      slider.removeEventListener("focusin", onFocusIn);
+      slider.removeEventListener("focusout", onFocusOut);
+      slider.removeEventListener("pointerdown", onDown);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [choose, total]);
+
+  // Mouse drag (touch and trackpads scroll natively).
+  const drag = useRef<{ x: number; left: number; moved: boolean }>(undefined);
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+    const onDown = (event: PointerEvent) => {
+      if (event.pointerType !== "mouse" || event.button !== 0) return;
+      drag.current = { x: event.clientX, left: track.scrollLeft, moved: false };
+    };
+    const onMove = (event: PointerEvent) => {
+      const current = drag.current;
+      if (!current) return;
+      const dx = event.clientX - current.x;
+      if (!current.moved && Math.abs(dx) > 5) {
+        current.moved = true;
+        track.setPointerCapture(event.pointerId);
+        track.setAttribute("data-dragging", "");
+      }
+      if (current.moved) track.scrollLeft = current.left - dx;
+    };
+    const onUp = () => {
+      const current = drag.current;
+      drag.current = undefined;
+      if (!current?.moved) return;
+      track.removeAttribute("data-dragging");
+      // Settle on the nearest world.
+      track.scrollBy({ left: offsetOf(activeRef.current), behavior: "smooth" });
+    };
+    track.addEventListener("pointerdown", onDown);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    track.addEventListener("pointercancel", onUp);
+    return () => {
+      track.removeEventListener("pointerdown", onDown);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      track.removeEventListener("pointercancel", onUp);
+    };
   }, []);
 
-  const values = (index: number) => ({
-    n: String(index + 1),
-    t: String(total),
-    name: nameOf(index),
-  });
+  // Arrow keys move in the reading direction; Home and End go to the ends.
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const rtl = document.documentElement.dir === "rtl";
+    const forward = rtl ? "ArrowLeft" : "ArrowRight";
+    const back = rtl ? "ArrowRight" : "ArrowLeft";
+    let next: number | undefined;
+    if (event.key === forward) next = active + 1;
+    else if (event.key === back) next = active - 1;
+    else if (event.key === "Home") next = 0;
+    else if (event.key === "End") next = total - 1;
+    if (next === undefined) return;
+    event.preventDefault();
+    goTo(next);
+  };
 
   return (
     <section
@@ -321,14 +768,23 @@ function Worlds({ t }: { t: Text }) {
         </div>
       </div>
       <div
+        ref={sliderRef}
         className="lp-slider lp-reveal"
         role="region"
         aria-roledescription={t.worlds.role}
         aria-label={t.worlds.label}
         style={{ "--c": WORLDS[active]!.colour } as CSSProperties}
       >
-        {/* The row scrolls by swipe; with a keyboard, the buttons and dots below move it. */}
-        <div ref={trackRef} className="lp-track">
+        {/* A scrolling row must be reachable by keyboard (WCAG 2.1.1): it takes focus and the
+            arrow keys move it, as in the design. The linter only expects that of widget roles. */}
+        {/* eslint-disable jsx-a11y/no-noninteractive-tabindex, jsx-a11y/no-static-element-interactions */}
+        <div
+          ref={trackRef}
+          className="lp-track"
+          tabIndex={0}
+          aria-label={t.worlds.keys}
+          onKeyDown={onKeyDown}
+        >
           {WORLDS.map((world, index) => {
             const copy = t.worlds[world.id];
             return (
@@ -339,9 +795,11 @@ function Worlds({ t }: { t: Text }) {
                 aria-roledescription={t.worlds.roleSlide}
                 aria-label={fill(t.worlds.slide, values(index))}
                 data-active={index === active ? "" : undefined}
+                data-lifted={index === lifted ? "" : undefined}
                 style={{ "--c": world.colour } as CSSProperties}
               >
-                <div className="lp-planet">
+                {/* The planet drifts a little as the page scrolls (the design's parallax). */}
+                <div className="lp-planet lp-px">
                   <img
                     src={world.image}
                     width={640}
@@ -368,6 +826,7 @@ function Worlds({ t }: { t: Text }) {
             );
           })}
         </div>
+        {/* eslint-enable jsx-a11y/no-noninteractive-tabindex, jsx-a11y/no-static-element-interactions */}
         <div className="lp-slider-ctrl">
           <button
             type="button"
@@ -395,13 +854,19 @@ function Worlds({ t }: { t: Text }) {
             className="lp-icon-btn"
             aria-label={t.worlds.next}
             disabled={active === total - 1}
-            onClick={() => goTo(active + 1)}
+            onClick={() => {
+              stopped.current = true;
+              goTo(active + 1);
+            }}
           >
             <NextIcon className="lp-icon lp-flip" />
           </button>
         </div>
-        <p className="sr-only" aria-live="polite">
+        <p className="lp-slider-count" aria-hidden="true">
           {fill(t.worlds.status, values(active))}
+        </p>
+        <p className="sr-only" aria-live="polite">
+          {announcement}
         </p>
       </div>
     </section>
@@ -465,7 +930,9 @@ function Preview({ t }: { t: Text }) {
               onKeyDown={onKeyDown}
             >
               <b>{t.preview[item.id].name}</b>
-              <small>{fill(t.preview.range, { range: ltr(item.range) })}</small>
+              <small>
+                {fill(t.preview.range, { range: ageRange(locale, t, item.min, item.max) })}
+              </small>
             </button>
           ))}
         </div>
@@ -480,7 +947,9 @@ function Preview({ t }: { t: Text }) {
               <div
                 className="lp-screen"
                 role="img"
-                aria-label={fill(copy.aria, { range: current.range })}
+                aria-label={fill(copy.aria, {
+                  range: ageRange(locale, t, current.min, current.max),
+                })}
               >
                 <NightSky />
                 {band === "explorer" && <ExplorerScreen t={t} number={number} />}
@@ -495,7 +964,7 @@ function Preview({ t }: { t: Text }) {
           </figure>
           <div key={band} className="lp-band-panel">
             <span className="lp-band-age">
-              {fill(t.preview.range, { range: ltr(current.range) })}
+              {fill(t.preview.range, { range: ageRange(locale, t, current.min, current.max) })}
             </span>
             <h3>{copy.name}</h3>
             <p>{copy.text}</p>
@@ -765,7 +1234,7 @@ function HowItWorks({ t }: { t: Text }) {
           ))}
         </ol>
         <div className="lp-pet-card lp-reveal">
-          <div className="lp-pet-visual" aria-hidden="true">
+          <div className="lp-pet-visual" role="img" aria-label={t.petAlt}>
             <span className="lp-pet-orbit" />
             <Pet className="lp-pet-svg" />
           </div>
@@ -830,8 +1299,9 @@ function FinalCall({ t }: { t: Text }) {
   );
 }
 
-function Footer({ t }: { t: Text }) {
-  const { locale } = useI18n();
+function Footer({ t, theme }: { t: Text; theme: Theme }) {
+  const { dict, locale } = useI18n();
+  const dark = theme === "dark";
   return (
     <footer className="lp-footer">
       <div className="lp-wrap">
@@ -839,14 +1309,22 @@ function Footer({ t }: { t: Text }) {
           <div className="lp-foot-brand">
             <Link className="lp-logo" to={`/${locale}`} onClick={scrollToTop}>
               <img
-                src={locale === "ar" ? logoArLightUrl : logoEnLightUrl}
+                src={
+                  locale === "ar"
+                    ? dark
+                      ? logoArDarkUrl
+                      : logoArLightUrl
+                    : dark
+                      ? logoEnDarkUrl
+                      : logoEnLightUrl
+                }
                 width={locale === "ar" ? 833 : 1001}
                 height={192}
-                alt="Tibyan Kids"
+                alt={dict.meta.title}
                 loading="lazy"
               />
             </Link>
-            <p>{fill(t.footer.tag, { range: ltr(AGE_RANGE) })}</p>
+            <p>{fill(t.footer.tag, { range: ageRange(locale, t, AGES.min, AGES.max) })}</p>
           </div>
           <nav aria-label={t.footer.explore}>
             <h3>{t.footer.explore}</h3>
@@ -876,18 +1354,27 @@ function Footer({ t }: { t: Text }) {
 }
 
 export function Component() {
-  const { dict } = useI18n();
+  const { dict, locale } = useI18n();
   const t = dict.landing;
   const rootRef = useRef<HTMLDivElement>(null);
+  const [theme, setTheme] = useTheme();
+  const { current, goingUp, scrolling } = useScrollState(rootRef);
   useReveal(rootRef);
+  const range = ageRange(locale, t, AGES.min, AGES.max);
 
   return (
-    <div ref={rootRef} className="landing">
-      <PageTitle />
+    // The whole page follows the mode; the night sections stay dark in both.
+    <div ref={rootRef} className="landing" data-theme={theme === "dark" ? "dark" : undefined}>
+      <title>{fill(t.metaTitle, { brand: dict.meta.title, range })}</title>
+      <meta name="description" content={fill(t.metaDesc, { range })} />
+      <div className="lp-top-progress" aria-hidden="true">
+        <span />
+      </div>
       <a className="lp-skip" href="#lp-main">
         {t.skip}
       </a>
-      <Header t={t} />
+      <Header t={t} theme={theme} onThemeChange={setTheme} current={current} />
+      <Rail t={t} current={current} goingUp={goingUp} scrolling={scrolling} />
       <main id="lp-main">
         <Hero t={t} />
         <Worlds t={t} />
@@ -895,7 +1382,7 @@ export function Component() {
         <HowItWorks t={t} />
         <FinalCall t={t} />
       </main>
-      <Footer t={t} />
+      <Footer t={t} theme={theme} />
     </div>
   );
 }

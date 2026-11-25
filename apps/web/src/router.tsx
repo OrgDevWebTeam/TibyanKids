@@ -48,8 +48,13 @@ export const routes: RouteObject[] = [
           {
             errorElement: <ErrorPage />,
             children: [
-              // G01: the landing page draws its own header and footer (`bare`).
-              { index: true, lazy: () => import("@/pages/landing-page"), handle: { bare: true } },
+              // G01: the landing page draws its own header and footer (`bare`) and writes its own
+              // title and description (`ownMeta`).
+              {
+                index: true,
+                lazy: () => import("@/pages/landing-page"),
+                handle: { bare: true, ownMeta: true },
+              },
               { path: "maintenance", lazy: () => import("@/pages/maintenance-page") },
 
               // G06 and G03: log in and sign up. One page for both paths, so switching between
@@ -64,7 +69,12 @@ export const routes: RouteObject[] = [
               // its old address forwards there. The other onboarding steps (O02–O04) come once
               // their APIs exist.
               area("family", [
-                { path: "profiles", lazy: () => import("@/pages/profiles-page") },
+                {
+                  path: "profiles",
+                  // Between sign-in and the dashboard, so it keeps the mode the parent chose.
+                  handle: { followsTheme: true },
+                  lazy: () => import("@/pages/profiles-page"),
+                },
                 {
                   path: "onboarding/child",
                   loader: ({ params }) => redirect(`/${params.locale}/dashboard/add-child`),

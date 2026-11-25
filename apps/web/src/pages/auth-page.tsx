@@ -601,6 +601,14 @@ export function Component() {
   const [line, setLine] = useState<GuideLine>();
   const [announcement, setAnnouncement] = useState("");
 
+  // After the language switch, screen readers hear that the language changed (as in the design).
+  const shownLocale = useRef(locale);
+  useEffect(() => {
+    if (shownLocale.current === locale) return;
+    shownLocale.current = locale;
+    setAnnouncement(t.langChanged);
+  }, [locale, t.langChanged]);
+
   const fxRef = useRef<HTMLDivElement>(null);
   const formPanelRef = useRef<HTMLDivElement>(null);
   const welcomeRef = useRef<HTMLDivElement>(null);
@@ -742,9 +750,9 @@ export function Component() {
     setOpening(true);
     stopGreeting();
     setLine({ id: Date.now(), text: t.letsGo, wave: true });
-    // The parent's next stop: the profile picker (G08), which leads to adding a child when the
-    // family has none. The parent dashboard (P01) comes later.
-    window.setTimeout(() => void navigate(`/${locale}/profiles`), 550);
+    // As in the design: the parent dashboard (P01), which opens "Add a child" when the family has
+    // none. The profile picker (G08) stays the way into child mode.
+    window.setTimeout(() => void navigate(`/${locale}/dashboard`), 550);
   }
 
   const otherLocale = LOCALES.find((candidate) => candidate !== locale) ?? locale;
@@ -844,6 +852,7 @@ export function Component() {
           <Link
             to={localizedPath(pathname, otherLocale) + search}
             hrefLang={otherLocale}
+            aria-label={t.langAria}
             className="auth-pill"
             // Same page in the other language: stay where the visitor is.
             preventScrollReset
