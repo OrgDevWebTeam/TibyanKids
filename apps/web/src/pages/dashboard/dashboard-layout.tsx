@@ -11,6 +11,7 @@ import {
 import { LoadFailed } from "@/components/load-failed";
 import { type ChildDetails, listChildDetails } from "@/features/children/children-api";
 import { childAge, sortByAge } from "@/features/children/child-profile";
+import { EmptyDashboard } from "@/features/dashboard/empty-dashboard";
 import { ParentSidebar, ParentTopBar, SidebarDrawer } from "@/features/dashboard/parent-frame";
 import { plural } from "@/i18n/format";
 import { useI18n } from "@/i18n/locale-data";
@@ -25,10 +26,7 @@ import { type DashboardContext } from "./dashboard-context";
 
 type LayoutData = { children: ApiResult<ChildDetails[]> };
 
-export async function loader({
-  params,
-  request,
-}: LoaderFunctionArgs): Promise<LayoutData | Response> {
+export async function loader({ params }: LoaderFunctionArgs): Promise<LayoutData | Response> {
   const session = getSession();
   // A visitor without a session logs in first; the API checks every permission itself.
   const target = areaRedirect("family", session);
@@ -37,13 +35,7 @@ export async function loader({
 
   const result = await listChildDetails(session.token);
   if (!result.ok) return { children: result };
-
-  const children = sortByAge(result.data);
-  // A family with no children starts by adding one (J-01).
-  const addChild = `/${params.locale}/dashboard/add-child`;
-  const path = new URL(request.url).pathname.replace(/\/$/, "");
-  if (children.length === 0 && path !== addChild) return redirect(addChild);
-  return { children: { ok: true, data: children } };
+  return { children: { ok: true, data: sortByAge(result.data) } };
 }
 
 export function Component() {
@@ -77,9 +69,12 @@ export function Component() {
     setMenuOpen(false);
   }
 
-  const sidebar = kids.length > 0 && (
+  const sidebar = data.children.ok && (
     <ParentSidebar kids={sidebarKids} selectedId={child?.id} onSelect={choose} />
   );
+  // A family with no children sees the empty dashboard (J-01), unless it is adding one.
+  const addingChild = pathname.replace(/\/$/, "").endsWith("/dashboard/add-child");
+  const empty = kids.length === 0 && !addingChild;
 
   return (
     // Every dashboard screen has a light and a dark version in the design.
@@ -119,6 +114,8 @@ export function Component() {
           {data.children.ok &&
             (isLoading ? (
               <Skeleton className="h-64 w-full" />
+            ) : empty ? (
+              <EmptyDashboard />
             ) : (
               <Outlet
                 context={{ kids, child, selectChild: setSelectedId } satisfies DashboardContext}

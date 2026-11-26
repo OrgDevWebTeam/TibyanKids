@@ -105,7 +105,7 @@ describe("token colours", () => {
   });
 });
 
-// The dark scene of the sign-in and sign-up pages.
+// The dark scene: the sign-in and sign-up pages, and the pages in dark mode.
 const DARK_TEXT_PAIRS: Array<[string, string]> = [
   ["ink", "surface"],
   ["ink", "background"],
@@ -119,6 +119,8 @@ const DARK_TEXT_PAIRS: Array<[string, string]> = [
   ["danger", "background"],
   ["success", "surface"],
   ["success", "background"],
+  ["info", "info-tint"],
+  ["ink", "info-tint"],
   ["on-primary", "primary"],
   ["on-primary", "primary-hover"],
   ["on-primary", "primary-active"],

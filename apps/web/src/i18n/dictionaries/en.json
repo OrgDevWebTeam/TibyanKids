@@ -300,9 +300,11 @@
     },
     "chooseFirst": "Choose how it went first.",
     "addNote": "Add a note (optional)",
-    "noteLabel": "Note (optional)",
-    "notePlaceholder": "Anything you want to remember",
-    "noteTooLong": "Use 500 characters or fewer.",
+    "noteLabel": "Note for this task",
+    "optional": "Optional",
+    "notePlaceholder": "What did you notice? A few words are enough.",
+    "noteCount": "{count} / {max}",
+    "noteTooLong": "Use {max} characters or fewer.",
     "yourNote": "Your note",
     "confirm": "Confirm mission",
     "saving": "Saving…",
@@ -343,7 +345,11 @@
     },
     "todayHeading": "Today's tasks",
     "pendingTitle": "Pending observations",
-    "pendingSub": "From yesterday — still counts toward growth"
+    "pendingSub": "From yesterday — still counts toward growth",
+    "observationsHelp": {
+      "title": "Your taps shape the next journey",
+      "body": "You observe — no need to test or grade. “Not yet” is fine: the next mission adapts to {child}."
+    }
   },
   "dashboard": {
     "accountMenu": "Account menu",
@@ -382,6 +388,16 @@
     "todayTasksSub": "Real-life missions, spread through the day",
     "allTasks": "All tasks",
     "allCaughtUp": "Nothing is waiting for you right now.",
+    "gathering": "Gathering this week’s insight…",
+    "empty": {
+      "title": "Let’s add your first child",
+      "body": "Their dashboard appears here: today’s priorities, growth and Quran progress.",
+      "points": [
+        "Daily family tasks linked to values",
+        "A weekly insight in under 5 minutes",
+        "Child-safe by design, no ads"
+      ]
+    },
     "profile": {
       "info": "Profile information",
       "edit": "Edit profile information",

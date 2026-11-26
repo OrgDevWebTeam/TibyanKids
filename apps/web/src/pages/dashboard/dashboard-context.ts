@@ -17,8 +17,8 @@ export function useDashboard(): DashboardContext {
 }
 
 /**
- * The child chosen in the sidebar, for the pages about one child. The frame's loader sends a
- * family without children to Add Child, so these pages always have one.
+ * The child chosen in the sidebar, for the pages about one child. A family without children sees
+ * the frame's empty dashboard instead of these pages, so they always have one.
  */
 export function useSelectedChild(): ChildDetails {
   const { child } = useDashboard();
