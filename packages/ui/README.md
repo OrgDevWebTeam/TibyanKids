@@ -25,19 +25,20 @@ import { Button, TextField } from "@tibyan/ui";
 
 ## Contents
 
-| Export                     | What it is                                                                   |
-| -------------------------- | ---------------------------------------------------------------------------- |
-| `styles.css`               | Tokens: colours, radius, text size and control height                        |
-| `Button`, `buttonClasses`  | Button, and the same look for links (`<Link className={buttonClasses()}>`)   |
-| `TextField`, `SelectField` | Labelled inputs with hint and error, linked for screen readers               |
-| `Card`                     | Content container                                                            |
-| `StatusBadge`              | Status with an icon and text, never colour alone                             |
-| `AlertBanner`              | Page message; warnings and errors are announced at once, others politely     |
-| `EmptyState`               | Calm message when there is nothing to show                                   |
-| `Skeleton`, `SkeletonText` | Loading placeholders; the pulse stops when the user prefers less motion      |
-| `Dialog`                   | Modal on the native `<dialog>`: focus stays inside, Escape closes            |
-| `PinPad`, `pressPinKey`    | Number pad for the child PIN; always left to right, keyboard friendly        |
-| `eslint/base-config`       | Shared lint rules, including one that rejects `ml-*`, `left-*`, `text-left`… |
+| Export                                   | What it is                                                                               |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `styles.css`                             | Tokens: colours, radius, text size and control height                                    |
+| `Button`, `buttonClasses`                | Button, and the same look for links (`<Link className={buttonClasses()}>`)               |
+| `TextField`, `SelectField`               | Labelled inputs with hint and error, linked for screen readers                           |
+| `Card`                                   | Content container                                                                        |
+| `StatusBadge`                            | Status tag: tint, deep text and an icon, never colour alone                              |
+| `AlertBanner`                            | Page message with an icon per tone; warnings and errors are announced at once            |
+| `EmptyState`                             | Calm centred message when there is nothing to show, with an optional icon                |
+| `Skeleton`, `SkeletonText`               | Loading placeholders; the shimmer stops when the user prefers less motion                |
+| `Dialog`                                 | Modal on the native `<dialog>`: focus stays inside, Escape and the close button close it |
+| `CloseIcon`, `MenuIcon`, `LanguagesIcon` | Icons the app's header uses                                                              |
+| `PinPad`, `pressPinKey`                  | Number pad for the child PIN; always left to right, keyboard friendly                    |
+| `eslint/base-config`                     | Shared lint rules, including one that rejects `ml-*`, `left-*`, `text-left`…             |
 
 Primitives take all their text as props, so the app passes it from its dictionaries.
 
@@ -46,8 +47,9 @@ Primitives take all their text as props, so the app passes it from its dictionar
 1. Logical CSS only (`ms-*`, `ps-*`, `start-*`, `text-start`); the lint rule enforces it.
 2. Colours come from the tokens, never raw hex values. The tokens follow the design system
    (Figma "Tibyan kids"). `tokens.test.ts` checks every text and control colour pair against
-   WCAG AA (4.5:1 text, 3:1 controls and focus). Pairs the design system does not meet yet
-   (input borders) are listed there as known gaps until the design changes them.
+   WCAG AA (4.5:1 text, 3:1 controls and focus).
+   - **Dark scene:** `data-theme="dark"` on a page's outer element gives everything inside the
+     dark values (the sign-in pages' night sky). The same test checks them.
 3. Meaning is never carried by colour alone (NFR-A11Y-001).
 4. Number pads, media controls, logos and Quran text are never mirrored.
 

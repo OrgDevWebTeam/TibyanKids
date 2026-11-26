@@ -27,5 +27,6 @@ export {
   type PinPadProps,
   type PinState,
 } from "./pin-pad";
+export { CloseIcon, LanguagesIcon, MenuIcon } from "./icons";
 export { Skeleton, SkeletonText } from "./skeleton";
 export { StatusBadge, type StatusBadgeProps, type StatusTone } from "./status-badge";
