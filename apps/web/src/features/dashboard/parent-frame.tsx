@@ -32,6 +32,12 @@ const FOCUS_RING =
 const GLASS =
   "border border-[color-mix(in_srgb,var(--tibyan-sheen)_60%,transparent)] bg-surface/70 shadow-[0_2px_8px_color-mix(in_srgb,var(--tibyan-shadow)_12%,transparent)] backdrop-blur-md";
 
+// The phone menu's pills: a 1.5px border/default on the surface.
+const OUTLINE = "border-[1.5px] border-[var(--tibyan-border)] bg-surface";
+
+type PillStyle = "glass" | "outline";
+const PILL: Record<PillStyle, string> = { glass: GLASS, outline: OUTLINE };
+
 /**
  * A child's first letter (PD/Sidebar), or the parent's initials (PD/Top bar: Avatar, Initials).
  * The design shows the approved photo when there is one, never a generated avatar; photos come
@@ -73,8 +79,8 @@ export function Avatar({
   );
 }
 
-/** Language switch: the globe and the other language, in a glass pill. */
-function LanguagePill() {
+/** Language switch: the globe and the other language, in a pill. */
+function LanguagePill({ look = "glass" }: { look?: PillStyle }) {
   const { dict, locale } = useI18n();
   const { pathname, search } = useLocation();
   const other = LOCALES.find((item) => item !== locale) ?? locale;
@@ -84,15 +90,16 @@ function LanguagePill() {
       <Link
         to={localizedPath(pathname, other) + search}
         hrefLang={other}
-        lang={other}
-        dir={textDirection(other)}
         // The same page in the other language: keep the scroll position.
         preventScrollReset
         onClick={() => rememberLocale(other)}
-        className={`inline-flex h-12 items-center gap-2 rounded-full px-4 leading-6 font-bold text-ink ${GLASS} ${FOCUS_RING}`}
+        className={`inline-flex h-12 items-center gap-2 rounded-full px-4 leading-6 font-bold text-ink ${PILL[look]} ${FOCUS_RING}`}
       >
+        {/* The globe first in the page's direction; the name in its own language. */}
         <GlobeIcon className="size-5 shrink-0 text-primary" />
-        {LOCALE_NAMES[other]}
+        <span lang={other} dir={textDirection(other)}>
+          {LOCALE_NAMES[other]}
+        </span>
       </Link>
     </nav>
   );
@@ -101,7 +108,7 @@ function LanguagePill() {
 type ThemeProps = { theme: Theme; onThemeChange: (theme: Theme) => void };
 
 /** Theme toggle: the moon in light mode, the sun in dark mode. */
-function ThemeToggle({ theme, onThemeChange }: ThemeProps) {
+function ThemeToggle({ theme, onThemeChange, look = "glass" }: ThemeProps & { look?: PillStyle }) {
   const { dict } = useI18n();
   const dark = theme === "dark";
   return (
@@ -110,7 +117,7 @@ function ThemeToggle({ theme, onThemeChange }: ThemeProps) {
       aria-pressed={dark}
       aria-label={dict.dashboard.darkMode}
       onClick={() => onThemeChange(dark ? "light" : "dark")}
-      className={`grid size-12 shrink-0 place-items-center rounded-full text-primary ${GLASS} ${FOCUS_RING}`}
+      className={`grid size-12 shrink-0 place-items-center rounded-full text-primary ${PILL[look]} ${FOCUS_RING}`}
     >
       {dark ? <SunIcon /> : <MoonIcon />}
     </button>
@@ -263,7 +270,7 @@ type SidebarProps = {
 
 /**
  * PD/Sidebar's content: the children youngest first, the chosen child's menu open under its card,
- * and "Add child".
+ * and "Add child" (only that, before the family has a child).
  */
 export function ParentSidebar({ kids, selectedId, onSelect }: SidebarProps) {
   const { dict, locale } = useI18n();
@@ -274,10 +281,10 @@ export function ParentSidebar({ kids, selectedId, onSelect }: SidebarProps) {
       <div className="flex h-10 items-center gap-2 px-3 text-ink-muted">
         <UsersIcon />
         <span className="flex-1 leading-6 font-bold">{t.children}</span>
-        <span className="text-caption">{t.byAge}</span>
+        {kids.length > 0 && <span className="text-caption">{t.byAge}</span>}
       </div>
 
-      <ul className="flex flex-col gap-1">
+      <ul className="flex flex-col gap-1 empty:hidden">
         {kids.map((child) => {
           const selected = child.id === selectedId;
           return (
@@ -356,13 +363,15 @@ type DrawerProps = ThemeProps & {
 };
 
 /**
- * The sidebar on phones, opened from the top bar's menu button. A modal dialog, so focus stays
- * inside and Escape closes it. The language switch and theme toggle live here on phones, where
- * the design's top bar has no room for them.
+ * The sidebar on phones (States · Mobile menu open), opened from the top bar's menu button: 320px,
+ * Elevation/4; the logo and the close button, then the language switch and the theme toggle
+ * (which have no room in the phone's top bar), then the sidebar. A modal dialog, so focus stays
+ * inside and Escape closes it.
  */
 export function SidebarDrawer({ id, open, onClose, theme, onThemeChange, children }: DrawerProps) {
-  const { dict } = useI18n();
+  const { dict, locale } = useI18n();
   const dialog = useRef<HTMLDialogElement>(null);
+  const logo = LOGOS[theme][locale];
 
   useEffect(() => {
     const element = dialog.current;
@@ -377,24 +386,35 @@ export function SidebarDrawer({ id, open, onClose, theme, onThemeChange, childre
       id={id}
       aria-label={dict.dashboard.childrenLabel}
       onClose={onClose}
-      className="m-0 h-dvh max-h-none w-72 max-w-[85vw] bg-surface p-0 text-ink backdrop:bg-[color-mix(in_srgb,var(--tibyan-overlay)_60%,transparent)] lg:hidden"
+      className="m-0 h-dvh max-h-none w-80 max-w-[85vw] bg-surface p-0 text-ink shadow-[0_24px_48px_-8px_color-mix(in_srgb,var(--tibyan-shadow)_18%,transparent),0_4px_12px_color-mix(in_srgb,var(--tibyan-shadow)_10%,transparent)] backdrop:bg-[color-mix(in_srgb,var(--tibyan-overlay)_60%,transparent)] lg:hidden"
     >
-      <div className="flex h-full flex-col gap-4 px-4 py-6">
-        <div className="flex items-center justify-between gap-2">
-          <LanguagePill />
-          <div className="flex items-center gap-2">
-            <ThemeToggle theme={theme} onThemeChange={onThemeChange} />
-            <button
-              type="button"
-              aria-label={dict.header.closeMenu}
-              onClick={onClose}
-              className={`grid size-12 place-items-center rounded-full text-ink-muted hover:bg-surface-muted ${FOCUS_RING}`}
-            >
-              <CloseIcon />
-            </button>
-          </div>
+      {/* 16px around and between the rows. */}
+      <div className="flex h-full flex-col gap-4 overflow-y-auto p-4">
+        <div className="flex items-center gap-2">
+          {/* The product name is the logo's text for screen readers. */}
+          <img
+            src={logo.src}
+            alt={dict.meta.title}
+            width={logo.width}
+            height={logo.height}
+            className="h-[21px] w-auto"
+          />
+          <span className="flex-1" />
+          <button
+            type="button"
+            aria-label={dict.header.closeMenu}
+            onClick={onClose}
+            className={`grid size-12 shrink-0 place-items-center rounded-full text-ink ${OUTLINE} ${FOCUS_RING}`}
+          >
+            <CloseIcon />
+          </button>
         </div>
-        {children}
+        <div className="flex items-center gap-4">
+          <LanguagePill look="outline" />
+          <ThemeToggle theme={theme} onThemeChange={onThemeChange} look="outline" />
+        </div>
+        {/* PD/Sidebar inside the menu: 24px above and below, 16px at the sides. */}
+        <div className="px-4 py-6">{children}</div>
       </div>
     </dialog>
   );

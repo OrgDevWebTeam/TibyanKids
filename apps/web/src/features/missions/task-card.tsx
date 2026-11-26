@@ -1,5 +1,5 @@
 import { AlertBanner, Button } from "@tibyan/ui";
-import { type ReactNode, useId, useRef, useState } from "react";
+import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { type Locale } from "@/i18n/config";
 import { formatTemplate } from "@/i18n/format";
 import { type Dictionary } from "@/i18n/locale-data";
@@ -15,6 +15,9 @@ import {
 // PD/Observation (P03): "How did it go?" with three one-tap answers and an optional note.
 
 type Text = Dictionary["familyTasks"];
+
+/** The note's counter in the design (PD/Observation, Note=Open: "0 / 200"); the API takes more. */
+const NOTE_LIMIT = Math.min(200, NOTE_MAX_LENGTH);
 
 function Glyph({ children, className = "size-4" }: { children: ReactNode; className?: string }) {
   return (
@@ -185,7 +188,7 @@ function useObservation({ mission, onObserve }: Omit<ObserveProps, "t">) {
   const [state, setState] = useState<"idle" | "saving" | "failed" | "missing">("idle");
   // One id per answer, kept across retries, so a repeated request saves only once.
   const answerId = useRef<string>(undefined);
-  const noteTooLong = note.trim().length > NOTE_MAX_LENGTH;
+  const noteTooLong = note.trim().length > NOTE_LIMIT;
 
   async function save(status: Observation | undefined) {
     if (state === "saving") return;
@@ -217,6 +220,7 @@ function useObservation({ mission, onObserve }: Omit<ObserveProps, "t">) {
 
 type ObservationFieldsProps = {
   t: Text;
+  locale: Locale;
   id: string;
   isOpen: boolean;
   observation: ReturnType<typeof useObservation>;
@@ -224,7 +228,21 @@ type ObservationFieldsProps = {
   saveOnTap?: boolean;
 };
 
-function ObservationFields({ t, id, isOpen, observation: o, saveOnTap }: ObservationFieldsProps) {
+function ObservationFields({
+  t,
+  locale,
+  id,
+  isOpen,
+  observation: o,
+  saveOnTap,
+}: ObservationFieldsProps) {
+  const noteBox = useRef<HTMLTextAreaElement>(null);
+
+  // "Add a note" gives way to the note box, so the cursor goes there (Note box · Focus).
+  useEffect(() => {
+    if (o.noteOpen) noteBox.current?.focus();
+  }, [o.noteOpen]);
+
   return (
     <>
       <fieldset className="flex flex-col gap-2">
@@ -259,24 +277,40 @@ function ObservationFields({ t, id, isOpen, observation: o, saveOnTap }: Observa
 
       {isOpen &&
         (o.noteOpen ? (
+          // Note field: the label and "Optional", the 120px box, then the count.
           <div className="flex flex-col gap-2">
-            <label htmlFor={`${id}-note`} className="leading-6 font-bold text-ink">
-              {t.noteLabel}
-            </label>
+            <div className="flex items-center justify-between gap-2">
+              <label htmlFor={`${id}-note`} className="text-sm leading-6 font-bold text-ink">
+                {t.noteLabel}
+              </label>
+              <span className="text-sm leading-6 font-bold text-ink-muted">{t.optional}</span>
+            </div>
             <textarea
+              ref={noteBox}
               id={`${id}-note`}
               value={o.note}
-              rows={3}
               dir="auto"
               placeholder={t.notePlaceholder}
               aria-invalid={o.noteTooLong || undefined}
-              aria-describedby={o.noteTooLong ? `${id}-note-error` : undefined}
+              aria-describedby={`${id}-note-count${o.noteTooLong ? ` ${id}-note-error` : ""}`}
               onChange={(event) => o.setNote(event.target.value)}
-              className="rounded-control border-2 border-control bg-surface px-4 py-3 leading-6 font-medium text-ink placeholder:text-ink-muted focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus aria-[invalid=true]:border-danger"
+              className="h-30 resize-none rounded-xl border-2 border-control bg-surface p-4 leading-6 font-medium text-ink placeholder:text-ink-muted hover:border-control-hover focus:border-primary focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus aria-[invalid=true]:border-danger"
             />
+            <p
+              id={`${id}-note-count`}
+              className={`text-end text-xs leading-5 font-medium ${o.noteTooLong ? "text-danger" : "text-ink-muted"}`}
+            >
+              {/* "0 / 200" reads the same way in Arabic. */}
+              <span dir="ltr">
+                {formatTemplate(locale, t.noteCount, {
+                  count: o.note.trim().length,
+                  max: NOTE_LIMIT,
+                })}
+              </span>
+            </p>
             {o.noteTooLong && (
               <p id={`${id}-note-error`} className="text-caption font-medium text-danger">
-                {t.noteTooLong}
+                {formatTemplate(locale, t.noteTooLong, { max: NOTE_LIMIT })}
               </p>
             )}
           </div>
@@ -355,7 +389,13 @@ export function TaskCard({ t, locale, mission, onObserve, headingLevel = 3 }: Ta
       {mission.status === "expired" && !mission.observation ? (
         <p className="text-ink-muted">{t.endedBody}</p>
       ) : (
-        <ObservationFields t={t} id={id} isOpen={isOpen} observation={observation} />
+        <ObservationFields
+          t={t}
+          locale={locale}
+          id={id}
+          isOpen={isOpen}
+          observation={observation}
+        />
       )}
 
       {!isOpen && mission.observation?.note && (
@@ -381,6 +421,7 @@ export function TaskCard({ t, locale, mission, onObserve, headingLevel = 3 }: Ta
 }
 
 type TaskRowProps = ObserveProps & {
+  locale: Locale;
   /** The line under the title: the domain, and for a done task the answer, or the day. */
   meta: string;
   headingLevel?: 3 | 4;
@@ -390,7 +431,7 @@ type TaskRowProps = ObserveProps & {
  * A task on the dashboard home (Today's tasks and Pending observations): a short row when done,
  * and the open task with its tip and the one-tap observation (no confirm button in the design).
  */
-export function TaskRow({ t, mission, onObserve, meta, headingLevel = 4 }: TaskRowProps) {
+export function TaskRow({ t, locale, mission, onObserve, meta, headingLevel = 4 }: TaskRowProps) {
   const id = useId();
   const Heading = `h${headingLevel}` as const;
   const observation = useObservation({ mission, onObserve });
@@ -435,7 +476,7 @@ export function TaskRow({ t, mission, onObserve, meta, headingLevel = 4 }: TaskR
           </span>
         </p>
       )}
-      <ObservationFields t={t} id={id} isOpen observation={observation} saveOnTap />
+      <ObservationFields t={t} locale={locale} id={id} isOpen observation={observation} saveOnTap />
     </article>
   );
 }

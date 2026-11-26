@@ -132,6 +132,7 @@ function ChildTasks({ childId }: { childId: string }) {
             <TaskRow
               key={mission.id}
               t={t}
+              locale={locale}
               mission={mission}
               meta={pendingMeta(mission)}
               headingLevel={3}

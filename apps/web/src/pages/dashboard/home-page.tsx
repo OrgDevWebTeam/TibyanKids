@@ -56,6 +56,45 @@ function Home({ child }: { child: ChildDetails }) {
       .filter(Boolean)
       .join(" · ");
 
+  // States · Dashboard loading: the page's shape in grey, and what is happening underneath. Only
+  // the blocks this page shows; the status card and the insight come with their APIs.
+  if (state.status === "loading") {
+    return (
+      <>
+        <PageTitle title={dict.screens.dashboard} />
+        <div aria-hidden="true" className="flex flex-col gap-8">
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-9 w-full max-w-90" />
+            <Skeleton className="h-4 w-full max-w-120" />
+          </div>
+          <Skeleton className="h-6 w-48" />
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div className={CARD}>
+              <div className="flex items-center gap-3">
+                <Skeleton className="size-10 shrink-0 rounded-full!" />
+                <Skeleton className="h-4 w-40" />
+              </div>
+              <Skeleton className="h-13 w-full" />
+              <Skeleton className="h-28 w-full" />
+              <Skeleton className="h-13 w-full" />
+            </div>
+          </div>
+        </div>
+        {/* Body Small with the loader: 14/22, 14/24 in Arabic. */}
+        <p
+          role="status"
+          className="flex items-center gap-2 text-sm leading-[22px] font-medium text-ink-muted rtl:leading-6"
+        >
+          <span
+            aria-hidden="true"
+            className="size-4 shrink-0 animate-spin rounded-full border-2 border-current border-e-transparent motion-reduce:animate-none"
+          />
+          {t.gathering}
+        </p>
+      </>
+    );
+  }
+
   return (
     <>
       <PageTitle title={dict.screens.dashboard} />
@@ -115,7 +154,6 @@ function Home({ child }: { child: ChildDetails }) {
                   </Link>
                 }
               />
-              {state.status === "loading" && <Skeleton className="h-40 w-full" />}
               {state.status === "ready" && today.length === 0 && (
                 <p className="text-ink-muted">
                   {missions.length === 0 ? tasks.emptyBody : t.allCaughtUp}
@@ -125,6 +163,7 @@ function Home({ child }: { child: ChildDetails }) {
                 <TaskRow
                   key={mission.id}
                   t={tasks}
+                  locale={locale}
                   mission={mission}
                   meta={meta(mission)}
                   onObserve={observe}
@@ -149,6 +188,7 @@ function Home({ child }: { child: ChildDetails }) {
                   <TaskRow
                     key={mission.id}
                     t={tasks}
+                    locale={locale}
                     mission={mission}
                     meta={meta(mission, true)}
                     onObserve={observe}
