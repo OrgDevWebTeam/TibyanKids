@@ -8,12 +8,13 @@ import {
   resendVerification,
 } from "../controllers/authController.js";
 import authenticate from "../middlewares/authenticate.js";
+import { authLimiter, loginLimiter } from "../middlewares/rateLimiter.js";
 
 const router = Router();
 
-router.post("/register", validate(registerSchema), registerParent);
-router.post("/login", validate(loginSchema), login);
-router.post("/verify-email", validate(verifyEmailSchema), verifyEmail);
-router.post("/resend-verification", authenticate, resendVerification);
+router.post("/register", authLimiter, validate(registerSchema), registerParent);
+router.post("/login", loginLimiter, validate(loginSchema), login);
+router.post("/verify-email", authLimiter, validate(verifyEmailSchema), verifyEmail);
+router.post("/resend-verification", authLimiter, authenticate, resendVerification);
 
 export default router;

@@ -2,6 +2,7 @@ import Competency from "../Models/Competency.js";
 import Content from "../Models/Content.js";
 import AppError from "../utils/AppError.js";
 import { listCompetenciesQuery } from "../validations/curriculumValidation.js";
+import { competencyCache } from "../utils/readCaches.js";
 
 export async function listCompetencies(req, res) {
   const { domain, active, page, limit } = listCompetenciesQuery.parse(req.query);
@@ -10,13 +11,17 @@ export async function listCompetencies(req, res) {
   if (domain) filter.domain = domain;
   if (active !== undefined) filter.active = active;
 
-  const [competencies, total] = await Promise.all([
-    Competency.find(filter)
-      .sort({ domain: 1, code: 1 })
-      .skip((page - 1) * limit)
-      .limit(limit),
-    Competency.countDocuments(filter),
-  ]);
+  const key = JSON.stringify(["list", filter, page, limit]);
+  const { competencies, total } = await competencyCache.getOrLoad(key, async () => {
+    const [found, count] = await Promise.all([
+      Competency.find(filter)
+        .sort({ domain: 1, code: 1 })
+        .skip((page - 1) * limit)
+        .limit(limit),
+      Competency.countDocuments(filter),
+    ]);
+    return { competencies: found, total: count };
+  });
 
   res.json({
     status: "success",
@@ -28,7 +33,8 @@ export async function listCompetencies(req, res) {
 }
 
 export async function getCompetency(req, res) {
-  const competency = await Competency.findById(req.params.id);
+  const key = JSON.stringify(["one", req.params.id]);
+  const competency = await competencyCache.getOrLoad(key, () => Competency.findById(req.params.id));
 
   if (!competency) {
     throw new AppError(404, "Competency not found");
@@ -39,6 +45,7 @@ export async function getCompetency(req, res) {
 
 export async function createCompetency(req, res) {
   const competency = await Competency.create(req.body);
+  competencyCache.clear();
 
   res.status(201).json({ status: "success", competency });
 }
@@ -70,6 +77,7 @@ export async function updateCompetency(req, res) {
   }
 
   await competency.save();
+  competencyCache.clear();
 
   res.json({ status: "success", competency });
 }
@@ -96,6 +104,7 @@ export async function updateCompetencyStatus(req, res) {
 
   competency.active = active;
   await competency.save();
+  competencyCache.clear();
 
   res.json({
     status: "success",

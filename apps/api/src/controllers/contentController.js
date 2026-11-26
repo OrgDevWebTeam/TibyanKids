@@ -6,6 +6,7 @@ import AppError from "../utils/AppError.js";
 import { recordAudit } from "../utils/audit.js";
 import { findChildInFamily } from "../utils/findChildInFamily.js";
 import { contentChildQuery, listContentQuery } from "../validations/contentValidation.js";
+import { publishedContentCache } from "../utils/readCaches.js";
 
 const CAN_SEE_ALL = ["content_admin", "platform_admin", "reviewer"];
 
@@ -49,6 +50,13 @@ async function childForRequest(req, childId) {
   return findChildInFamily(req, childId);
 }
 
+// Staff and reviewers must see their changes at once, so only what everyone else reads (published
+// content) is cached. The permission checks still run on every request.
+function readContent(user, keyParts, load) {
+  if (CAN_SEE_ALL.includes(user.role)) return load();
+  return publishedContentCache.getOrLoad(JSON.stringify(keyParts), load);
+}
+
 export async function listContent(req, res) {
   const { page, limit, status, childId, ...filters } = listContentQuery.parse(req.query);
   const child = await childForRequest(req, childId);
@@ -69,13 +77,16 @@ export async function listContent(req, res) {
     filter.ageBand = child.ageBand;
   }
 
-  const [items, total] = await Promise.all([
-    Content.find(filter)
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit),
-    Content.countDocuments(filter),
-  ]);
+  const { items, total } = await readContent(req.user, ["list", filter, page, limit], async () => {
+    const [found, count] = await Promise.all([
+      Content.find(filter)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit),
+      Content.countDocuments(filter),
+    ]);
+    return { items: found, total: count };
+  });
 
   res.json({
     status: "success",
@@ -89,7 +100,9 @@ export async function listContent(req, res) {
 export async function getContent(req, res) {
   const { childId } = contentChildQuery.parse(req.query);
   const child = await childForRequest(req, childId);
-  const content = await Content.findById(req.params.id);
+  const content = await readContent(req.user, ["one", req.params.id], () =>
+    Content.findById(req.params.id),
+  );
 
   const visible =
     content && (content.status === "published" || CAN_SEE_ALL.includes(req.user.role));
@@ -335,6 +348,9 @@ export async function publishContent(req, res) {
   } finally {
     await session.endSession();
   }
+
+  // After the transaction: what readers may see has changed
+  publishedContentCache.clear();
 
   res.json({ status: "success", content });
 }

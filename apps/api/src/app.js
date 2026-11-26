@@ -1,7 +1,6 @@
 import express from "express";
 import helmet from "helmet";
 import cors from "cors";
-import rateLimit from "express-rate-limit";
 import config from "./config/env.js";
 import authRoutes from "./routes/authRoutes.js";
 import childrenRoutes from "./routes/childrenRoutes.js";
@@ -13,6 +12,7 @@ import contentRoutes from "./routes/contentRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import storyRoutes from "./routes/storyRoutes.js";
 import { createAiClient } from "./ai/aiClient.js";
+import noStore from "./middlewares/noStore.js";
 
 const app = express();
 
@@ -30,21 +30,15 @@ app.locals.aiClient = createAiClient({
 // security
 app.use(helmet());
 app.use(cors({ origin: config.clientOrigin }));
+app.use("/api", noStore);
 app.use(express.json({ limit: "10kb" }));
 
 app.get("/api/v1/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: config.authRateLimit,
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
 // Routes
-app.use("/api/v1/auth", authLimiter, authRoutes);
+app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/children", childrenRoutes);
 app.use("/api/v1/missions", missionRoutes);
 app.use("/api/v1/consents", consentRoutes);

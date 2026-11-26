@@ -10,6 +10,8 @@ process.env.DATABASE_PASSWORD = "x";
 process.env.JWT_SECRET = randomBytes(32).toString("hex");
 process.env.MAIL_LOG = "off";
 process.env.AUTH_RATE_LIMIT = "1000";
+// Tests write to the database directly, so the read cache is off unless a test turns it on
+process.env.CACHE_TTL_SECONDS = "0";
 
 let replset;
 let server;
@@ -69,7 +71,7 @@ export async function registerParent({ verified = true } = {}) {
     body: {
       name: `Parent ${counter}`,
       email,
-      password: "password123",
+      password: "Password123!",
       policyVersion: "v1",
     },
   });

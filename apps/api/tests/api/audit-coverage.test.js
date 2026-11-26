@@ -60,7 +60,7 @@ describe("audit coverage (SEC-007)", () => {
     assert.ok(events.length >= 3);
     const text = JSON.stringify(events);
     assert.ok(!text.includes("Sara"), "child name found in the audit log");
-    assert.ok(!text.includes("password123"), "password found in the audit log");
+    assert.ok(!text.includes("Password123!"), "password found in the audit log");
     assert.ok(!text.includes(a.token), "token found in the audit log");
   });
 
