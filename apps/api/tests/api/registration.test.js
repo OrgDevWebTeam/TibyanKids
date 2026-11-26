@@ -11,7 +11,7 @@ const register = (body) => api("/auth/register", { method: "POST", body });
 const valid = (n) => ({
   name: `Parent ${n}`,
   email: `reg${n}@test.com`,
-  password: "password123",
+  password: "Password123!",
   policyVersion: "v1",
 });
 

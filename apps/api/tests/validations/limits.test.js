@@ -3,13 +3,13 @@ import assert from "node:assert/strict";
 import Child from "../../src/Models/Child.js";
 import User from "../../src/Models/User.js";
 import { CHILD_NAME_MAX_LENGTH, USER_NAME_MAX_LENGTH } from "../../src/constants/index.js";
-import { registerSchema } from "../../src/validations/authValidation.js";
+import { loginSchema, registerSchema } from "../../src/validations/authValidation.js";
 import { createChildSchema, updateChildSchema } from "../../src/validations/childValidation.js";
 
 const parent = (overrides = {}) => ({
   name: "Amina",
   email: "amina@test.com",
-  password: "password123",
+  password: "Password123!",
   policyVersion: "v1",
   ...overrides,
 });
@@ -31,6 +31,39 @@ describe("the validation and the models use the same limits", () => {
     assert.equal(createChildSchema.safeParse(child({ name: `${longest}x` })).success, false);
     // The child form of the web app allows 50 characters
     assert.equal(CHILD_NAME_MAX_LENGTH, 50);
+  });
+});
+
+describe("a new password", () => {
+  const check = (password) => registerSchema.safeParse(parent({ password }));
+  const messagesOf = (result) => result.error.issues.map((issue) => issue.message);
+
+  it("needs 6 characters, a capital letter and a special character", () => {
+    for (const password of ["Abcde!", "Password123!", "Abc de_", "Éclair?", "Aمرحبا#"]) {
+      assert.equal(check(password).success, true, password);
+    }
+  });
+
+  it("says which rule is not met", () => {
+    const cases = [
+      ["Abcd!", "Password must be at least 6 characters"],
+      ["abcdef!", "Password must contain at least one capital letter"],
+      ["Abcdef1", "Password must contain at least one special character"],
+      // A space, an Arabic letter and an Arabic accent mark are not special characters
+      ["Abc def", "Password must contain at least one special character"],
+      ["Aمَرحبا", "Password must contain at least one special character"],
+      [`A!${"x".repeat(71)}`, "Password must be at most 72 characters"],
+    ];
+    for (const [password, message] of cases) {
+      const result = check(password);
+      assert.equal(result.success, false, password);
+      assert.deepEqual(messagesOf(result), [message], password);
+    }
+  });
+
+  it("does not apply to logging in, so older accounts still work", () => {
+    const result = loginSchema.safeParse({ email: "amina@test.com", password: "password123" });
+    assert.equal(result.success, true);
   });
 });
 

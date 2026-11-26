@@ -14,7 +14,7 @@ async function newParent() {
   const email = `verify${counter}@test.com`;
   const res = await api("/auth/register", {
     method: "POST",
-    body: { name: "Parent", email, password: "password123", policyVersion: "v1" },
+    body: { name: "Parent", email, password: "Password123!", policyVersion: "v1" },
   });
   const mail = outbox.findLast((m) => m.to === email);
   return { email, jwt: res.json.token, emailToken: mail.token };

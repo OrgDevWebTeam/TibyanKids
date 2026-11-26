@@ -69,7 +69,7 @@ export async function registerParent({ verified = true } = {}) {
     body: {
       name: `Parent ${counter}`,
       email,
-      password: "password123",
+      password: "Password123!",
       policyVersion: "v1",
     },
   });

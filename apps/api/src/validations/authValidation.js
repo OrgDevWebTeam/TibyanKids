@@ -13,8 +13,12 @@ export const registerSchema = z.object({
     .email("Email is not valid")
     .max(254, "Email is too long"),
   password: text("Password")
-    .min(8, "Password must be at least 8 characters")
-    .max(72, "Password must be at most 72 characters"),
+    .min(6, "Password must be at least 6 characters")
+    .max(72, "Password must be at most 72 characters")
+    // \p{Lu} is a capital letter in any alphabet. A special character is anything that is not a
+    // letter, an accent mark, a number or a space.
+    .regex(/\p{Lu}/u, "Password must contain at least one capital letter")
+    .regex(/[^\p{L}\p{M}\p{N}\s]/u, "Password must contain at least one special character"),
   country: countryCode("Country").optional(),
   policyVersion: text("Policy version")
     .trim()
