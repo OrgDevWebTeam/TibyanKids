@@ -13,6 +13,7 @@ describe("route table", () => {
     ["/en/profiles", "profiles"],
     ["/ar/onboarding/child", "onboarding/child"],
     ["/ar/today", "today"],
+    ["/en/lesson", "lesson"],
     ["/ar/maintenance", "maintenance"],
     ["/en/sign-in", "sign-in"],
     ["/ar/sign-up", "sign-up"],
@@ -29,6 +30,10 @@ describe("route table", () => {
     expect(page("/en/sign-in")).toBeDefined();
     expect(page("/en/sign-in")).toBe(page("/en/sign-up"));
     expect(page("/en/sign-in")?.handle).toEqual({ bare: true });
+  });
+
+  it("shows the lesson journey on its own, without the site header", () => {
+    expect(leafRoute("/ar/lesson")?.handle).toEqual({ bare: true });
   });
 
   it("opens the dashboard home at /dashboard", () => {

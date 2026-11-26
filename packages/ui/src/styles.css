@@ -129,6 +129,9 @@
   --tibyan-on-bubble: #1a1238;
   /* action/fun and badge/rare: star colours and the remove-account hover. */
   --tibyan-fun: #ff7a59;
+  /* action/fun's darker edge (Coral 600) and text/onFun, for the Child World buttons. */
+  --tibyan-fun-edge: #d46247;
+  --tibyan-on-fun: #1a1238;
   --tibyan-rare: #ff8ad8;
   /* action/disabled and action/disabledText. */
   --tibyan-action-disabled: #2a1f5c;
@@ -154,6 +157,8 @@
   --color-secondary-hover: var(--tibyan-secondary-hover);
   --color-secondary-edge: var(--tibyan-secondary-edge);
   --color-on-secondary: var(--tibyan-on-secondary);
+  --color-fun: var(--tibyan-fun);
+  --color-on-fun: var(--tibyan-on-fun);
   --color-danger: var(--tibyan-danger);
   --color-success: var(--tibyan-success);
   --color-warning: var(--tibyan-warning);

@@ -1,0 +1,143 @@
+/*
+ * Child World (Figma "Child World · 6–8"): always the dark scene, with the age mode Little
+ * Explorer 6–8. The values below are the design's "Child World · 6–8" collection and the glass
+ * tokens; everything else comes from @tibyan/ui's dark scene.
+ */
+.child-world {
+  /* color/glass/fill and color/glass/border: white at 8% and 16% over the night sky. The line
+     between two steps of CW/Journey steps and a planet's ring track use the border. */
+  --cw-glass-fill: rgb(255 255 255 / 0.08);
+  --cw-glass-border: rgb(255 255 255 / 0.16);
+  --cw-step-link: var(--cw-glass-border);
+  /* world/planet/arabic and world/planet/quran: the planets' ring and glow colours. */
+  --cw-planet-arabic: #ffc53d;
+  --cw-planet-quran: #3ddc97;
+  /* Future skills is Violet 400 (Read me · Child World 6–8). */
+  --cw-planet-future-skills: #7c5cff;
+  /* color/reward/default and color/celebrate/a–d, for the lesson-complete burst. */
+  --cw-reward: #ffc53d;
+  --cw-celebrate-a: #ff8ad8;
+  --cw-celebrate-b: #ffc53d;
+  --cw-celebrate-c: #3ddc97;
+  --cw-celebrate-d: #7c5cff;
+
+  position: relative;
+  isolation: isolate;
+  min-height: 100dvh;
+  overflow: hidden;
+  background: var(--tibyan-background);
+  color: var(--tibyan-ink);
+}
+
+/* CW/Space background: the stars are a canvas; the nebula drifts slowly (60s loop). */
+.cw-space,
+.cw-space canvas,
+.cw-nebula {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.cw-space {
+  overflow: hidden;
+}
+
+/* The four nebula clouds of CW/Space background, placed as in its 1440×1024 frame, each with a
+   220px layer blur: world/nebula/violet, mint and pink at low opacity. */
+.cw-nebula {
+  animation: cw-nebula 60s ease-in-out infinite alternate;
+}
+
+.cw-nebula span {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(min(220px, 15vw));
+}
+
+.cw-nebula span:nth-child(1) {
+  top: -25.4%;
+  left: -13.9%;
+  width: 62.5%;
+  height: 68.4%;
+  background: #5b2eff;
+  opacity: 0.2;
+}
+
+.cw-nebula span:nth-child(2) {
+  top: -17.6%;
+  left: 68.1%;
+  width: 44.4%;
+  height: 50.8%;
+  background: #5b2eff;
+  opacity: 0.12;
+}
+
+.cw-nebula span:nth-child(3) {
+  top: 50.8%;
+  left: 62.5%;
+  width: 55.6%;
+  height: 62.5%;
+  background: #ff8ad8;
+  opacity: 0.09;
+}
+
+.cw-nebula span:nth-child(4) {
+  top: 62.5%;
+  left: -8.3%;
+  width: 48.6%;
+  height: 50.8%;
+  background: #3ddc97;
+  opacity: 0.07;
+}
+
+@keyframes cw-nebula {
+  to {
+    transform: translate3d(-3%, 2%, 0) scale(1.05);
+  }
+}
+
+/* Rewards/Celebration burst: pieces fly outward and the star pops (duration/500,
+   easing/spring-pop). Decorative only. */
+.cw-burst-piece {
+  position: absolute;
+  animation: cw-burst 500ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes cw-burst {
+  from {
+    opacity: 0;
+    transform: translate(var(--cw-from-x, 0), var(--cw-from-y, 0)) scale(0.4);
+  }
+}
+
+/* Planet complete: the ring fills. */
+.cw-ring-fill {
+  animation: cw-ring 800ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes cw-ring {
+  from {
+    stroke-dashoffset: var(--cw-ring-length);
+  }
+}
+
+/* Reduced motion: still frames, and the burst only fades in. */
+@media (prefers-reduced-motion: reduce) {
+  .cw-nebula,
+  .cw-ring-fill {
+    animation: none;
+  }
+
+  .cw-burst-piece {
+    animation: cw-fade 300ms ease-out both;
+  }
+}
+
+@keyframes cw-fade {
+  from {
+    opacity: 0;
+  }
+}

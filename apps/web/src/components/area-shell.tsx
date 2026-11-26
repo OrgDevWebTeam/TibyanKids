@@ -1,14 +1,18 @@
 import { SkeletonText } from "@tibyan/ui";
-import { Outlet, useNavigation } from "react-router";
+import { Outlet, useMatches, useNavigation } from "react-router";
 import { type Area } from "@/lib/session/area-access";
 import { ChildModeBar } from "./child-mode-bar";
 
 /**
  * Page frame for one area of the app. Each area in `router.tsx` renders it once; the area's
  * loader has already checked the session. While the next page loads, a skeleton takes its place.
+ * A `bare` page (the lesson journey) draws its whole screen itself, so the frame steps aside.
  */
 export function AreaShell({ area }: { area: Area }) {
   const isLoading = useNavigation().state === "loading";
+  const bare = useMatches().some((match) => (match.handle as { bare?: boolean })?.bare === true);
+
+  if (bare) return <Outlet />;
 
   return (
     <div data-area={area} className="flex flex-1 flex-col">
