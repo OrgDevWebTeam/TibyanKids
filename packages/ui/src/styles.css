@@ -83,9 +83,9 @@
 }
 
 /*
- * Dark scene, for the sign-in and sign-up pages only (their design is a night sky). Set
- * data-theme="dark" on a page's outer element and everything inside uses these values: the
- * design system's Dark theme semantic tokens.
+ * Dark scene: the sign-in and sign-up pages always (their design is a night sky), and the pages
+ * with a light and dark mode when dark is chosen. Set data-theme="dark" on a page's outer element
+ * and everything inside uses these values: the design system's Dark theme semantic tokens.
  */
 [data-theme="dark"] {
   color-scheme: dark;
@@ -120,6 +120,9 @@
   --tibyan-danger: #ffb49f;
   --tibyan-success: #3ddc97;
   --tibyan-success-edge: #0f7a52;
+  /* feedback/info text and tint (the Family Tasks tip card in the Parent Dashboard's dark frames). */
+  --tibyan-info: #6cb6ff;
+  --tibyan-info-tint: #2e3367;
   /* focus/ring: Violet 400 (Changelog v1.1). */
   --tibyan-focus: #7c5cff;
   /* bg/sunken: the deepest shade, for shadows. */

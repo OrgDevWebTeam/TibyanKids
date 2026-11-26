@@ -345,7 +345,11 @@
     },
     "todayHeading": "Today's tasks",
     "pendingTitle": "Pending observations",
-    "pendingSub": "From yesterday — still counts toward growth"
+    "pendingSub": "From yesterday — still counts toward growth",
+    "observationsHelp": {
+      "title": "Your taps shape the next journey",
+      "body": "You observe — no need to test or grade. “Not yet” is fine: the next mission adapts to {child}."
+    }
   },
   "dashboard": {
     "accountMenu": "Account menu",

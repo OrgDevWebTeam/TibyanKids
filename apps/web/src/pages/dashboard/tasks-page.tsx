@@ -1,11 +1,13 @@
 import { AlertBanner, Button, EmptyState, Skeleton } from "@tibyan/ui";
 import { type ReactNode } from "react";
 import { PageTitle } from "@/components/page-title";
+import { fill } from "@/features/auth/auth-rules";
 import {
   BookOpenIcon,
   ChevronForwardIcon,
   EyeIcon,
   HeartIcon,
+  InfoIcon,
   PlayIcon,
   TargetIcon,
 } from "@/features/dashboard/dashboard-icons";
@@ -18,9 +20,10 @@ import { useI18n } from "@/i18n/locale-data";
 import { useSelectedChild } from "./dashboard-context";
 
 // Family Tasks (Figma "Parent Dashboard", section 2), with the parent's observation (P03,
-// FR-FAM-002): how a family task works, today's progress, observations still open from earlier
-// days, then today's tasks. The week switcher, the morning, afternoon and evening groups, the
-// unlock times and the week's value come with their APIs.
+// FR-FAM-002): how a family task works, then today's timeline (today's progress, observations
+// still open from earlier days, today's tasks) with the rail beside it ("How observations help").
+// The week switcher, the morning, afternoon and evening groups, the unlock times, the week's value
+// and the week's days come with their APIs.
 
 // Card: card/radius, border/subtle, 24px padding, Elevation/1.
 const CARD =
@@ -28,10 +31,10 @@ const CARD =
 
 export function Component() {
   const child = useSelectedChild();
-  return <ChildTasks key={child.id} childId={child.id} />;
+  return <ChildTasks key={child.id} childId={child.id} childName={child.name} />;
 }
 
-function ChildTasks({ childId }: { childId: string }) {
+function ChildTasks({ childId, childName }: { childId: string; childName: string }) {
   const { dict, locale } = useI18n();
   const t = dict.familyTasks;
   const { state, announcement, reload, observe } = useChildMissions(childId, t.saved);
@@ -68,97 +71,136 @@ function ChildTasks({ childId }: { childId: string }) {
         {announcement}
       </p>
 
-      {state.status === "loading" && (
-        <div aria-busy="true" className="flex flex-col gap-4">
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-56 w-full" />
-        </div>
-      )}
-
-      {state.status === "failed" && (
-        <AlertBanner
-          tone="danger"
-          action={
-            <Button variant="secondary" onClick={() => void reload()}>
-              {dict.common.retry}
-            </Button>
-          }
-        >
-          {dict.common.loadFailed}
-        </AlertBanner>
-      )}
-
-      {state.status === "ready" && today.length === 0 && pending.length === 0 && (
-        <EmptyState title={t.emptyTitle} description={t.emptyBody} headingLevel={2} />
-      )}
-
-      {today.length > 0 && (
-        // Day progress: how many of today's missions are answered, with a meter.
-        <div className={`flex flex-col gap-3 ${CARD}`}>
-          <p className="text-lg leading-6 font-bold text-ink">{progressText}</p>
-          <div
-            role="meter"
-            aria-label={progressText}
-            aria-valuemin={0}
-            aria-valuemax={progress.total}
-            aria-valuenow={progress.done}
-            className="h-2 overflow-hidden rounded-full bg-secondary"
-          >
-            <div
-              className="h-full rounded-full bg-primary"
-              style={{ width: `${(progress.done / progress.total) * 100}%` }}
-            />
-          </div>
-        </div>
-      )}
-
-      {pending.length > 0 && (
-        <section aria-labelledby="pending-observations" className={`flex flex-col gap-4 ${CARD}`}>
-          <div className="flex items-start gap-3">
-            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-secondary text-link">
-              <EyeIcon />
-            </span>
-            <div className="flex min-w-0 flex-1 flex-col">
-              <h2 id="pending-observations" className="text-lg leading-6 font-bold text-ink">
-                {t.pendingTitle}
-              </h2>
-              <p className="text-caption text-ink-muted">{t.pendingSub}</p>
+      {/* Content: today's timeline (16px between its blocks) and the 340px rail beside it from
+          1280px, under it on smaller screens; 24px between them. */}
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
+        <div className="flex min-w-0 flex-col gap-4">
+          {state.status === "loading" && (
+            <div aria-busy="true" className="flex flex-col gap-4">
+              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-56 w-full" />
             </div>
-            <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-secondary px-2 py-1 text-caption leading-none font-extrabold text-on-secondary">
-              {formatNumber(locale, pending.length)}
-            </span>
-          </div>
-          {pending.map((mission) => (
-            <TaskRow
-              key={mission.id}
-              t={t}
-              locale={locale}
-              mission={mission}
-              meta={pendingMeta(mission)}
-              headingLevel={3}
-              onObserve={observe}
-            />
-          ))}
-        </section>
-      )}
+          )}
 
-      {today.length > 0 && (
-        <section aria-labelledby="tasks-today" className="flex flex-col gap-4">
-          <h2 id="tasks-today" className="sr-only">
-            {t.todayHeading}
-          </h2>
-          {today.map((mission) => (
-            <TaskCard
-              key={mission.id}
-              t={t}
-              locale={locale}
-              mission={mission}
-              onObserve={observe}
-            />
-          ))}
-        </section>
-      )}
+          {state.status === "failed" && (
+            <AlertBanner
+              tone="danger"
+              action={
+                <Button variant="secondary" onClick={() => void reload()}>
+                  {dict.common.retry}
+                </Button>
+              }
+            >
+              {dict.common.loadFailed}
+            </AlertBanner>
+          )}
+
+          {state.status === "ready" && today.length === 0 && pending.length === 0 && (
+            <EmptyState title={t.emptyTitle} description={t.emptyBody} headingLevel={2} />
+          )}
+
+          {today.length > 0 && (
+            // Day progress: how many of today's missions are answered, with a meter.
+            <div className={`flex flex-col gap-3 ${CARD}`}>
+              <p className="text-lg leading-6 font-bold text-ink">{progressText}</p>
+              <div
+                role="meter"
+                aria-label={progressText}
+                aria-valuemin={0}
+                aria-valuemax={progress.total}
+                aria-valuenow={progress.done}
+                className="h-2 overflow-hidden rounded-full bg-secondary"
+              >
+                <div
+                  className="h-full rounded-full bg-primary"
+                  style={{ width: `${(progress.done / progress.total) * 100}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {pending.length > 0 && (
+            <section
+              aria-labelledby="pending-observations"
+              className={`flex flex-col gap-4 ${CARD}`}
+            >
+              <div className="flex items-start gap-3">
+                <span className="grid size-10 shrink-0 place-items-center rounded-full bg-secondary text-link">
+                  <EyeIcon />
+                </span>
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <h2 id="pending-observations" className="text-lg leading-6 font-bold text-ink">
+                    {t.pendingTitle}
+                  </h2>
+                  <p className="text-caption text-ink-muted">{t.pendingSub}</p>
+                </div>
+                <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-secondary px-2 py-1 text-caption leading-none font-extrabold text-on-secondary">
+                  {formatNumber(locale, pending.length)}
+                </span>
+              </div>
+              {pending.map((mission) => (
+                <TaskRow
+                  key={mission.id}
+                  t={t}
+                  locale={locale}
+                  mission={mission}
+                  meta={pendingMeta(mission)}
+                  headingLevel={3}
+                  onObserve={observe}
+                />
+              ))}
+            </section>
+          )}
+
+          {today.length > 0 && (
+            <section aria-labelledby="tasks-today" className="flex flex-col gap-4">
+              <h2 id="tasks-today" className="sr-only">
+                {t.todayHeading}
+              </h2>
+              {today.map((mission) => (
+                <TaskCard
+                  key={mission.id}
+                  t={t}
+                  locale={locale}
+                  mission={mission}
+                  onObserve={observe}
+                />
+              ))}
+            </section>
+          )}
+        </div>
+        <div className="flex flex-col gap-6">
+          <ObservationsHelp childName={childName} />
+        </div>
+      </div>
     </>
+  );
+}
+
+/**
+ * The rail's "How observations help" (Figma: an info-tint card, 24px padding, 16px gap): the info
+ * icon and a Label heading in info text, then Body Small.
+ */
+function ObservationsHelp({ childName }: { childName: string }) {
+  const { dict } = useI18n();
+  const t = dict.familyTasks.observationsHelp;
+
+  return (
+    <section
+      aria-labelledby="observations-help"
+      className="flex flex-col gap-4 rounded-button border border-info-tint bg-info-tint p-6"
+    >
+      <div className="flex items-center gap-2 text-info">
+        <InfoIcon />
+        <h2 id="observations-help" className="leading-6 font-bold">
+          {t.title}
+        </h2>
+      </div>
+      {/* Body Small: 14/22, 14/24 in Arabic. The name keeps its own direction. */}
+      <p className="text-sm leading-[22px] font-medium text-ink rtl:leading-6">
+        {fill(t.body, { child: `⁨${childName}⁩` })}
+      </p>
+    </section>
   );
 }
 
