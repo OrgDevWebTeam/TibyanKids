@@ -16,6 +16,13 @@ import QuranAttempt from "../Models/QuranAttempt.js";
 import { invalidInput } from "../middlewares/validate.js";
 import { findMyChild } from "../utils/findMyChild.js";
 
+// The attempt a child already saved under this id. The id comes from the request, so it is turned
+// into text and compared as a value only, never read as a query operator.
+const attemptOf = (childId, clientAttemptId) => ({
+  childId,
+  clientAttemptId: { $eq: String(clientAttemptId) },
+});
+
 // True when a saved attempt is for the same ayah and level as this upload
 function sameRecording(attempt, { surah, ayah, level }) {
   return attempt.surah === surah && attempt.ayah === ayah && attempt.level === level;
@@ -40,7 +47,7 @@ export async function createRecitationAttempt(req, res) {
   const { clientAttemptId, surah, ayah, level } = req.body;
 
   // 3. A repeated upload of the same recording
-  const saved = await QuranAttempt.findOne({ childId: child._id, clientAttemptId });
+  const saved = await QuranAttempt.findOne(attemptOf(child._id, clientAttemptId));
   if (saved && !sameRecording(saved, req.body)) {
     return res
       .status(409)
@@ -94,7 +101,7 @@ export async function createRecitationAttempt(req, res) {
   } catch (error) {
     // The same recording arrived twice at the same time: the first one was saved
     if (error.code === 11000) {
-      const first = await QuranAttempt.findOne({ childId: child._id, clientAttemptId });
+      const first = await QuranAttempt.findOne(attemptOf(child._id, clientAttemptId));
       return res.status(200).json({ status: "success", attempt: first });
     }
     throw error;

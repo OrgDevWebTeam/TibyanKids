@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { LANGUAGES } from "../constants/index.js";
-import { text } from "./helpers.js";
+import { CHILD_NAME_MAX_LENGTH, LANGUAGES } from "../constants/index.js";
+import { countryCode, text } from "./helpers.js";
 
 const level = (label) =>
   z
@@ -24,14 +24,14 @@ const childFields = {
   name: text("Name")
     .trim()
     .min(1, "Name is required")
-    .max(40, "Name must be at most 40 characters"),
+    .max(CHILD_NAME_MAX_LENGTH, `Name must be at most ${CHILD_NAME_MAX_LENGTH} characters`),
   dateOfBirth: z.iso.date({
     error: (issue) =>
       issue.input === undefined
         ? "Date of birth is required"
         : "Date of birth must look like 2018-03-15",
   }),
-  country: text("Country").trim().max(60, "Country must be at most 60 characters"),
+  country: countryCode("Country"),
   homeLanguage: z.enum(LANGUAGES, {
     error: `Home language must be one of: ${LANGUAGES.join(", ")}`,
   }),

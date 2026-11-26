@@ -1,6 +1,7 @@
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert/strict";
 import User from "../../src/Models/User.js";
+import { USER_NAME_MAX_LENGTH } from "../../src/constants/index.js";
 import { startTestApp, stopTestApp, api } from "../helpers/api.js";
 import { createHash } from "node:crypto";
 // Loaded after the test helper, because the mailer reads the settings the helper sets.
@@ -19,13 +20,14 @@ describe("registration (FR-AUTH-001)", () => {
   after(stopTestApp);
 
   it("stores the accepted policy version, the time and the country", async () => {
-    const res = await register({ ...valid(1), country: "Jordan" });
+    // The code may be sent in lowercase or with spaces: it is saved as a capital two-letter code
+    const res = await register({ ...valid(1), country: " jo " });
     assert.equal(res.status, 201);
 
     const user = await User.findOne({ email: "reg1@test.com" });
     assert.equal(user.termsAcceptedVersion, "v1");
     assert.ok(user.termsAcceptedAt instanceof Date);
-    assert.equal(user.country, "Jordan");
+    assert.equal(user.country, "JO");
   });
 
   it("country is optional", async () => {
@@ -38,6 +40,51 @@ describe("registration (FR-AUTH-001)", () => {
     delete withoutPolicy.policyVersion;
     assert.equal((await register(withoutPolicy)).status, 400);
     assert.equal((await register({ ...valid(4), policyVersion: "" })).status, 400);
+  });
+
+  it("accepts a name of exactly the longest length", async () => {
+    const res = await register({ ...valid(30), name: "x".repeat(USER_NAME_MAX_LENGTH) });
+    assert.equal(res.status, 201);
+    assert.equal(
+      (await User.findOne({ email: "reg30@test.com" })).name.length,
+      USER_NAME_MAX_LENGTH,
+    );
+  });
+
+  it("refuses a name that is too long with a clear field error, not a database message", async () => {
+    const res = await register({ ...valid(31), name: "x".repeat(USER_NAME_MAX_LENGTH + 1) });
+
+    assert.equal(res.status, 400);
+    assert.equal(res.json.message, "Invalid input");
+    assert.deepEqual(
+      res.json.errors.map((e) => e.field),
+      ["name"],
+    );
+    assert.match(res.json.errors[0].message, new RegExp(`${USER_NAME_MAX_LENGTH} characters`));
+    assert.equal(await User.countDocuments({ email: "reg31@test.com" }), 0);
+  });
+
+  it("the check and the model use the same limit, so a name that passes can be saved", () => {
+    assert.equal(User.schema.path("name").options.maxlength, USER_NAME_MAX_LENGTH);
+    // The longest name that passes the check is exactly the longest the model accepts
+    const user = new User({
+      name: "x".repeat(USER_NAME_MAX_LENGTH),
+      email: "limit@test.com",
+      passwordHash: "x",
+    });
+    assert.equal(user.validateSync(), undefined);
+  });
+
+  it("refuses a country that is free text and not a two-letter code", async () => {
+    for (const country of ["Jordan", "J", "JOR", "J0", "", "  ", 12]) {
+      const res = await register({ ...valid(40), country });
+      assert.equal(res.status, 400, JSON.stringify(country));
+      assert.deepEqual(
+        res.json.errors.map((e) => e.field),
+        ["country"],
+      );
+    }
+    assert.equal(await User.countDocuments({ email: "reg40@test.com" }), 0);
   });
 
   it("refuses a country that is too long", async () => {

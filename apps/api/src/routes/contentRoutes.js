@@ -1,6 +1,7 @@
 import { Router } from "express";
 import authenticate from "../middlewares/authenticate.js";
 import authorize from "../middlewares/authorize.js";
+import loadFamily from "../middlewares/loadFamily.js";
 import validate from "../middlewares/validate.js";
 import { createContentSchema, updateContentSchema } from "../validations/contentValidation.js";
 import {
@@ -25,9 +26,16 @@ const staffAndReviewers = authorize("content_admin", "platform_admin", "reviewer
 
 router.use(authenticate);
 
-router.get("/", listContent);
+// A parent who asks for what suits one of their children (?childId=) needs their family loaded.
+// Everyone else reads content exactly as before.
+const familyWhenAskingForAChild = (req, res, next) =>
+  req.user.role === "parent" && req.query.childId !== undefined
+    ? loadFamily(req, res, next)
+    : next();
+
+router.get("/", familyWhenAskingForAChild, listContent);
 router.get("/:id/versions", staffAndReviewers, listContentVersions);
-router.get("/:id", getContent);
+router.get("/:id", familyWhenAskingForAChild, getContent);
 
 router.post("/", staff, validate(createContentSchema), createContent);
 router.patch("/:id", staff, validate(updateContentSchema), updateContent);

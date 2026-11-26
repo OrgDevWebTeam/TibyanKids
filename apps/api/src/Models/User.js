@@ -1,9 +1,9 @@
 import mongoose from "mongoose";
-import { ROLES } from "../constants/index.js";
+import { ROLES, USER_NAME_MAX_LENGTH } from "../constants/index.js";
 
 const userSchema = new mongoose.Schema(
   {
-    name: { type: String, trim: true, maxlength: 80 },
+    name: { type: String, trim: true, maxlength: USER_NAME_MAX_LENGTH },
 
     email: {
       type: String,

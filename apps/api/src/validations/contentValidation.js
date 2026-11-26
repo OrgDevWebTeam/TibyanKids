@@ -42,6 +42,8 @@ export const updateContentSchema = z
   });
 
 export const listContentQuery = z.object({
+  // A parent asks for what suits one of their children (API-006)
+  childId: objectId("childId").optional(),
   type: oneOf("Type", TYPES).optional(),
   ageBand: oneOf("Age band", AGE_BANDS).optional(),
   language: oneOf("Language", LANGUAGES).optional(),
@@ -55,3 +57,7 @@ export const listContentQuery = z.object({
     .max(100, "Limit can be at most 100")
     .default(20),
 });
+
+// GET /content/:id. A parent can say which child it is for, and then only gets content that
+// suits the child (API-006).
+export const contentChildQuery = z.object({ childId: objectId("childId").optional() });

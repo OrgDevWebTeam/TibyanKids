@@ -1,9 +1,11 @@
 import mongoose from "mongoose";
 import Competency from "../Models/Competency.js";
 import Content from "../Models/Content.js";
+import { eligibleForChild } from "../missions/contentLinking.js";
 import AppError from "../utils/AppError.js";
 import { recordAudit } from "../utils/audit.js";
-import { listContentQuery } from "../validations/contentValidation.js";
+import { findChildInFamily } from "../utils/findChildInFamily.js";
+import { contentChildQuery, listContentQuery } from "../validations/contentValidation.js";
 
 const CAN_SEE_ALL = ["content_admin", "platform_admin", "reviewer"];
 
@@ -36,8 +38,20 @@ async function inTransaction(work) {
 // Every version of a piece of content: the root itself and everything pointing to it
 const lineageFilter = (rootId) => ({ $or: [{ rootId }, { _id: rootId }] });
 
+// A parent can ask for what suits one of their children (API-006). Returns that child, or null when
+// no childId was given. The child must be in the parent's family. Staff have no children, so the
+// content team cannot use it (they have the ageBand filter).
+async function childForRequest(req, childId) {
+  if (childId === undefined) return null;
+  if (req.user.role !== "parent") {
+    throw new AppError(400, "childId can only be used by a parent");
+  }
+  return findChildInFamily(req, childId);
+}
+
 export async function listContent(req, res) {
-  const { page, limit, status, ...filters } = listContentQuery.parse(req.query);
+  const { page, limit, status, childId, ...filters } = listContentQuery.parse(req.query);
+  const child = await childForRequest(req, childId);
 
   const filter = { ...filters };
 
@@ -45,6 +59,14 @@ export async function listContent(req, res) {
     if (status) filter.status = status;
   } else {
     filter.status = "published";
+  }
+
+  if (child) {
+    // Only the child's age band. Asking for another band as well leaves nothing to show.
+    if (filter.ageBand && filter.ageBand !== child.ageBand) {
+      return res.json({ status: "success", total: 0, page, pages: 0, items: [] });
+    }
+    filter.ageBand = child.ageBand;
   }
 
   const [items, total] = await Promise.all([
@@ -65,12 +87,15 @@ export async function listContent(req, res) {
 }
 
 export async function getContent(req, res) {
+  const { childId } = contentChildQuery.parse(req.query);
+  const child = await childForRequest(req, childId);
   const content = await Content.findById(req.params.id);
 
   const visible =
     content && (content.status === "published" || CAN_SEE_ALL.includes(req.user.role));
 
-  if (!visible) {
+  // For a child, the same answer as content that does not exist
+  if (!visible || (child && !eligibleForChild(content, child))) {
     throw new AppError(404, "Content not found");
   }
 
