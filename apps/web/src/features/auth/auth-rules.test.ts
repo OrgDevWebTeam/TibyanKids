@@ -6,6 +6,7 @@ import {
   NAME_MAX_LENGTH,
   nameError,
   nameFromEmail,
+  newPasswordError,
   passwordError,
   passwordStrength,
 } from "./auth-rules";
@@ -40,6 +41,21 @@ describe("passwordError and confirmError", () => {
     expect(passwordError("")).toBe("passwordRequired");
     expect(passwordError("1234567")).toBe("passwordTooShort");
     expect(passwordError("12345678")).toBeUndefined();
+  });
+
+  it("needs a capital letter and a special character in a new password", () => {
+    expect(newPasswordError("1234567")).toBe("passwordTooShort");
+    expect(newPasswordError("password-1")).toBe("passwordNoCapital");
+    expect(newPasswordError("Password1")).toBe("passwordNoSpecial");
+    expect(newPasswordError("Password 1")).toBe("passwordNoSpecial");
+    expect(newPasswordError("Password-1")).toBeUndefined();
+    // Any alphabet's capital and any symbol count, as in the API.
+    expect(newPasswordError("Émile_2026")).toBeUndefined();
+    expect(newPasswordError("كلمةسرA؟12")).toBeUndefined();
+  });
+
+  it("does not ask an existing password for the new rules", () => {
+    expect(passwordError("password-1")).toBeUndefined();
   });
 
   it("needs the same password twice", () => {

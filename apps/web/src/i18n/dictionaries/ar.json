@@ -458,6 +458,8 @@
       "emailInvalid": "أدخل بريدًا صحيحًا، مثل name@example.com.",
       "passwordRequired": "أدخل كلمة المرور.",
       "passwordTooShort": "استخدم 8 أحرف على الأقل.",
+      "passwordNoCapital": "أضف حرفًا كبيرًا، مثل A.",
+      "passwordNoSpecial": "أضف رمزًا، مثل ! أو #.",
       "confirmRequired": "اكتب كلمة المرور مرة أخرى.",
       "confirmMismatch": "كلمتا المرور غير متطابقتين.",
       "policyRequired": "يرجى تحديد المربع للمتابعة."

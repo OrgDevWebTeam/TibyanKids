@@ -12,9 +12,10 @@ import { type ApiResult } from "@/lib/api/client";
 // first time. Real sign-in (G06) comes with its task. Production bundles do not contain this page.
 
 // Local test accounts only: the test ID becomes the email, and every test account shares this
-// password. The `.test` domain is reserved, so no real address can match.
+// password, with the capital letter and symbol the API asks of new passwords. The `.test` domain is
+// reserved, so no real address can match.
 const TEST_EMAIL_DOMAIN = "tibyan.test";
-const TEST_PASSWORD = "local-test-password";
+const TEST_PASSWORD = "Local-test-password";
 // The API requires the accepted policy version at registration. This is the test value the API's
 // own tests use; real sign-up sends the published version.
 const TEST_POLICY_VERSION = "v1";
