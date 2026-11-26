@@ -124,6 +124,7 @@ const DARK_TEXT_PAIRS: Array<[string, string]> = [
   ["on-primary", "primary-active"],
   ["on-secondary", "secondary"],
   ["on-secondary", "secondary-hover"],
+  ["on-fun", "fun"],
   ["on-bubble", "bubble"],
   ["on-bubble", "success"],
 ];

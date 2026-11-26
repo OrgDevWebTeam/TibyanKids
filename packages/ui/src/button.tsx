@@ -1,13 +1,14 @@
 import { type ButtonHTMLAttributes } from "react";
 import { cx } from "./cx";
 
-export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+export type ButtonVariant = "primary" | "secondary" | "fun" | "ghost" | "danger";
 export type ButtonSize = "md" | "lg";
 
 // As in the design system (Buttons/Button): a 4px darker edge along the bottom, inside the
 // button's height, and darker shades on hover and press. Pressing removes the edge, so the label
 // moves down like a real key. The design system has no danger button, so danger keeps its style.
 // The edge reads the --tibyan-* token itself, so the dark scene's value applies inside it.
+// Fun (coral, with dark text) is the child's action in the dark scene (Child World).
 const EDGE = "pb-1 active:pb-0 active:shadow-none";
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary: cx(
@@ -18,6 +19,11 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   secondary: cx(
     "bg-secondary text-on-secondary shadow-[inset_0_-4px_0_var(--tibyan-secondary-edge)]",
     "hover:bg-secondary-hover active:bg-secondary-hover",
+    EDGE,
+  ),
+  fun: cx(
+    "bg-fun text-on-fun shadow-[inset_0_-4px_0_var(--tibyan-fun-edge)]",
+    "hover:brightness-105 active:brightness-100",
     EDGE,
   ),
   ghost: "bg-transparent text-on-secondary hover:bg-background active:bg-secondary",

@@ -268,6 +268,31 @@
   "childMode": {
     "exit": "الخروج من وضع الطفل"
   },
+  "story": {
+    "lesson": "الدرس",
+    "exit": "الخروج من الدرس",
+    "stepsLabel": "خطوات الدرس",
+    "steps": {
+      "story": "القصة",
+      "decision": "القرار",
+      "activity": "النشاط",
+      "mission": "مهمة من الحياة"
+    },
+    "stepStatus": {
+      "done": "{step}، انتهت",
+      "current": "{step}، الخطوة الحالية",
+      "next": "{step}، قادمة"
+    },
+    "next": "التالي",
+    "check": "تحقّق",
+    "saveFailed": "تعذّر الحفظ. حاول مرة أخرى.",
+    "missionAtHome": "مهمة في البيت",
+    "askGrownUp": "اطلب من أحد الكبار أن يتأكد",
+    "didIt": "لقد فعلتها!",
+    "later": "لاحقًا",
+    "complete": "أنهيت الدرس!",
+    "backToSpace": "العودة إلى الفضاء"
+  },
   "notFound": {
     "title": "الصفحة غير موجودة",
     "body": "الصفحة التي تبحث عنها غير موجودة.",

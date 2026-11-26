@@ -106,7 +106,16 @@ export const routes: RouteObject[] = [
 
               // C01–C10: child area. Private.
               // No third-party scripts, trackers or session replay in this area (SEC-009, SEC-011).
-              area("child", [{ path: "today", lazy: () => import("@/pages/today-page") }]),
+              // The lesson journey (Figma "Child World · 6–8", section 5) fills the screen with its
+              // own header (`bare`). The story it shows stays in memory, not in the address.
+              area("child", [
+                { path: "today", lazy: () => import("@/pages/today-page") },
+                {
+                  path: "lesson",
+                  handle: { bare: true },
+                  lazy: () => import("@/pages/lesson-page"),
+                },
+              ]),
 
               // Email verification and password recovery (G04, G07), and the parent (P01–P09),
               // teacher (T01–T05) and staff (A01–A10) areas are added with their tasks.

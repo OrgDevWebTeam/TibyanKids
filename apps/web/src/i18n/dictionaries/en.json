@@ -268,6 +268,31 @@
   "childMode": {
     "exit": "Exit child mode"
   },
+  "story": {
+    "lesson": "Lesson",
+    "exit": "Exit lesson",
+    "stepsLabel": "Lesson steps",
+    "steps": {
+      "story": "Story",
+      "decision": "Decision",
+      "activity": "Activity",
+      "mission": "Real-life mission"
+    },
+    "stepStatus": {
+      "done": "{step}, done",
+      "current": "{step}, current step",
+      "next": "{step}, coming up"
+    },
+    "next": "Next",
+    "check": "Check",
+    "saveFailed": "We couldn't save that. Try again.",
+    "missionAtHome": "Mission at home",
+    "askGrownUp": "Ask a grown-up to check",
+    "didIt": "I did it!",
+    "later": "Do it later",
+    "complete": "Lesson complete!",
+    "backToSpace": "Back to space"
+  },
   "notFound": {
     "title": "Page not found",
     "body": "The page you are looking for does not exist.",
