@@ -17,8 +17,11 @@
     indexes from the models.
   - **Security headers:** helmet. **CORS:** one allowed origin (`CLIENT_ORIGIN`). **Body limit:**
     10kb for JSON. Audio uploads go through multer, in memory, at most 5 MB.
-  - **Rate limiting:** `/api/v1/auth` allows 20 requests per 15 minutes; the other routes
-    allow 300 (`apiLimiter` in `middlewares/rateLimiter.js`). Health is not limited.
+  - **Rate limiting** (`middlewares/rateLimiter.js`), per 15 minutes: register and verification
+    allow 20 requests, login allows 20 failed attempts, the other routes allow 300. Health is not
+    limited.
+  - **Caching:** every API answer is `no-store`. Curriculum and published content are kept in
+    memory for a short time (`apps/api/docs/caching-and-rate-limits.md`).
   - **Errors:** the error handler maps known errors (zod, mongoose, bad JSON, duplicate key) to
     4xx answers. Anything else returns `Server error` with no message or stack.
   - **Validation:** `validate(schema)` checks each request with a zod schema. Controllers pick

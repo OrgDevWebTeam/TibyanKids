@@ -19,9 +19,13 @@ const schema = z
     AI_SERVICE_URL: z.string().url().default("http://127.0.0.1:8000"),
     // After this the ayah is marked uncertain and the session goes on (NFR-PERF: 20 s at most)
     AI_TIMEOUT_MS: z.coerce.number().int().positive().max(20000).default(20000),
+    // All other requests per IP per 15 minutes (SEC-008)
+    API_RATE_LIMIT: z.coerce.number().int().positive().default(300),
     AUTH_RATE_LIMIT: z.coerce.number().int().positive().default(20),
     // Recitation uploads per signed-in account per 15 minutes (SEC-008)
     UPLOAD_RATE_LIMIT: z.coerce.number().int().positive().default(60),
+    // How long curriculum and published content are kept in memory. 0 turns the cache off.
+    CACHE_TTL_SECONDS: z.coerce.number().int().min(0).max(3600).default(60),
     // How many proxies sit in front of the API (0 = none). Needed behind a load balancer, so that
     // each client has its own rate limit instead of all sharing the proxy's address.
     TRUST_PROXY: z.coerce.number().int().min(0).max(5).default(0),
@@ -53,8 +57,10 @@ const config = Object.freeze({
   clientOrigin: env.CLIENT_ORIGIN,
   aiServiceUrl: env.AI_SERVICE_URL,
   aiTimeoutMs: env.AI_TIMEOUT_MS,
+  apiRateLimit: env.API_RATE_LIMIT,
   authRateLimit: env.AUTH_RATE_LIMIT,
   uploadRateLimit: env.UPLOAD_RATE_LIMIT,
+  cacheTtlSeconds: env.CACHE_TTL_SECONDS,
   trustProxy: env.TRUST_PROXY,
 });
 
