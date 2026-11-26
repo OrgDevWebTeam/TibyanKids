@@ -1,5 +1,10 @@
-/** The API accepts passwords of 8 to 72 characters. */
+/** The design asks for at least 8 characters (the API accepts 6 to 72). */
 export const PASSWORD_MIN_LENGTH = 8;
+
+// A new password needs a capital letter and a special character, as the API checks (#115): a
+// capital in any alphabet, and anything that is not a letter, an accent mark, a number or a space.
+const CAPITAL_LETTER = /\p{Lu}/u;
+const SPECIAL_CHARACTER = /[^\p{L}\p{M}\p{N}\s]/u;
 
 /** The longest parent name the API keeps. */
 export const NAME_MAX_LENGTH = 80;
@@ -22,6 +27,8 @@ export type AuthFieldError =
   | "emailInvalid"
   | "passwordRequired"
   | "passwordTooShort"
+  | "passwordNoCapital"
+  | "passwordNoSpecial"
   | "confirmRequired"
   | "confirmMismatch"
   | "policyRequired";
@@ -41,6 +48,14 @@ export function emailError(value: string): AuthFieldError | undefined {
 export function passwordError(value: string): AuthFieldError | undefined {
   if (value === "") return "passwordRequired";
   return value.length < PASSWORD_MIN_LENGTH ? "passwordTooShort" : undefined;
+}
+
+/** A password for a new account: the sign-in check, then the API's rules for new passwords. */
+export function newPasswordError(value: string): AuthFieldError | undefined {
+  const error = passwordError(value);
+  if (error) return error;
+  if (!CAPITAL_LETTER.test(value)) return "passwordNoCapital";
+  return SPECIAL_CHARACTER.test(value) ? undefined : "passwordNoSpecial";
 }
 
 export function confirmError(value: string, password: string): AuthFieldError | undefined {

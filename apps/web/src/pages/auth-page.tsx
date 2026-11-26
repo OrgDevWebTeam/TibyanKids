@@ -22,6 +22,7 @@ import {
   fill,
   nameError,
   nameFromEmail,
+  newPasswordError,
   passwordError,
   passwordStrength,
   POLICY_VERSION,
@@ -337,13 +338,17 @@ function SignupForm({ t, onSignedIn, onPasswordFocus, onPasswordBlur }: SignupFo
   const errors: Record<SignupField, AuthFieldError | undefined> = {
     name: nameError(name),
     email: emailError(email),
-    password: passwordError(password),
+    password: newPasswordError(password),
     confirm: confirmError(confirm, password),
     policy: policy ? undefined : "policyRequired",
   };
   const errorText = (field: SignupField, live = false) =>
     display.shows(field, live) && errors[field] ? t.errors[errors[field]!] : undefined;
-  const strength = passwordStrength(password);
+  // The meter rates a password that meets the rules; while a capital or a symbol is missing, the
+  // field's own message says what to add instead.
+  const missingKind =
+    errors.password === "passwordNoCapital" || errors.password === "passwordNoSpecial";
+  const strength = missingKind ? 0 : passwordStrength(password);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();

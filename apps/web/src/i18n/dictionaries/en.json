@@ -458,6 +458,8 @@
       "emailInvalid": "Enter a valid email, like name@example.com.",
       "passwordRequired": "Enter your password.",
       "passwordTooShort": "Use at least 8 characters.",
+      "passwordNoCapital": "Add a capital letter, like A.",
+      "passwordNoSpecial": "Add a symbol, like ! or #.",
       "confirmRequired": "Type your password again.",
       "confirmMismatch": "Passwords don't match.",
       "policyRequired": "Please tick the box to continue."
