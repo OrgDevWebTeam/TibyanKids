@@ -11,12 +11,9 @@ const parent: Session = {
 const childMode: Session = { ...parent, activeChild: { id: "c1", displayName: "Child One" } };
 
 describe("areaRedirect", () => {
-  it.each<Area>(["family", "child"])(
-    "sends a signed-out visitor from %s to the landing page",
-    (area) => {
-      expect(areaRedirect(area, signedOut)).toBe("landing");
-    },
-  );
+  it.each<Area>(["family", "child"])("sends a signed-out visitor from %s to log in", (area) => {
+    expect(areaRedirect(area, signedOut)).toBe("sign-in");
+  });
 
   it("opens the family area after sign-in", () => {
     expect(areaRedirect("family", parent)).toBeNull();

@@ -1,0 +1,1082 @@
+/*
+ * Sign-in and sign-up pages (G06, G03), from the designer's file "auth.html" (21/11). Colours come
+ * from the @tibyan/ui tokens of the dark scene ([data-theme="dark"]); see-through layers mix them
+ * with transparency. Sizes, timings and positions follow the file.
+ */
+
+.auth-page {
+  --auth-dir: 1;
+  --auth-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --auth-slide: 620ms;
+  --auth-guide-height: 150px;
+  --auth-touch: 48px;
+  --auth-glass: color-mix(in srgb, var(--tibyan-surface) 36%, transparent);
+  --auth-glass-border: color-mix(in srgb, var(--tibyan-sheen) 28%, transparent);
+  --auth-purple-soft: color-mix(in srgb, var(--tibyan-focus) 22%, transparent);
+  --auth-ring:
+    0 0 0 2px var(--tibyan-background), 0 0 0 5px var(--tibyan-focus),
+    0 0 14px 8px color-mix(in srgb, var(--tibyan-focus) 30%, transparent);
+
+  position: relative;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  background: var(--tibyan-background);
+  color: var(--tibyan-ink);
+}
+
+[dir="rtl"] .auth-page {
+  --auth-dir: -1;
+}
+
+/* Icons are 20px unless a part of the page says otherwise (no specificity, so it never wins). */
+:where(.auth-page svg:not(.auth-star)) {
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+
+/* ---------- Sky and top bar ---------- */
+
+.auth-sky {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.auth-top {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-inline: 16px;
+  padding-block: 12px;
+}
+
+.auth-logo-link {
+  display: block;
+  border-radius: 10px;
+}
+
+.auth-logo-link:focus-visible {
+  outline: none;
+  box-shadow: var(--auth-ring);
+}
+
+.auth-logo {
+  display: block;
+  height: 32px;
+  width: auto;
+  max-width: 100%;
+}
+
+.auth-top-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.auth-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--auth-touch);
+  min-width: var(--auth-touch);
+  padding: 0 16px;
+  border: 1px solid color-mix(in srgb, var(--tibyan-sheen) 30%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tibyan-surface) 45%, transparent);
+  backdrop-filter: blur(12px);
+  color: var(--tibyan-ink);
+  font-weight: 700;
+  transition:
+    background-color 0.18s ease-out,
+    transform 0.15s ease-out;
+}
+
+.auth-pill:hover {
+  background: color-mix(in srgb, var(--tibyan-focus) 35%, transparent);
+}
+
+.auth-pill:active {
+  transform: scale(0.97);
+}
+
+.auth-pill-icon {
+  justify-content: center;
+  width: var(--auth-touch);
+  padding: 0;
+}
+
+.auth-page
+  :is(.auth-pill, .auth-link, .auth-eye, .auth-tile-main, .auth-tile-forget):focus-visible {
+  outline: none;
+  box-shadow: var(--auth-ring);
+}
+
+/* ---------- Stage and card ---------- */
+
+.auth-stage {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  min-height: calc(100dvh - 72px);
+  padding: 4px 16px 32px;
+}
+
+.auth-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+  max-width: 960px;
+  overflow: hidden;
+  border: 1px solid var(--auth-glass-border);
+  border-radius: 36px;
+  background: var(--auth-glass);
+  backdrop-filter: blur(24px) saturate(160%);
+  box-shadow:
+    0 40px 90px color-mix(in srgb, var(--tibyan-sunken) 60%, transparent),
+    0 12px 28px color-mix(in srgb, var(--tibyan-sunken) 35%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--tibyan-sheen) 22%, transparent);
+}
+
+.auth-panel {
+  min-width: 0;
+}
+
+.auth-panel-welcome {
+  position: relative;
+  z-index: 1;
+}
+
+.auth-panel-form {
+  position: relative;
+  z-index: 2;
+  padding: 20px 20px 24px;
+  background: var(--tibyan-surface);
+}
+
+.auth-welcome {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin: 12px 12px 0;
+  padding: 16px 16px 12px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--tibyan-sheen) 16%, transparent);
+  border-radius: 28px;
+  background:
+    radial-gradient(ellipse at 50% 90%, var(--auth-purple-soft), transparent 65%),
+    var(--tibyan-surface);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--tibyan-sheen) 12%, transparent);
+  text-align: center;
+}
+
+.auth-welcome-text {
+  position: relative;
+  z-index: 2;
+  flex: none;
+  padding-block: 12px;
+}
+
+.auth-welcome-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 28px;
+}
+
+:lang(ar) .auth-welcome-title {
+  line-height: 32px;
+}
+
+.auth-welcome-body {
+  margin: 4px 0 0;
+  color: var(--tibyan-ink-muted);
+}
+
+@media (max-width: 767.98px) {
+  .auth-page {
+    --auth-guide-height: 170px;
+  }
+}
+
+@media (min-width: 768px) {
+  .auth-page {
+    --auth-guide-height: 380px;
+  }
+
+  .auth-top {
+    margin-inline: 80px;
+  }
+
+  .auth-card {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    min-height: 660px;
+  }
+
+  .auth-panel {
+    grid-row: 1;
+    transition: transform var(--auth-slide) var(--auth-ease);
+  }
+
+  .auth-panel-form {
+    grid-column: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 40px 44px;
+  }
+
+  .auth-panel-welcome {
+    grid-column: 2;
+    display: flex;
+  }
+
+  /* Sign up: the form and the welcome panel swap sides (mirrored in Arabic). */
+  .auth-card[data-side="b"] .auth-panel-form {
+    transform: translateX(calc(100% * var(--auth-dir)));
+  }
+
+  .auth-card[data-side="b"] .auth-panel-welcome {
+    transform: translateX(calc(-100% * var(--auth-dir)));
+  }
+
+  .auth-welcome {
+    flex: 1;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 12px;
+    padding: 40px 28px 0;
+  }
+
+  .auth-welcome-title {
+    font-size: 32px;
+    line-height: 40px;
+  }
+
+  :lang(ar) .auth-welcome-title {
+    line-height: 48px;
+  }
+
+  .auth-welcome-body {
+    max-width: 34ch;
+    margin: 8px auto 0;
+  }
+}
+
+@media (min-width: 1024px) {
+  .auth-page {
+    --auth-guide-height: 420px;
+  }
+
+  .auth-panel-form {
+    padding: 48px 56px;
+  }
+}
+
+/* ---------- Guide, moon and speech bubble ---------- */
+
+.auth-scene {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-self: stretch;
+  flex: none;
+  width: 100%;
+  padding-block: 56px;
+  overflow: visible;
+  container-type: inline-size;
+}
+
+.auth-moon-clip {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* The moon's crown lines up with her soles. */
+.auth-moon {
+  position: absolute;
+  top: calc(100% - 62.5px);
+  left: 50%;
+  width: 155%;
+  aspect-ratio: 943 / 956;
+  overflow: hidden;
+  transform: translateX(-50%);
+}
+
+.auth-moon-art {
+  position: absolute;
+  left: -15.48250265%;
+  top: -16.42259414%;
+  width: 132.97985154%;
+  max-width: none;
+  height: auto;
+  user-select: none;
+}
+
+.auth-guide {
+  position: relative;
+  z-index: 1;
+  align-self: end;
+  justify-self: center;
+  width: min(70%, calc(var(--auth-guide-height) * 390 / 874));
+  aspect-ratio: 390 / 874;
+}
+
+.auth-guide-float {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 100%;
+  animation: auth-drift 5.4s ease-in-out infinite;
+}
+
+/* Weightless: she rests on the moon, then rises gently above it. */
+@keyframes auth-drift {
+  0%,
+  100% {
+    transform: translate3d(-3px, 0, 0) rotate(-0.8deg);
+  }
+
+  50% {
+    transform: translate3d(3px, -14px, 0) rotate(0.8deg);
+  }
+}
+
+.auth-pose {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms ease-in-out;
+}
+
+/* Each image is wider than her; these values frame its visible part, soles at the same height. */
+.auth-pose-art {
+  position: absolute;
+  left: -168.38625205%;
+  top: -5.24822695%;
+  width: 437.39116203%;
+  max-width: none;
+  height: auto;
+  user-select: none;
+}
+
+.auth-pose-art-standing {
+  left: -169.01759094%;
+  top: -5.69767442%;
+  width: 437.78175313%;
+}
+
+.auth-cover-lower,
+.auth-cover-upper {
+  position: absolute;
+  inset: 0;
+}
+
+.auth-cover-lower .auth-pose-art {
+  clip-path: inset(35% 0 0 0);
+}
+
+.auth-cover-upper .auth-pose-art {
+  clip-path: inset(0 0 65% 0);
+}
+
+.auth-cover-upper {
+  transform: translateY(1%);
+  transition: transform 180ms ease-in-out;
+}
+
+.auth-guide[data-pose="standing"] .auth-pose-standing,
+.auth-guide[data-pose="covering"] .auth-pose-covering,
+.auth-guide[data-pose="wave-right"] .auth-pose-wave-right,
+.auth-guide[data-pose="wave-left"] .auth-pose-wave-left {
+  opacity: 1;
+}
+
+.auth-guide[data-pose="covering"] .auth-cover-upper {
+  transform: translateY(0);
+}
+
+.auth-bubble {
+  position: absolute;
+  z-index: 3;
+  top: var(--bubble-y, 8px);
+  left: var(--bubble-x, 70%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  inline-size: var(--bubble-width, 140px);
+  max-inline-size: calc(100cqi - 20px);
+  padding: 6px 12px;
+  border-radius: 20px;
+  background: var(--tibyan-bubble);
+  color: var(--tibyan-on-bubble);
+  /* Caption: 14/20 Medium. */
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  text-align: start;
+  overflow-wrap: anywhere;
+  box-shadow: 0 5px 16px color-mix(in srgb, var(--tibyan-sunken) 20%, transparent);
+  opacity: 0;
+  transform: translateY(6px) scale(0.85);
+  transform-origin: 0 100%;
+  transition:
+    opacity 0.18s ease-out,
+    transform 0.18s var(--auth-ease);
+  pointer-events: none;
+}
+
+/* The waving hand before "Hooray!" and "Let's go!". */
+.auth-bubble .auth-bubble-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.auth-bubble[data-show="true"] {
+  opacity: 1;
+  transform: none;
+}
+
+/* The bubble's tail points at her head. */
+.auth-bubble::after {
+  content: "";
+  position: absolute;
+  bottom: 6px;
+  left: -9px;
+  width: 12px;
+  height: 16px;
+  background: var(--tibyan-bubble);
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 20'%3E%3Cpath d='M16 0C10 3 9 11 0 18c10 3 15-2 16-10Z'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+}
+
+.auth-bubble[data-side="left"] {
+  transform-origin: 100% 100%;
+}
+
+.auth-bubble[data-side="left"]::after {
+  left: auto;
+  right: -9px;
+  transform: scaleX(-1);
+}
+
+/* ---------- Form panel ---------- */
+
+.auth-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: auth-view-in 340ms var(--auth-ease) backwards;
+}
+
+@keyframes auth-view-in {
+  from {
+    opacity: 0;
+    transform: translateX(calc(28px * var(--auth-dir)));
+  }
+}
+
+.auth-view,
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.auth-view-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 32px;
+}
+
+:lang(ar) .auth-view-title {
+  line-height: 36px;
+}
+
+.auth-view-title:focus {
+  outline: none;
+}
+
+.auth-view-sub {
+  margin: -8px 0 0;
+  color: var(--tibyan-ink-muted);
+}
+
+.auth-badge {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border: 1px solid color-mix(in srgb, var(--tibyan-sheen) 18%, transparent);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--tibyan-success) 18%, transparent);
+  color: var(--tibyan-success);
+}
+
+.auth-badge svg {
+  width: 30px;
+  height: 30px;
+}
+
+/* Fields */
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Text styles from the design system: Label (16/24 Bold) and Input (16/24 Medium), with the same
+   line height in Arabic and English. */
+.auth-field > label {
+  font-weight: 700;
+  line-height: 24px;
+}
+
+.auth-control {
+  position: relative;
+}
+
+.auth-control :is(input, select) {
+  width: 100%;
+  height: var(--tibyan-control-height);
+  padding: 0 48px;
+  border: 2px solid var(--tibyan-control);
+  border-radius: var(--tibyan-radius);
+  outline: none;
+  background: var(--tibyan-surface);
+  color: var(--tibyan-ink);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+  transition:
+    border-color 0.15s ease-out,
+    box-shadow 0.15s ease-out;
+}
+
+/* Email and passwords are typed left to right; in Arabic they still line up with the labels. */
+[dir="rtl"] .auth-control input {
+  text-align: right;
+}
+
+/* An Arabic placeholder ("8 أحرف على الأقل") reads right to left while the field is empty. */
+[dir="rtl"] .auth-control input:placeholder-shown {
+  direction: rtl;
+}
+
+/* A password field has no icon at its start, only the show/hide button at its end. */
+.auth-field[data-password-field] .auth-control input {
+  padding-inline-start: 16px;
+}
+
+.auth-control input::placeholder {
+  color: var(--tibyan-ink-muted);
+  opacity: 1;
+}
+
+.auth-control :is(input, select):hover {
+  border-color: var(--tibyan-control-hover);
+}
+
+/* State=Success of a text field: the border turns green with "Looks good". */
+.auth-field[data-ok] .auth-control input {
+  border-color: var(--tibyan-success);
+}
+
+.auth-field[data-invalid] .auth-control input {
+  border-color: var(--tibyan-danger);
+}
+
+.auth-control :is(input, select):focus,
+.auth-field[data-invalid] .auth-control input:focus {
+  border-color: var(--tibyan-control-hover);
+  box-shadow:
+    0 0 0 3px var(--tibyan-focus),
+    0 0 14px 8px color-mix(in srgb, var(--tibyan-focus) 30%, transparent);
+}
+
+.auth-lead {
+  position: absolute;
+  top: 50%;
+  inset-inline-start: 16px;
+  color: var(--tibyan-link);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+/* The country list: the browser's own dropdown, with the arrow drawn like the other icons. */
+.auth-control select {
+  appearance: none;
+  cursor: pointer;
+}
+
+/* "Choose your country" reads like a placeholder until a country is picked. */
+.auth-control select[data-empty] {
+  color: var(--tibyan-ink-muted);
+}
+
+.auth-control option {
+  background: var(--tibyan-surface);
+  color: var(--tibyan-ink);
+}
+
+.auth-chevron {
+  position: absolute;
+  top: 50%;
+  inset-inline-end: 16px;
+  color: var(--tibyan-link);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.auth-eye {
+  position: absolute;
+  top: 50%;
+  inset-inline-end: 4px;
+  display: grid;
+  place-items: center;
+  width: var(--auth-touch);
+  height: var(--auth-touch);
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--tibyan-link);
+  transform: translateY(-50%);
+  transition: background-color 0.15s ease-out;
+}
+
+.auth-eye:hover {
+  background: var(--auth-purple-soft);
+}
+
+.auth-msg {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.auth-msg:empty {
+  display: none;
+}
+
+.auth-msg svg {
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+}
+
+.auth-msg[data-tone="error"] {
+  color: var(--tibyan-danger);
+}
+
+.auth-msg[data-tone="ok"] {
+  color: var(--tibyan-success);
+}
+
+.auth-strength {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  color: var(--tibyan-ink-muted);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.auth-strength[data-level="0"] {
+  display: none;
+}
+
+.auth-bars {
+  display: flex;
+  gap: 4px;
+}
+
+.auth-bars i {
+  width: 28px;
+  height: 6px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--tibyan-sheen) 18%, transparent);
+  transition: background-color 0.2s ease-out;
+}
+
+/* Inputs/Password strength: level 1 warning, 2 violet, 3 mint. The word names the level too. */
+.auth-strength[data-level="1"] .auth-bars i:nth-child(1) {
+  background: var(--tibyan-warning-fill);
+}
+
+.auth-strength[data-level="2"] .auth-bars i:nth-child(-n + 2) {
+  background: var(--tibyan-primary);
+}
+
+.auth-strength[data-level="3"] .auth-bars i {
+  background: var(--tibyan-success);
+}
+
+/* Checkbox */
+
+.auth-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-height: var(--auth-touch);
+  padding-block: 10px;
+  cursor: pointer;
+}
+
+/* The checkbox's words use the Label style (16/24 Bold). */
+.auth-check > span:last-child {
+  font-weight: 700;
+  line-height: 24px;
+}
+
+.auth-check input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.auth-box {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--tibyan-control);
+  border-radius: 8px;
+  background: var(--tibyan-surface);
+  transition:
+    background-color 0.15s ease-out,
+    border-color 0.15s ease-out;
+}
+
+.auth-box svg {
+  width: 18px;
+  height: 18px;
+  color: var(--tibyan-on-primary);
+  stroke-width: 3;
+  opacity: 0;
+  transform: scale(0.6);
+  transition:
+    opacity 0.15s,
+    transform 0.2s var(--auth-ease);
+}
+
+.auth-check:hover .auth-box {
+  border-color: var(--tibyan-control-hover);
+}
+
+.auth-check input:checked + .auth-box {
+  border-color: var(--tibyan-primary);
+  background: var(--tibyan-primary);
+}
+
+.auth-check input:checked + .auth-box svg {
+  opacity: 1;
+  transform: none;
+}
+
+.auth-check input:focus-visible + .auth-box {
+  box-shadow: var(--auth-ring);
+}
+
+.auth-field[data-invalid] .auth-box {
+  border-color: var(--tibyan-danger);
+}
+
+.auth-check[data-compact] {
+  align-items: center;
+  gap: 8px;
+  padding-block: 4px;
+}
+
+.auth-check[data-compact] .auth-box {
+  width: 24px;
+  height: 24px;
+}
+
+/* Buttons and links */
+
+.auth-page .auth-submit[data-state="success"] {
+  background: var(--tibyan-success);
+  color: var(--tibyan-on-bubble);
+  box-shadow: inset 0 -4px 0 var(--tibyan-success-edge);
+}
+
+.auth-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--auth-touch);
+  margin: 0 -6px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--tibyan-link);
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  transition:
+    color 0.15s ease-out,
+    background-color 0.15s ease-out;
+}
+
+.auth-link:hover {
+  background: color-mix(in srgb, var(--tibyan-focus) 18%, transparent);
+  color: var(--tibyan-ink);
+}
+
+.auth-center {
+  align-self: center;
+}
+
+.auth-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  column-gap: 8px;
+  margin: 0;
+  color: var(--tibyan-ink-muted);
+  text-align: center;
+}
+
+/* Saved accounts */
+
+.auth-accounts {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Identity/List tile: one button for the row, and a separate 48px button to remove it. */
+.auth-tile {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border: 2px solid var(--tibyan-border);
+  border-radius: 20px;
+  background: var(--tibyan-surface);
+  box-shadow: inset 0 -4px 0 color-mix(in srgb, var(--tibyan-sunken) 25%, transparent);
+  transition:
+    border-color 0.15s ease-out,
+    transform 0.15s var(--auth-ease),
+    background-color 0.15s ease-out;
+}
+
+.auth-tile:hover {
+  border-color: var(--tibyan-control-hover);
+  background: color-mix(in srgb, var(--tibyan-focus) 14%, transparent);
+  transform: translateY(-2px);
+}
+
+.auth-tile:focus-within,
+.auth-chosen:focus-within {
+  border-color: var(--tibyan-control-hover);
+  box-shadow:
+    0 0 0 3px var(--tibyan-focus),
+    0 0 14px 8px color-mix(in srgb, var(--tibyan-focus) 30%, transparent);
+}
+
+.auth-page .auth-tile-main:focus-visible {
+  box-shadow: none;
+}
+
+.auth-tile-main {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  min-height: 72px;
+  padding: 12px 16px;
+  padding-inline-end: 56px;
+  border: 0;
+  border-radius: inherit;
+  background: none;
+  color: inherit;
+  text-align: start;
+}
+
+.auth-tile-forget {
+  position: absolute;
+  top: 50%;
+  inset-inline-end: 6px;
+  display: grid;
+  place-items: center;
+  width: var(--auth-touch);
+  height: var(--auth-touch);
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--tibyan-ink-muted);
+  transform: translateY(-50%);
+  transition:
+    background-color 0.15s ease-out,
+    color 0.15s ease-out;
+}
+
+.auth-tile-forget:hover {
+  background: color-mix(in srgb, var(--tibyan-fun) 20%, transparent);
+  color: var(--tibyan-danger);
+}
+
+.auth-tile-forget svg {
+  width: 18px;
+  height: 18px;
+}
+
+.auth-chosen {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 2px solid var(--tibyan-control);
+  border-radius: 20px;
+  background: var(--tibyan-surface);
+  transition:
+    border-color 0.18s ease-out,
+    box-shadow 0.18s ease-out;
+}
+
+.auth-chosen:hover {
+  border-color: var(--tibyan-control-hover);
+}
+
+.auth-chosen .auth-link {
+  flex: none;
+  margin: 0;
+}
+
+.auth-account-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.auth-account-name,
+.auth-account-email {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.auth-account-name {
+  font-weight: 700;
+}
+
+.auth-account-email {
+  color: var(--tibyan-ink-muted);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+/* Identity/Avatar, Type=Initials: the first letter on action/secondary, as in the design. */
+.auth-avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--tibyan-secondary);
+  color: var(--tibyan-on-secondary);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 20px;
+}
+
+/* ---------- Star bursts ---------- */
+
+.auth-fx {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.auth-star {
+  position: fixed;
+  top: 0;
+  left: 0;
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--tibyan-focus) 60%, transparent));
+  will-change: transform, opacity;
+}
+
+.auth-star-0,
+.auth-star-5 {
+  fill: var(--tibyan-focus);
+}
+
+.auth-star-1,
+.auth-star-3 {
+  fill: var(--tibyan-link);
+}
+
+.auth-star-2 {
+  fill: var(--tibyan-rare);
+}
+
+.auth-star-4 {
+  fill: var(--tibyan-sheen);
+}
+
+/* ---------- Reduced motion: a still sky, and fades only ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-guide-float {
+    animation: none;
+  }
+
+  .auth-panel,
+  .auth-cover-upper {
+    transition: none;
+  }
+
+  .auth-content {
+    animation-name: auth-fade-in;
+  }
+
+  .auth-bubble {
+    transform: none;
+    transition: opacity 0.18s ease-out;
+  }
+
+  .auth-tile:hover {
+    transform: none;
+  }
+}
+
+@keyframes auth-fade-in {
+  from {
+    opacity: 0;
+  }
+}

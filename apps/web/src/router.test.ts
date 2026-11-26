@@ -14,8 +14,25 @@ describe("route table", () => {
     ["/ar/onboarding/child", "onboarding/child"],
     ["/ar/today", "today"],
     ["/ar/maintenance", "maintenance"],
+    ["/en/sign-in", "sign-in"],
+    ["/ar/sign-up", "sign-up"],
+    ["/en/dashboard/tasks", "tasks"],
+    ["/ar/dashboard/profile", "profile"],
+    ["/en/dashboard/add-child", "add-child"],
   ])("opens %s", (url, path) => {
     expect(leafRoute(url)?.path).toBe(path);
+  });
+
+  it("shows log in and sign up in one page, without the site header", () => {
+    const parents = (url: string) => matchRoutes(routes, url)?.map((match) => match.route) ?? [];
+    const page = (url: string) => parents(url).find((route) => route.handle);
+    expect(page("/en/sign-in")).toBeDefined();
+    expect(page("/en/sign-in")).toBe(page("/en/sign-up"));
+    expect(page("/en/sign-in")?.handle).toEqual({ bare: true });
+  });
+
+  it("opens the dashboard home at /dashboard", () => {
+    expect(leafRoute("/en/dashboard")?.index).toBe(true);
   });
 
   it("opens the landing page at the language root", () => {

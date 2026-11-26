@@ -6,6 +6,13 @@ import { describe, expect, it } from "vitest";
 
 const css = readFileSync(fileURLToPath(new URL("./styles.css", import.meta.url)), "utf8");
 
+/** The declarations inside the first block that starts with `selector {`. */
+function block(selector: string): string {
+  const start = css.indexOf(`${selector} {`);
+  if (start === -1) throw new Error(`No ${selector} block in styles.css`);
+  return css.slice(start, css.indexOf("}", start));
+}
+
 function colourTokens(source: string): Record<string, string> {
   const tokens: Record<string, string> = {};
   for (const [, name, value] of source.matchAll(/--tibyan-([a-z-]+):\s*(#[0-9a-f]{6})/gi)) {
@@ -14,7 +21,9 @@ function colourTokens(source: string): Record<string, string> {
   return tokens;
 }
 
-const colours = colourTokens(css);
+const colours = colourTokens(block(":root"));
+// The dark scene keeps every light token it does not redefine.
+const darkColours = { ...colours, ...colourTokens(block('[data-theme="dark"]')) };
 
 function channel(hex: string, start: number): number {
   const value = parseInt(hex.slice(start, start + 2), 16) / 255;
@@ -55,28 +64,33 @@ const TEXT_PAIRS: Array<[string, string]> = [
   ["on-secondary", "secondary"],
   ["on-secondary", "secondary-hover"],
   ["on-secondary", "background"],
+  ["link", "surface"],
+  ["link", "background"],
+  // Tags: the deep text shade on the tint of the same tone.
+  ["danger", "danger-tint"],
+  ["success", "success-tint"],
+  ["warning", "warning-tint"],
+  ["info", "info-tint"],
 ];
 
+// Input borders (border/strong, 3:1 since the design system changed them), focus, and the ink
+// icon glyph on each bright fill in alerts.
 const NON_TEXT_PAIRS: Array<[string, string]> = [
+  ["control", "surface"],
+  ["control", "background"],
   ["control-hover", "surface"],
   ["control-hover", "background"],
   ["focus", "surface"],
   ["focus", "background"],
-];
-
-/*
- * Pairs the design system does not meet yet (see styles.css). They stay listed so the gap stays
- * visible: each check expects the contrast to be under its minimum, so it fails once the design
- * system fixes the colour, as a reminder to move the pair back into the lists above.
- */
-const DESIGN_GAPS: Array<[string, string, number]> = [
-  ["control", "surface", 3],
-  ["control", "background", 3],
+  ["ink", "danger-fill"],
+  ["ink", "success-fill"],
+  ["ink", "warning-fill"],
+  ["ink", "info-fill"],
 ];
 
 describe("token colours", () => {
   it("define every colour the checks need", () => {
-    const names = [...TEXT_PAIRS, ...NON_TEXT_PAIRS, ...DESIGN_GAPS.map(([a, b]) => [a, b])].flat();
+    const names = [...TEXT_PAIRS, ...NON_TEXT_PAIRS].flat();
     for (const name of names) {
       expect(colours[name], `--tibyan-${name}`).toMatch(/^#[0-9a-f]{6}$/i);
     }
@@ -89,8 +103,46 @@ describe("token colours", () => {
   it.each(NON_TEXT_PAIRS)("%s on %s reaches 3:1", (part, background) => {
     expect(contrast(colours[part]!, colours[background]!)).toBeGreaterThanOrEqual(3);
   });
+});
 
-  it.each(DESIGN_GAPS)("%s on %s is still under %d:1 (known design gap)", (a, b, minimum) => {
-    expect(contrast(colours[a]!, colours[b]!)).toBeLessThan(minimum);
+// The dark scene of the sign-in and sign-up pages.
+const DARK_TEXT_PAIRS: Array<[string, string]> = [
+  ["ink", "surface"],
+  ["ink", "background"],
+  ["ink", "surface-muted"],
+  ["ink-muted", "surface"],
+  ["ink-muted", "background"],
+  ["ink-muted", "surface-muted"],
+  ["link", "surface"],
+  ["link", "background"],
+  ["danger", "surface"],
+  ["danger", "background"],
+  ["success", "surface"],
+  ["success", "background"],
+  ["on-primary", "primary"],
+  ["on-primary", "primary-hover"],
+  ["on-primary", "primary-active"],
+  ["on-secondary", "secondary"],
+  ["on-secondary", "secondary-hover"],
+  ["on-bubble", "bubble"],
+  ["on-bubble", "success"],
+];
+
+const DARK_NON_TEXT_PAIRS: Array<[string, string]> = [
+  ["control", "surface"],
+  ["control", "background"],
+  ["control-hover", "surface"],
+  ["control-hover", "background"],
+  ["focus", "surface"],
+  ["focus", "background"],
+];
+
+describe("dark scene colours", () => {
+  it.each(DARK_TEXT_PAIRS)("%s text on %s reaches 4.5:1", (text, background) => {
+    expect(contrast(darkColours[text]!, darkColours[background]!)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it.each(DARK_NON_TEXT_PAIRS)("%s on %s reaches 3:1", (part, background) => {
+    expect(contrast(darkColours[part]!, darkColours[background]!)).toBeGreaterThanOrEqual(3);
   });
 });

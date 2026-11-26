@@ -36,20 +36,26 @@ export async function loader({ params }: LoaderFunctionArgs): Promise<ProfilesDa
   const children = await listChildren(session.token);
   // A family with no children starts onboarding (J-01).
   if (children.ok && children.data.length === 0) {
-    return redirect(`/${params.locale}/onboarding/child`);
+    return redirect(`/${params.locale}/dashboard/add-child`);
   }
   return { children };
 }
 
 export function Component() {
   const data = useLoaderData<ProfilesData>();
-  const { dict } = useI18n();
+  const { locale, dict } = useI18n();
   const [selected, setSelected] = useState<ChildProfile>();
 
   return (
     <>
       <PageTitle title={dict.screens.profiles} />
-      <h1 className="text-2xl font-bold">{dict.profiles.title}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold">{dict.profiles.title}</h1>
+        {/* The parent's way to the dashboard until the parent card (KAN-60) exists. */}
+        <Link to={`/${locale}/dashboard`} className={buttonClasses("secondary")}>
+          {dict.screens.dashboard}
+        </Link>
+      </div>
       {data && !data.children.ok && <LoadFailed />}
       {data?.children.ok &&
         (selected ? (
@@ -91,7 +97,7 @@ function ProfileGrid({ profiles, onSelect }: ProfileGridProps) {
         ))}
       </ul>
       <div>
-        <Link to={`/${locale}/onboarding/child`} className={buttonClasses("secondary")}>
+        <Link to={`/${locale}/dashboard/add-child`} className={buttonClasses("secondary")}>
           {dict.profiles.addChild}
         </Link>
       </div>

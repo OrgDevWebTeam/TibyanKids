@@ -72,13 +72,31 @@ describe("AlertBanner", () => {
 describe("Dialog", () => {
   it("is labelled by its own title", () => {
     const markup = html(
-      <Dialog open={false} onClose={() => {}} title="Leave child mode?">
+      <Dialog open={false} onClose={() => {}} title="Leave child mode?" closeLabel="Close">
         Body
       </Dialog>,
     );
     const labelledBy = /aria-labelledby="([^"]+)"/.exec(markup)?.[1];
     expect(labelledBy).toBeTruthy();
     expect(markup).toContain(`id="${labelledBy}"`);
+  });
+
+  it("has a close button with a written name", () => {
+    const markup = html(
+      <Dialog open={false} onClose={() => {}} title="Leave child mode?" closeLabel="Close">
+        Body
+      </Dialog>,
+    );
+    expect(markup).toContain('aria-label="Close"');
+  });
+});
+
+describe("AlertBanner icons", () => {
+  it("shows a different icon shape for each tone, hidden from screen readers", () => {
+    const tones = ["info", "success", "warning", "danger"] as const;
+    const icons = tones.map((tone) => html(<AlertBanner tone={tone}>Text</AlertBanner>));
+    for (const markup of icons) expect(markup).toContain('aria-hidden="true"');
+    expect(new Set(icons.map((markup) => /<svg[\s\S]*?<\/svg>/.exec(markup)?.[0])).size).toBe(4);
   });
 });
 

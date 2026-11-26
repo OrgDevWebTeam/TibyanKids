@@ -14,15 +14,8 @@ pnpm --filter @tibyan/web dev    # http://localhost:3000, redirects to /ar or /e
 pnpm check                     # format, lint, typecheck, test, build: what CI runs
 ```
 
-> **Known gap: the web app does not match the current API yet.** It was written for the old
-> TypeScript API that #41 replaced. The dev server (`vite.config.ts`) still forwards `/v1` to
-> `http://127.0.0.1:4000` and `/dev-idp` to a test identity provider that no longer exists, and
-> `src/features/children/children-api.ts` calls PIN endpoints the API does not have. The current
-> API runs on `http://localhost:5000` with routes under `/api/v1`, and signs in with
-> `POST /api/v1/auth/login` (ADR-0006). Until the web code is updated, the screens that call the
-> API (see [Data](#data)) do not work, and `/en/dev/session` cannot get a token.
-
-To run the API next to the web app:
+The dev server forwards `/api` to the API at `http://127.0.0.1:5000`, so no CORS setup is needed
+locally. To use the screens that call the API (see [Data](#data)):
 
 ```bash
 pnpm --filter @tibyan/api services:up   # MongoDB and the AI service (mock mode) in Docker
@@ -30,7 +23,12 @@ pnpm --filter @tibyan/api dev           # API on http://localhost:5000, settings
 pnpm --filter @tibyan/web dev
 ```
 
-Without a session, private pages send the visitor to the landing page.
+Parents sign up at `/en/sign-up` and log in at `/en/sign-in` (G03, G06). The session lives in
+memory only, so a reload signs out; without a session, private pages send the visitor to log in.
+`/en/dev/session` signs in a test parent in one click.
+
+A new parent must verify their email before adding a child (FR-AUTH-001). In development the API
+prints the verification link in its console; send its `token` to `POST /api/v1/auth/verify-email`.
 
 Inside `apps/web`, the same scripts run for this app only:
 
@@ -55,7 +53,7 @@ src/
   styles.css              Tailwind, design tokens and fonts
   pages/                  One file per screen, plus the X06 states (404, error, loading, maintenance)
     dev/                  /dev/ui, /dev/rtl and /dev/session: development only
-  features/               Data and rules of one feature: children
+  features/               Data and rules of one feature: children, auth (sign-in pages)
   components/             App-wide pieces: page frame, header, language switcher, offline banner
   assets/                 The logo, from the design system's Logo page
   lib/
@@ -83,15 +81,17 @@ Shared code lives in packages:
 ## Data
 
 Screens get data through `src/features/*/…-api.ts`, which call the API with `src/lib/api/client.ts`.
-There is no mock: a screen that needs data is added once its API exists. The paths below are the
-ones the web code calls today; the current API serves children at `/api/v1/children` and has no
-PIN endpoints (see the known gap above).
+There is no mock: a screen that needs data is added once its API exists.
 
-| Screen                     | Called by the web code                                 | Still to come                                                          |
-| -------------------------- | ------------------------------------------------------ | ---------------------------------------------------------------------- |
-| G08 profile picker and PIN | `GET /v1/children`, `POST /v1/children/:id/pin/verify` | The parent card, with the parent area (KAN-60)                         |
-| O01 add a child            | `POST /v1/children`, `POST /v1/children/:id/pin`       | Optional child fields (language, country, interests, avatar): KAN-22   |
-| C01 Today (skeleton)       | None yet                                               | Today's activities: KAN-31, with the mission APIs of KAN-30 and KAN-40 |
+| Screen                     | API                                                     | Still to come                                                                                             |
+| -------------------------- | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| G06, G03 log in, sign up   | `POST /api/v1/auth/login`, `POST /api/v1/auth/register` | The email verification code (G04) and password recovery (G07): their APIs do not exist yet                |
+| G08 profile picker and PIN | `GET /api/v1/children`                                  | The PIN check: the API has no PIN endpoints yet (CRS open decision O-03). The parent card, with KAN-60    |
+| O01 add a child            | `POST /api/v1/children`                                 | The nickname and the profile picture permission. The API refuses a parent whose email is not verified yet |
+| P01 dashboard home         | `GET /api/v1/children`, `GET .../missions`              | The weekly summary, insight, teacher messages, Quran progress and growth map                              |
+| P03 family tasks           | `GET .../missions`, `POST .../missions/:id/observe`     | The time of day and the parent tip of each task                                                           |
+| Child profile              | `GET /api/v1/children`, `PATCH /api/v1/children/:id`    | The sign-in QR code, child PIN, profile picture, nickname and deleting the profile                        |
+| C01 Today (skeleton)       | None yet                                                | Today's activities: KAN-31, with the mission APIs of KAN-30 and KAN-40                                    |
 
 The other onboarding steps, O02–O04 (questions, placement check, journey preview), wait for their
 APIs. No ticket covers the answers or the placement check yet, and the journey's missions come with
@@ -114,8 +114,8 @@ KAN-40.
 ## Development pages
 
 `/ar/dev/ui` shows every `@tibyan/ui` primitive. `/ar/dev/rtl` checks mixed text, numbers, dates,
-plurals and mirroring. `/ar/dev/session` was made to start a test parent session with a token
-from the old local dev-idp; it does not work until it is moved to the API's login (see the known gap). Open them with `/en/...` for the LTR version. They exist in
+plurals and mirroring. `/ar/dev/session` signs in a test parent on the local API, creating the
+account the first time, until real sign-in exists. Open them with `/en/...` for the LTR version. They exist in
 development only: production bundles do not contain them, and those paths show the 404 page.
 
 ## PWA

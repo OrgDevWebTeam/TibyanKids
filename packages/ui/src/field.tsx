@@ -1,12 +1,16 @@
 import { type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from "react";
 import { cx } from "./cx";
+import { CircleAlertIcon } from "./icons";
 
+// Text styles from the design system: Label (16/24 Bold) above, Input (16/24 Medium) inside and
+// Caption (14/20) under, with the same line heights in Arabic and English.
 const CONTROL_CLASSES = cx(
-  "min-h-control w-full rounded-control border-2 border-control bg-surface px-4 text-body text-ink",
+  "min-h-control w-full rounded-control border-2 border-control bg-surface px-4",
+  "text-body leading-6 font-medium text-ink",
   "placeholder:text-ink-muted",
   "focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus",
-  // The design system's states: a stronger border on hover, primary while editing, error when
-  // invalid, and a grey box when disabled.
+  // The design system's states (Inputs/Text field): border/strong at rest, border/selected on
+  // hover and while editing, error when invalid, and a grey box when disabled.
   "hover:border-control-hover focus:border-primary aria-[invalid=true]:border-danger",
   "disabled:bg-surface-muted disabled:text-ink-disabled",
 );
@@ -36,8 +40,8 @@ function FieldShell({
   children,
 }: FieldTextProps & { required?: boolean; children: ReactNode }) {
   return (
-    <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="font-medium text-ink">
+    <div className="flex flex-col gap-2">
+      <label htmlFor={id} className="leading-6 font-bold text-ink">
         {label}
         {required && (
           <span aria-hidden="true" className="text-danger">
@@ -47,13 +51,18 @@ function FieldShell({
       </label>
       {children}
       {hint && (
-        <p id={`${id}-hint`} className="text-sm text-ink-muted">
+        <p id={`${id}-hint`} className="text-caption text-ink-muted">
           {hint}
         </p>
       )}
+      {/* An error always pairs the circle-alert icon with its words, never colour alone. */}
       {error && (
-        <p id={`${id}-error`} className="text-sm font-medium text-danger">
-          {error}
+        <p
+          id={`${id}-error`}
+          className="flex items-start gap-1.5 text-caption font-medium text-danger"
+        >
+          <CircleAlertIcon className="mt-0.5 size-4 shrink-0" />
+          <span>{error}</span>
         </p>
       )}
     </div>

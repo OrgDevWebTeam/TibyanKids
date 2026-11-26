@@ -5,10 +5,6 @@
  * Components never use raw colours. They use the Tailwind utilities generated from these
  * names (bg-surface, text-ink, border-control, rounded-control, min-h-control...).
  * A unit test checks the text and control colours against WCAG 2.2 AA contrast.
- *
- * The values follow the design system as it is. One of them is under WCAG AA for now: input
- * borders (border/default, #d9d5ea, is 1.4:1 and a control needs 3:1). The test lists it as a
- * known gap until the design system changes it.
  */
 
 :root {
@@ -24,9 +20,11 @@
   --tibyan-ink-disabled: #9c97b8;
   /* border/subtle: decorative lines (cards, dividers), and action/disabled behind disabled buttons. */
   --tibyan-line: #eeebf7;
-  /* border/default and border/strong: an input box, and the same box on hover. */
-  --tibyan-control: #d9d5ea;
-  --tibyan-control-hover: #7c779c;
+  /* border/default: the outline of list tiles, whose own text names them. */
+  --tibyan-border: #d9d5ea;
+  /* border/strong: an input box at rest (3:1 and more), and border/selected on hover. */
+  --tibyan-control: #7c779c;
+  --tibyan-control-hover: #5b2eff;
   /* action/primary with its hover, pressed and edge shades, and text/onPrimary. */
   --tibyan-primary: #5b2eff;
   --tibyan-primary-hover: #5027ea;
@@ -43,21 +41,98 @@
   --tibyan-success: #0f7a52;
   --tibyan-warning: #8a5a00;
   --tibyan-info: #1f5fd1;
+  /* Their bright fills (alert borders and icon circles) and tints (tag backgrounds). */
+  --tibyan-danger-fill: #ff5a5f;
+  --tibyan-success-fill: #3ddc97;
+  --tibyan-warning-fill: #ffb020;
+  --tibyan-info-fill: #6cb6ff;
+  --tibyan-danger-tint: #ffe8e8;
+  --tibyan-success-tint: #e3faf0;
+  --tibyan-warning-tint: #fff4dc;
+  --tibyan-info-tint: #e5f1ff;
+  /* text/link. */
+  --tibyan-link: #4520d6;
   /* focus/ring. */
   --tibyan-focus: #5b2eff;
+  /* shadow/soft and shadow/strong are this colour at 10% and 18%. */
+  --tibyan-shadow: #321c98;
+  /* bg/overlay: the scrim behind a dialog, at 60%. */
+  --tibyan-overlay: #120c2b;
+  /* action/disabled and action/disabledText: a disabled button. */
+  --tibyan-action-disabled: #eeebf7;
+  --tibyan-action-disabled-text: #9c97b8;
+  /* sheen: white, for highlights and glass edges. The same in both themes. */
+  --tibyan-sheen: #ffffff;
 
-  /* radius/md for inputs and cards, radius/xl for buttons. */
+  /* radius/md for inputs and cards, radius/xl for buttons, radius/2xl for dialogs. */
   --tibyan-radius: 0.75rem;
   --tibyan-radius-button: 1.25rem;
-  /* Body: 16px in English. Arabic styles are about 1.3x the Latin size (see below). */
+  --tibyan-radius-dialog: 1.75rem;
+  /*
+   * One size scale for Arabic and English. Arabic changes only the line height of reading text
+   * (the app's body text); controls, labels and captions keep the same line height in both.
+   */
   --tibyan-text-body: 1rem;
-  /* Inputs and buttons are 64px tall in the design, above the 44px minimum touch target. */
-  --tibyan-control-height: 4rem;
+  /* Button text: 16px on a 20px line. */
+  --tibyan-leading-button: 1.25;
+  /* Caption (helper and error text under a field): 14px on a 20px line. */
+  --tibyan-text-caption: 0.875rem;
+  --tibyan-leading-caption: 1.25rem;
+  /* Inputs and buttons are 56px tall in the design, above the 44px minimum touch target. */
+  --tibyan-control-height: 3.5rem;
 }
 
-/* Body in Arabic: 21px. */
-:root[lang="ar"] {
-  --tibyan-text-body: 1.3125rem;
+/*
+ * Dark scene, for the sign-in and sign-up pages only (their design is a night sky). Set
+ * data-theme="dark" on a page's outer element and everything inside uses these values: the
+ * design system's Dark theme semantic tokens.
+ */
+[data-theme="dark"] {
+  color-scheme: dark;
+  /* bg/surface, bg/canvas and bg/raised. */
+  --tibyan-surface: #1e1645;
+  --tibyan-background: #120c2b;
+  --tibyan-surface-muted: #2a1f5c;
+  /* text/primary, text/secondary and text/disabled. */
+  --tibyan-ink: #f3f0ff;
+  --tibyan-ink-muted: #a99bdb;
+  --tibyan-ink-disabled: #574e85;
+  /* border/subtle, border/default, border/strong (an input box at rest, 3:1 and more) and
+     border/selected. */
+  --tibyan-line: #2a1f5c;
+  --tibyan-border: #3c3568;
+  --tibyan-control: #6c639c;
+  --tibyan-control-hover: #8b7cf6;
+  /* action/primary: a light violet with dark text, with its hover, pressed and edge shades. */
+  --tibyan-primary: #8b7cf6;
+  --tibyan-primary-hover: #a098fa;
+  --tibyan-primary-active: #8b7cf6;
+  --tibyan-primary-edge: #7c5cff;
+  --tibyan-on-primary: #120c2b;
+  /* action/secondary with its hover and edge, and action/secondaryText. */
+  --tibyan-secondary: #2a1f5c;
+  --tibyan-secondary-hover: #312373;
+  --tibyan-secondary-edge: #050313;
+  --tibyan-on-secondary: #f3f0ff;
+  /* text/link. */
+  --tibyan-link: #c1baff;
+  /* feedback error and success text, and the darker edge under a success button. */
+  --tibyan-danger: #ffb49f;
+  --tibyan-success: #3ddc97;
+  --tibyan-success-edge: #0f7a52;
+  /* focus/ring: Violet 400 (Changelog v1.1). */
+  --tibyan-focus: #7c5cff;
+  /* bg/sunken: the deepest shade, for shadows. */
+  --tibyan-sunken: #050313;
+  /* The character's speech bubble: white, with dark text. */
+  --tibyan-bubble: #ffffff;
+  --tibyan-on-bubble: #1a1238;
+  /* action/fun and badge/rare: star colours and the remove-account hover. */
+  --tibyan-fun: #ff7a59;
+  --tibyan-rare: #ff8ad8;
+  /* action/disabled and action/disabledText. */
+  --tibyan-action-disabled: #2a1f5c;
+  --tibyan-action-disabled-text: #574e85;
 }
 
 @theme inline {
@@ -84,9 +159,59 @@
   --color-warning: var(--tibyan-warning);
   --color-info: var(--tibyan-info);
   --color-focus: var(--tibyan-focus);
+  --color-link: var(--tibyan-link);
+  --color-danger-fill: var(--tibyan-danger-fill);
+  --color-success-fill: var(--tibyan-success-fill);
+  --color-warning-fill: var(--tibyan-warning-fill);
+  --color-info-fill: var(--tibyan-info-fill);
+  --color-danger-tint: var(--tibyan-danger-tint);
+  --color-success-tint: var(--tibyan-success-tint);
+  --color-warning-tint: var(--tibyan-warning-tint);
+  --color-info-tint: var(--tibyan-info-tint);
+  --color-action-disabled: var(--tibyan-action-disabled);
+  --color-action-disabled-text: var(--tibyan-action-disabled-text);
 
   --radius-control: var(--tibyan-radius);
   --radius-button: var(--tibyan-radius-button);
+  --radius-dialog: var(--tibyan-radius-dialog);
   --text-body: var(--tibyan-text-body);
+  --leading-button: var(--tibyan-leading-button);
+  --text-caption: var(--tibyan-text-caption);
+  --text-caption--line-height: var(--tibyan-leading-caption);
   --spacing-control: var(--tibyan-control-height);
+}
+
+/*
+ * Motion from the design system: a dialog enters in 300ms, growing from 96% (duration/300,
+ * easing/enter); with reduced motion it only fades. Loading placeholders shimmer in 800ms
+ * (duration/800, easing/standard) and stay still with reduced motion.
+ */
+@theme {
+  --animate-dialog-in: tibyan-dialog-in 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  --animate-fade-in: tibyan-fade-in 300ms ease-out;
+  --animate-shimmer: tibyan-shimmer 800ms cubic-bezier(0.4, 0, 0.2, 1) infinite;
+
+  @keyframes tibyan-dialog-in {
+    from {
+      opacity: 0;
+      transform: scale(0.96);
+    }
+  }
+
+  @keyframes tibyan-fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  /* The light moves in the reading direction: --shimmer-dir is 1 left to right, -1 right to left. */
+  @keyframes tibyan-shimmer {
+    from {
+      background-position: calc(100% * var(--shimmer-dir, 1)) 0;
+    }
+
+    to {
+      background-position: calc(-100% * var(--shimmer-dir, 1)) 0;
+    }
+  }
 }

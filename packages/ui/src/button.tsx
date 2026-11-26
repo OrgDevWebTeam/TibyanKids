@@ -4,25 +4,31 @@ import { cx } from "./cx";
 export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 export type ButtonSize = "md" | "lg";
 
-// As in the design system: a darker edge under primary and secondary buttons, darker shades on
-// hover and press. The design system has no danger button, so danger keeps its earlier style.
+// As in the design system (Buttons/Button): a 4px darker edge along the bottom, inside the
+// button's height, and darker shades on hover and press. Pressing removes the edge, so the label
+// moves down like a real key. The design system has no danger button, so danger keeps its style.
+// The edge reads the --tibyan-* token itself, so the dark scene's value applies inside it.
+const EDGE = "pb-1 active:pb-0 active:shadow-none";
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary: cx(
-    "bg-primary text-on-primary shadow-[0_4px_0_var(--color-primary-edge)]",
+    "bg-primary text-on-primary shadow-[inset_0_-4px_0_var(--tibyan-primary-edge)]",
     "hover:bg-primary-hover active:bg-primary-active",
+    EDGE,
   ),
   secondary: cx(
-    "bg-secondary text-on-secondary shadow-[0_4px_0_var(--color-secondary-edge)]",
+    "bg-secondary text-on-secondary shadow-[inset_0_-4px_0_var(--tibyan-secondary-edge)]",
     "hover:bg-secondary-hover active:bg-secondary-hover",
+    EDGE,
   ),
   ghost: "bg-transparent text-on-secondary hover:bg-background active:bg-secondary",
   danger: "bg-danger text-on-primary hover:brightness-110",
 };
 
-// The design system's Button style: 16px in English and 21px in Arabic (text-body), bold.
+// The design system's Button style: 56px tall, 24px at each side, 16px bold in both languages,
+// on a 20px line in English and a 24px line in Arabic.
 const SIZE_CLASSES: Record<ButtonSize, string> = {
-  md: "min-h-control px-8 text-body",
-  lg: "min-h-control px-10 text-lg",
+  md: "min-h-control px-6 text-body leading-button",
+  lg: "min-h-control px-10 text-lg leading-button",
 };
 
 /** Button styling as classes, so a link (for example a router `Link`) can look like a button. */
@@ -37,8 +43,9 @@ export function buttonClasses(
     // Grey when disabled, in every variant. A loading button is disabled too, but keeps its
     // colour so it still looks like the action in progress.
     "disabled:cursor-not-allowed",
-    "[&:disabled:not([aria-busy=true])]:bg-line [&:disabled:not([aria-busy=true])]:text-ink-disabled",
-    "[&:disabled:not([aria-busy=true])]:shadow-none",
+    "[&:disabled:not([aria-busy=true])]:bg-action-disabled",
+    "[&:disabled:not([aria-busy=true])]:text-action-disabled-text",
+    "[&:disabled:not([aria-busy=true])]:shadow-none [&:disabled:not([aria-busy=true])]:pb-0",
     VARIANT_CLASSES[variant],
     SIZE_CLASSES[size],
     fullWidth && "w-full",

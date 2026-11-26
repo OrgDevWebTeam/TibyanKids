@@ -3,12 +3,13 @@ import { cx } from "./cx";
 
 export type StatusTone = "neutral" | "info" | "success" | "warning" | "danger";
 
+// Utility/Tag: a tint background with the deep text shade of the same tone.
 const TONE_CLASSES: Record<StatusTone, string> = {
-  neutral: "border-control text-ink-muted",
-  info: "border-info text-info",
-  success: "border-success text-success",
-  warning: "border-warning text-warning",
-  danger: "border-danger text-danger",
+  neutral: "bg-surface-muted text-ink-muted",
+  info: "bg-info-tint text-info",
+  success: "bg-success-tint text-success",
+  warning: "bg-warning-tint text-warning",
+  danger: "bg-danger-tint text-danger",
 };
 
 /** A different shape per tone, so the status never depends on colour alone (NFR-A11Y-001). */
@@ -50,12 +51,16 @@ function StatusIcon({ tone }: { tone: StatusTone }) {
 
 export type StatusBadgeProps = { tone?: StatusTone; children: ReactNode };
 
-/** A short status label, e.g. "pending review" on a recitation (UI spec: status badge). */
+/**
+ * A short static status label, e.g. "pending review" on a recitation (UI spec: status badge;
+ * design system: Utility/Tag). Not interactive. Caption text, with an icon so the meaning never
+ * depends on colour.
+ */
 export function StatusBadge({ tone = "neutral", children }: StatusBadgeProps) {
   return (
     <span
       className={cx(
-        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-sm font-medium",
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-caption font-medium",
         TONE_CLASSES[tone],
       )}
     >
